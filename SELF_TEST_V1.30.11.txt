@@ -1,0 +1,24 @@
+To-Do V1.30.11 SELF TEST
+=============================
+Variant: Stable
+VersionCode: 1311
+
+Fix targets
+-----------
+1. New-todo category picker must not be clipped by the composer sheet.
+2. Category picker must be vertically scrollable when labels exceed available height.
+3. Picker must remain anchored near the 分类 button through Todo IME docking changes.
+4. 创建面板的 分类 control must stay compact on the left rather than flexing across the footer.
+5. V1.30.10 checklist swipe-rail anti-flash lifecycle must remain intact.
+6. ui/todo.html and Android asset todo.html must remain byte-identical.
+7. Stable package/signing policy must remain unchanged.
+
+Static regression expectations
+------------------------------
+- `.category-picker.create-top-layer` uses fixed page-level z-index and pan-y scrolling.
+- create picker is NOT appended into todoCreateFoot.
+- positionCategoryPicker computes a bounded maxHeight and the picker owns overflow-y scrolling.
+- applyTodoImeSpace schedules picker reposition when create picker is active.
+- `.todo-create-category` is flex:0 with max-width 170px; cancel uses margin-left:auto.
+- Closed To-Do swipe rails remain visibility:hidden / opacity:0 / pointer-events:none.
+- Stable: applicationId com.todolist.app, no signingConfig/keystore.

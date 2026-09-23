@@ -1,0 +1,101 @@
+To-Do Tree Beta V1.1 — Delivery Self-Test
+=========================================
+
+A. Baseline / version boundary — PASS
+- Development baseline: To-Do-Tree-Beta-V1.0.5-Full.zip only.
+- applicationId: com.todolist.app.beta
+- namespace: com.todolist.app
+- versionCode: 1100
+- versionName: 1.1.0-beta1
+- APK output: To-Do-Tree-Beta-V1.1.apk
+- Fixed Beta signing keystore is byte-identical to V1.0.5.
+
+B. New V1.1 Note swipe scope — PASS
+- Recent view Note cards are wrapped in the swipe Action Rail.
+- Topic Workspace Note cards are wrapped in the swipe Action Rail.
+- Knowledge Tree leaf Note rows are intentionally NOT wrapped.
+- Right-swipe Drawer rows are intentionally NOT wrapped.
+- First action rail exposes exactly two actions: 移动 / 删除.
+- Swipe itself never deletes a Note.
+
+C. Golden physical geometry — PASS
+- Rail width: 124px (matches Golden To-Do).
+- Reveal threshold: 48px (matches Golden To-Do).
+- Settle: 200ms ease-out (matches Golden To-Do).
+- Short drag rebounds to 0.
+- Past-threshold drag settles to -124px.
+- Open rail can be dragged back and settles closed below threshold.
+- Translation clamps to [-124, 0].
+- Vertical gesture wins when |dy| > |dx|.
+- Only one Note rail can remain open.
+- Post-swipe click is suppressed, preventing accidental Note open.
+
+D. Action routing — PASS
+- 移动 opens a dedicated lightweight Topic picker.
+- Topic picker supports 未分类 and recursive nested Topics.
+- Move uses existing moveNoteToTopic(); no new persistence key/schema.
+- Choosing the current Topic is a no-op and does not touch updatedAt.
+- 删除 calls existing deleteNoteFromList(), preserving the existing confirmation dialog.
+- Existing top-right Note editor menu remains 移到主题… / 删除笔记.
+
+E. Gesture conflict review — PASS
+- Existing Note surface right-swipe Drawer gesture now ignores gestures whose origin is .note-swipe-row.
+- Card horizontal gesture therefore cannot accidentally open the Drawer.
+- Drawer remains available through its existing button and non-card/empty-surface right swipe.
+- Recent breadcrumb path remains excluded from card swipe capture so its horizontal path interaction remains intact.
+
+F. V1.0.5 editor / IME protection — SOURCE-IDENTICAL PASS
+The following functions are source-identical to V1.0.5:
+- measureVisualImeSpace
+- resolveNoteImeSpace
+- getNoteCaretRect
+- revealNoteCaretAboveIme
+- scheduleNoteCaretReveal
+- applyNoteImeSpace
+- syncResolvedNoteImeSpace
+- syncNoteViewportOffset
+- syncNoteImeLayout
+- setNoteEditorMode
+- openNoteEditor
+- closeNoteEditor
+
+G. Existing core protection — PASS
+- android/app/src/main/java: 23/23 files byte-identical to V1.0.5.
+- Golden To-Do swipe implementation source block is byte-identical to V1.0.5.
+- Topic/Note Schema V2, migration, Read/Edit, Breadcrumb, Origin Back, timestamp, compact image, B/S/H, HTTP link, file/annotation/delete-guard logic are unchanged outside list rendering/action routing.
+- Existing localStorage key set: unchanged (11/11).
+
+H. Automated regression tests — PASS
+- tests/note-swipe-physics.test.js: PASS.
+- tests/note-swipe-move.test.js: PASS.
+- Static scope assertions: PASS.
+- Exactly two V1.1 action buttons: PASS.
+- Delete-confirm path retained: PASS.
+- Knowledge Tree leaf remains navigation-only: PASS.
+- Drawer card-origin conflict guard: PASS.
+
+I. Static / mirror / XML / signing — PASS
+- ui/todo.html == android/app/src/main/assets/todo.html.
+- Runtime script extracted to script_0.js; node --check PASS.
+- Android XML parse: 5/5 PASS.
+- Beta signing key alias androiddebugkey is readable.
+- Beta certificate SHA-256 fingerprint: F8:44:1C:45:A5:2E:1D:5D:FA:2F:44:12:C4:6C:BE:06:84:41:5E:83:84:D3:DF:71:BB:91:54:E0:40:DD:48:51.
+
+J. Browser-headless note
+- This sandbox Chromium is administratively blocked from navigating to file://, localhost and data: test pages.
+- No browser-headless PASS is claimed.
+- Gesture math and move routing were instead executed as Node regression tests using the exact V1.1 helper source.
+
+K. Real Android compiler gate — LOCAL ENVIRONMENT BLOCKED
+- Attempted ./gradlew --no-daemon :app:assembleDebug.
+- Gradle wrapper cannot resolve services.gradle.org (UnknownHostException), before Android compilation.
+- This is NOT reported as compiler success.
+- GitHub Build Beta ZIP to APK & Release must be green before installation.
+
+Delivery verdict
+- V1.1 is a list-level interaction feature on top of real-device-validated V1.0.5/V1.0.4 editor behavior.
+- It does not reopen or rewrite the Note editor/IME problem space.
+- GitHub Actions remains the final compiler/signing gate.
+
+L. Full-tree hash verification — PASS
+- SHA256SUMS verification: 313/313 files PASS before packaging.

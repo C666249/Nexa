@@ -1,0 +1,45 @@
+To-Do v1.22.7 Self Test
+========================
+Base: v1.22.6 NoteImageFocusSafePreview
+Target: v1.22.7 NoteHttpAutoLink
+
+Implementation boundary:
+- Explicit http:// and https:// only; no fuzzy bare-domain recognition.
+- Existing Note URLs are migrated before editor focus.
+- Live typing linkifies only the recently completed token on whitespace / Enter / paste.
+- No beforeinput preventDefault, no manual character insertion, no full-editor rewrite during typing.
+- Link click delegates through Android ACTION_VIEW; WebView does not navigate away.
+
+Static/source validation:
+- script_0.js node --check PASS
+- ui/todo.html == Android asset mirror PASS
+- inline main script == script_0.js PASS
+- static DOM IDs unique PASS
+- Android XML parse PASS
+- applicationId / namespace remain com.todolist.app PASS
+- versionCode=40 / versionName=1.22.7 PASS
+- Reminder/Daily/Banner/Snooze locked core SHA-256 20/20 PASS
+- NoteFileViewerActivity.kt / ImportReceiverActivity.kt / Manifest / FileProvider paths byte-identical to v1.22.6 PASS
+- MainActivity.kt equals v1.22.6 plus only the isolated openExternalUrl bridge PASS
+- V1.22.3 IME/caret critical functions exact-text unchanged PASS
+- V1.22.4 B/S/H critical functions exact-text unchanged PASS
+- V1.22.5 image-preview zoom functions exact-text unchanged PASS
+- V1.22.6 focus-safe inline-image pointer block exact-text unchanged PASS
+- Existing business localStorage key set unchanged PASS
+- URL parser checks PASS: explicit https/http accepted; bare-domain/javascript/credential URLs rejected; common Chinese/English trailing punctuation trimmed.
+
+Gradle build attempt:
+- ./gradlew :app:assembleDebug --offline --no-daemon attempted.
+- The sandbox still lacks cached Gradle 8.11.1 and cannot reach services.gradle.org (UnknownHostException), so a full Android compilation could not begin.
+
+Target-phone acceptance:
+1. Type `https://mojie.app/dashboard` then Space: URL becomes blue/clickable, caret remains after the space, no jump-to-top.
+2. Type the URL then Enter: previous-line URL becomes clickable, new line remains the current caret location.
+3. Paste a complete http(s) URL: it becomes clickable without corrupting Chinese IME / undo / formatting.
+4. Open an older Note that already contains plain-text http(s) URL: it displays as a link before typing begins.
+5. Tap a link: To-Do remains intact and Android opens the URL in the system web handler/default browser.
+6. `example.com` and `www.example.com` remain plain text in V1.22.7.
+7. `javascript:...` / non-http(s) text never becomes a clickable auto-link.
+8. Recheck B/S/H after link creation; their manual ON/OFF state remains the authority for next input.
+9. Recheck long-note keyboard: toolbar remains above IME, low caret reveal works, normal typing/deletion does not jump to top.
+10. Recheck inline image preview, image pinch/pan, PDF scroll/zoom, file attachments/import, Reminder/Daily/Banner/Snooze.

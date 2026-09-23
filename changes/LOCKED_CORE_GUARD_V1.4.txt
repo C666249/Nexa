@@ -1,0 +1,29 @@
+LOCKED CORE / GOLDEN BASELINE — V1.4
+Baseline: user-uploaded project with July-22 Note-mode merged asset restored to source
+
+PASS  android/app/src/main/java/com/todolist/app/ui/BannerView.kt
+  baseline 5d6a1a7bd5b1731c21b3a611244448d87657540b0e2abda19a0bf71517abbe49
+  final    5d6a1a7bd5b1731c21b3a611244448d87657540b0e2abda19a0bf71517abbe49
+PASS  android/app/src/main/java/com/todolist/app/util/Dp.kt
+  baseline 4076197dac4258610e66978ffa4d4347ba1c1eb75ec364ddca9344c99ee617e8
+  final    4076197dac4258610e66978ffa4d4347ba1c1eb75ec364ddca9344c99ee617e8
+PASS  android/app/src/main/assets/background.png
+  baseline de5c1b4aa8ec994e40461e5aab154b93cc085a019b43b831cd0637657e0b54a6
+  final    de5c1b4aa8ec994e40461e5aab154b93cc085a019b43b831cd0637657e0b54a6
+PASS  assets/icon.jpg
+  baseline 429c8014834fef7ed9e5f7f8c5b0b2ad22363f29f50dcc2d9fa4e2fc12c6bed8
+  final    429c8014834fef7ed9e5f7f8c5b0b2ad22363f29f50dcc2d9fa4e2fc12c6bed8
+PASS  assets/icons/icon.svg
+  baseline 4575f8b8fad432918a109904f1cdded84540a00139a41ac330252a7ead1ef7c8
+  final    4575f8b8fad432918a109904f1cdded84540a00139a41ac330252a7ead1ef7c8
+PASS  semantic block: Note CSS
+  baseline cfc8b0404741124cbda508babefaff93fccf633369b276a3e4ff3beacc61de66
+  final    cfc8b0404741124cbda508babefaff93fccf633369b276a3e4ff3beacc61de66
+PASS  semantic block: Notes Data Layer
+  baseline 5e88af8636af0270a8c108399a5c8a2c4d9a801137459a842932de5aa19787f4
+  final    5e88af8636af0270a8c108399a5c8a2c4d9a801137459a842932de5aa19787f4
+PASS  semantic block: Notes Event Handlers
+  baseline 45b36d37ddb32147b4586eba8d281419807b0cd757299d5f307e93e29193b7d3
+  final    45b36d37ddb32147b4586eba8d281419807b0cd757299d5f307e93e29193b7d3
+
+Result: 8/8 locked checks PASS. Note-specific CSS/data/event-handler blocks are byte-identical after newline normalization.

@@ -1,0 +1,38 @@
+To-Do v1.22.3 Self Test
+========================
+Base: v1.22.2 NoteEditorRootFix
+Target: v1.22.3
+
+Focus of this release:
+- Keep #noteEditorBody as the only Note text scroll owner.
+- Make converted Android WindowInsets IME geometry authoritative in the packaged WebView.
+- Keep the in-flow format bar directly above the keyboard.
+- Reveal a low caret only after IME geometry changes or an explicit pointer tap, never on normal input/delete/selectionchange.
+
+Static checks performed in delivery environment:
+- script_0.js: node --check PASS
+- ui/todo.html == Android asset mirror PASS
+- inline main script == script_0.js PASS
+- static DOM IDs unique PASS
+- Android XML parse PASS
+- Locked reminder/banner/snooze files SHA-256 20/20 PASS
+- Existing business localStorage key literals unchanged vs v1.22.2 PASS
+- applicationId / namespace remain com.todolist.app PASS
+- versionCode=36 / versionName=1.22.3 PASS
+- ZIP integrity test PASS
+
+Full Gradle build attempt:
+- ./gradlew :app:assembleDebug --offline --no-daemon was attempted.
+- Build could not start because the Gradle 8.11.1 distribution is not cached in this sandbox and services.gradle.org is unreachable here (UnknownHostException).
+- This is an environment/network limitation, not a compiler result; Android Studio build on the user's machine remains required.
+
+Target-phone acceptance checks:
+1. Open a long Note and place the caret near the lower screen edge with keyboard hidden.
+2. Keyboard opens: format toolbar must move to the keyboard top, not remain behind it and not overshoot upward.
+3. If the chosen caret line would be covered, the Note body should scroll only enough to place that line above the toolbar.
+4. Type continuously for 30+ seconds in the lower half; no jump-to-top/current-line snap should return.
+5. Backspace/delete repeatedly; no JS scroll restoration should occur.
+6. Scroll the body up/down while keyboard stays visible; toolbar must stay at the keyboard edge and must not scroll/fly with the Note body.
+7. Tap several visible caret positions while keyboard is already open; each should remain visible without moving unrelated content more than necessary.
+8. Hide/show keyboard repeatedly and verify toolbar returns to the bottom when IME closes.
+9. Recheck image cards, file cards and child-note area around the toolbar boundary.

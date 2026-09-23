@@ -1,0 +1,54 @@
+To-Do V1.14 — Self Test
+Base: V1.13 Full
+Target: V1.14 Full
+
+[Requirements]
+PASS  Independent FeatureCoachManager added on top of V1.13 main onboarding.
+PASS  Context coach: first successful real To-Do left swipe.
+PASS  Context coach: first per-item Todo reminder picker.
+PASS  Context coach: first Daily drawer open.
+PASS  Context coach: first Daily aggregate-history calendar.
+PASS  Context coach: first daily summary reminder picker.
+PASS  Context coach: first real Note entry (button or swipe, via Note container observer).
+PASS  Context coach: first AI assistant open.
+PASS  Existing per-Daily-item calendar coach retained as an extra contextual tip.
+PASS  Right-top ? opens Help & Tutorial hub; main tutorial replay + feature-coach reset are available.
+PASS  "稍后再说" does not mark a coach as learned; "知道了" does.
+PASS  Context coaches only run after the 5-step main tutorial is completed; skipping main tutorial suppresses them.
+
+[Data compatibility]
+PASS  Business storage keys are unchanged from V1.13:
+      todo_glass_data
+      todo_glass_notes
+      todo_glass_daily_tasks_v1
+      todo_glass_history
+      todo_glass_recycle
+PASS  Tutorial state remains isolated under todo_glass_onboarding_v1 / todo_glass_coach_v1_*.
+PASS  No tutorial demo data writes into real To-Do / Note / Daily arrays.
+
+[Locked core]
+PASS  Android native Kotlin source + AndroidManifest: 20/20 byte-identical to V1.13.
+PASS  Notes Data Layer block SHA-256 unchanged.
+PASS  Notes Event Handlers block SHA-256 unchanged.
+PASS  Folder Sidebar block SHA-256 unchanged.
+See changes/LOCKED_CORE_GUARD_V1.14.txt.
+
+[Static checks]
+PASS  JavaScript: node --check.
+PASS  ui/todo.html == android/app/src/main/assets/todo.html byte-for-byte.
+PASS  Android XML parse: 3/3 XML files.
+PASS  Required Feature Coach DOM ids present.
+PASS  Seven primary Feature Coach trigger keys present exactly once.
+PASS  Kotlin diagnostic scan: no syntax-error / unexpected-tokens / expecting / cannot-be-reassigned matches.
+PASS  applicationId remains com.todolist.app.
+PASS  versionCode = 25; versionName = 1.14.
+
+[Build]
+ATTEMPTED  ./gradlew :app:assembleDebug --no-daemon
+BLOCKED    Gradle wrapper could not download Gradle 8.11.1 because the sandbox cannot resolve services.gradle.org (UnknownHostException).
+NOT CLAIMED  Full APK compile success was not available in this environment.
+NOT RUN      Physical-device test.
+
+[Packaging]
+PASS  SHA256SUMS generated and verified.
+PASS  Final ZIP integrity: no CRC/compressed-data errors.

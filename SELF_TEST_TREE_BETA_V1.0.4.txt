@@ -1,0 +1,70 @@
+To-Do Tree Beta V1.0.4 — Delivery Self-Test
+============================================
+
+A. Trigger / root-cause review — PASS
+- User video 1000164097.mp4 reviewed frame-by-frame.
+- V1.0.3 format bar is visible before IME, disappears when IME opens, returns when IME closes.
+- V1.0.3 visualViewport outer-shell docking is rejected and fully removed.
+- Direct DOM/CSS comparison found the remaining Beta vertical-geometry difference: extra Breadcrumb row in Edit Mode.
+
+B. Golden editor geometry restore — PASS
+- Stable V1.22.12 Edit header measured 105px in 432x900 Playwright layout.
+- V1.0.3 pre-fix Beta Edit header measured 133px.
+- V1.0.4 Edit header measured 105px, matching Stable.
+- Edit Mode hides only Breadcrumb; Read Mode retains clickable Breadcrumb.
+- Header Undo/Redo/Done share a 28px title-row height and do not add vertical height.
+- Format bar is never removed from the flex layout: Read Mode uses visibility:hidden + opacity:0 + pointer-events:none.
+- Read Mode format bar remains display:flex and 45px tall; Edit Mode makes the same bar visible without inserting a flex child.
+- V1.0.3 beta-vv-docked / noteBetaViewportDock code and listeners are absent.
+
+C. Golden V1.22.12 IME/caret core — BYTE-EXACT PASS
+- measureVisualImeSpace
+- resolveNoteImeSpace
+- getNoteCaretRect
+- revealNoteCaretAboveIme
+- scheduleNoteCaretReveal
+- applyNoteImeSpace
+- syncResolvedNoteImeSpace
+- syncNoteViewportOffset
+- syncNoteImeLayout
+- window.__onNativeImeInset
+- MainActivity.kt
+- NoteFileViewerActivity.kt
+- ImportReceiverActivity.kt
+
+D. Existing Tree Beta features — REGRESSION PASS
+- Topic/Note Schema V2 + idempotent migration unchanged.
+- Recent / Knowledge Tree / Drawer / Topic Workspace unchanged.
+- Breadcrumb remains clickable in Read Mode; contextual + unchanged.
+- Origin Back / navigation helpers unchanged.
+- B/S/H manual typing-state functions unchanged.
+- HTTP(S) autolink/open-external helpers unchanged.
+- Image preview/zoom helpers unchanged.
+- File cards/import/actions/annotations unchanged.
+- Attachment keyboard-delete guard unchanged.
+- Timestamp insertion unchanged.
+- Note top-right menu remains only 移到主题… / 删除笔记.
+
+E. Native Locked Core — PASS
+- Reminder / Daily / Banner / Snooze Kotlin core: 20/20 SHA-256 byte-identical to Stable V1.22.12.
+
+F. Static / package / signing — PASS
+- applicationId: com.todolist.app.beta
+- versionCode: 1004
+- versionName: 1.0.4-beta1
+- APK output: To-Do-Tree-Beta-V1.0.4.apk
+- Fixed Beta keystore file unchanged; alias androiddebugkey readable.
+- ui/todo.html == android/app/src/main/assets/todo.html.
+- Inline runtime script extracted to script_0.js; node --check PASS.
+- Android Manifest/resources XML parse PASS.
+
+G. Real compiler gate — LOCAL ENVIRONMENT BLOCKED
+- Attempted ./gradlew --no-daemon :app:assembleDebug.
+- Gradle wrapper cannot resolve services.gradle.org in this sandbox (UnknownHostException).
+- This is NOT reported as compiler success.
+- The already-configured GitHub Build Beta ZIP to APK & Release workflow must be green before installation.
+
+Delivery verdict
+- V1.0.4 is a structural rollback toward the proven Stable editor geometry, not another IME timing/height patch.
+- All internal static/layout/locked-core gates pass.
+- Honor/MagicOS real-IME behavior must be confirmed from the GitHub-built APK.

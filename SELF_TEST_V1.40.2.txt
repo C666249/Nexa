@@ -1,0 +1,31 @@
+To-Do V1.40.2 Stable — delivery self-test
+
+PASS 42/42 static/review assertions:
+- user-supplied V1.30.19 source used as baseline
+- ui/todo.html == android/app/src/main/assets/todo.html byte-for-byte
+- Stable/Beta canonical UI byte-identical
+- Daily checkbox toggle does not call renderDailyDrawer(); it persists + refreshes current row/progress only
+- Daily closed edit/delete rail is display:none and activates only during real swipe/open lifecycle
+- Main To-Do closed swipe rail is display:none
+- Closed To-Do foreground row uses transform:none; swipe JS owns transforms only while moving/open
+- Checklist expand/collapse settles any swipe transform before layout animation
+- Note italic spacing is scoped to Note body and inserts no stored literal spaces
+- storage key values unchanged from V1.30.19 baseline
+- Stable applicationId com.todolist.app preserved
+- Beta applicationId com.todolist.app.beta preserved
+- versionCode/versionName/APK output names updated to V1.40.2
+- Beta launcher_v2 resources differ from Stable at mdpi/hdpi/xhdpi/xxhdpi/xxxhdpi
+- stale standalone-incompatible root buildBoth task removed
+- obsolete build-both.sh removed
+- WORKFLOW.md and DELIVERY_RULE.txt retained
+- settings.gradle.kts present at ZIP root
+
+JS syntax:
+PASS — extracted inline scripts checked with Node.js v22.16.0 (node --check) for Stable and Beta.
+
+Android/Gradle build:
+NOT VERIFIED in this container. Gradle wrapper attempted to fetch Gradle 8.11.1 but the environment has no network access (UnknownHostException: services.gradle.org). This is an environment limitation, not reported as a compile success.
+
+Video review basis:
+- Daily recording: single frames at checkbox taps visibly expose the blue edit + red delete rail behind the row. V1.40.2 removes both causes: full list rebuild and permanently painted closed rail.
+- Checklist recording: during expand/collapse, multiple following cards become blank/ghosted for intermediate frames. V1.40.2 removes the permanent translateX(0) transformed layer from every closed row and keeps closed rails unpainted, while preserving the existing checklist spring animation.

@@ -1,0 +1,21 @@
+STABLE V1.25.1 SELF TEST
+
+Scope
+- Fix only Knowledge Tree drawer/background Action Rail flicker reproduced in user video.
+
+PASS
+- Stable identity: namespace/applicationId com.todolist.app / 49 / 1.25.1.
+- Android runtime source diff vs V1.25.0: only assets/todo.html changed.
+- build.gradle diff vs V1.25.0: versionCode/versionName/version metadata only.
+- Drawer open calls quiesceNoteSurfaceSwipeRailsForDrawer before rendering/animation.
+- All #noteList note/topic swipe rows are reset to x=0 and gesture state reset before drawer backdrop composition.
+- body.note-tree-drawer-open suppresses note/topic Action Rails with display:none while drawer is open.
+- Drawer close keeps suppression through full 300ms transition; reopen cancels stale close timer.
+- Note/Topic swipe constants and gesture handlers unchanged.
+- ui/todo.html == android asset todo.html.
+- Runtime JS node --check PASS.
+- Android XML parse PASS.
+- Native Kotlin/Java byte-identical to V1.25.0.
+
+Gradle
+- Attempted :app:assembleDebug locally. Environment cannot resolve services.gradle.org, so true compilation must be done in Android Studio / normal network environment.

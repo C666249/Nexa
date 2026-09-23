@@ -1,0 +1,13 @@
+Nexa 1.0.7 — Full Source Delivery
+
+Gesture and motion refinement after the 1.0.6 Todo stabilization round.
+- Stable: com.nexa.app / Nexa / versionName 1.0.7 / versionCode 12
+- Beta: com.nexa.app.beta / Nexa β / versionName 1.0.7-beta.1 / versionCode 12
+- Todo left swipe: Reminder detent -> deep Delete.
+- Daily left swipe: Edit detent -> deep Delete.
+- Note left swipe: Move detent -> deep Delete; right swipe remains the knowledge-tree Drawer.
+- Delete continues from the real finger-release offset; Undo replays the captured curved trace backwards.
+- Reminder/Edit/Move surfaces enter from below with slowed inertial settle and join spring-sheet drag behavior.
+- 71/71 source regression tests pass in the working tree before final channel staging.
+
+See PROJECT_STATE.md and dev-logs/nexa-1.0.7.md.

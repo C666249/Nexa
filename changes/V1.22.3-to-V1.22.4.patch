@@ -1,0 +1,1185 @@
+diff -ruN /mnt/data/v1223inspect/README.md /mnt/data/todo_v1224_final_user/README.md
+--- /mnt/data/v1223inspect/README.md
++++ /mnt/data/todo_v1224_final_user/README.md
+@@ -1,4 +1,4 @@
+-# To-Do V1.22.3
++# To-Do V1.22.4
+ 
+ 本地优先的 To-Do + Note Android 应用。UI 使用 HTML/CSS/Vanilla JS，Android 原生层使用 Kotlin WebView，并负责精确定时、后台提醒守护与悬浮 Banner。
+ 
+@@ -8,6 +8,15 @@
+ 
+ 
+ 
++
++## V1.22.4 Note B / S / H 手动输入格式状态修复
++
++- **B 粗体 / S 删除线 / H 高亮统一改为手动输入状态**：只有用户主动点工具栏才能改变“后续输入”的格式开关，光标移动到已有粗体、删除线或高亮文字中/末尾不会再自动激活或继承。
++- 无选区时，B/S/H 只控制接下来输入的新文字；第二次点击关闭后，即使光标重新落在已有格式文字末尾，下一字也会按关闭态输入。
++- 有选区时，B/S/H 只修改已选中的现有文字，不污染后续输入开关；再次点击可取消对应格式。
++- H 长按选色保持原能力：有选区时只给选中文字换高亮色；只有光标时选择颜色会主动开启后续高亮。
++- 不拦截、不重写字符输入；仅在折叠光标真正输入前同步 Chromium 的 pending format，保留中文 IME、撤销/重做、粘贴与原生 contenteditable 输入链。
++- V1.22.3 的单 Scroll Owner、IME Insets、工具栏贴键盘与 one-shot caret reveal 代码保持不变；Reminder / Daily / Banner / Snooze 等锁定核心保持不变。
+ 
+ ## V1.22.3 Note 键盘工具栏 + 光标可视区修复
+ 
+@@ -185,7 +194,7 @@
+ 成功后 APK 会复制到：
+ 
+ ```text
+-dist/To-Do-v1.22.3.apk
++dist/To-Do-v1.22.4.apk
+ ```
+ 
+ ## 技术栈
+diff -ruN /mnt/data/v1223inspect/SELF_TEST_V1.22.4.txt /mnt/data/todo_v1224_final_user/SELF_TEST_V1.22.4.txt
+--- /mnt/data/v1223inspect/SELF_TEST_V1.22.4.txt
++++ /mnt/data/todo_v1224_final_user/SELF_TEST_V1.22.4.txt
+@@ -0,0 +1,44 @@
++To-Do v1.22.4 Self Test
++========================
++Base: v1.22.3 NoteImeCaretFix
++Target: v1.22.4
++
++Focus:
++- B (bold), S (strike-through), H (highlight) are explicit manual future-input switches.
++- A collapsed caret does not import B/S/H state from already-formatted text.
++- A non-collapsed selection edits existing text without arming future typing.
++- Native contenteditable / Android IME input is preserved; beforeinput is not cancelled and characters are not manually reinserted.
++- V1.22.3 keyboard, toolbar-at-IME-edge, single-scroll-owner and caret-reveal behavior remains locked.
++
++Static/source checks:
++- script_0.js node --check PASS
++- ui/todo.html == Android asset mirror PASS
++- inline script == script_0.js PASS
++- Android XML parse PASS
++- business localStorage keys unchanged vs v1.22.3 PASS
++- applicationId / namespace remain com.todolist.app PASS
++- versionCode=37 / versionName=1.22.4 PASS
++- Reminder/Daily/Banner/Snooze locked core SHA-256 20/20 PASS
++- MainActivity.kt byte-identical to v1.22.3 PASS
++- v1.22.3 IME/caret core functions exact-text unchanged PASS
++- selectionchange no longer imports B/S/H manual state from caret formatting PASS
++- updateToolbarState renders B/S/H from manual booleans PASS
++- beforeinput path never calls preventDefault and never reinserts input text PASS
++- H OFF only neutralizes inheritance from the app's known highlight palette PASS
++
++Gradle build:
++- ./gradlew :app:assembleDebug --offline --no-daemon was attempted.
++- The sandbox lacks cached Gradle 8.11.1 and cannot reach services.gradle.org (UnknownHostException).
++- This is an environment limitation, not a compiler result; Android Studio build on the user's machine is still required.
++
++Target-phone checks:
++1. B ON -> type -> B OFF -> tap after existing bold -> type: new text normal and B stays OFF.
++2. Repeat the same for S.
++3. H ON -> type -> H OFF once -> tap after existing highlight -> type: new text normal; no second H tap.
++4. With B/S/H ON, moving the caret to plain text keeps that chosen future-input format.
++5. Select existing text -> B/S/H applies; tap the same control again while selected -> removes.
++6. Selection formatting must not silently arm a previously-OFF future-input switch.
++7. Long-press H: selection recolors existing text; collapsed caret enables future H with the chosen color.
++8. Check Chinese Pinyin composition, English, numbers and emoji.
++9. Recheck V1.22.3 keyboard/tool-bar/caret behavior and no jump-to-top.
++10. Recheck Backspace/Delete, Enter, undo/redo, paste, attachments and autosave.
+diff -ruN /mnt/data/v1223inspect/android/app/build.gradle.kts /mnt/data/todo_v1224_final_user/android/app/build.gradle.kts
+--- /mnt/data/v1223inspect/android/app/build.gradle.kts
++++ /mnt/data/todo_v1224_final_user/android/app/build.gradle.kts
+@@ -11,8 +11,8 @@
+         applicationId = "com.todolist.app"
+         minSdk = 26
+         targetSdk = 35
+-        versionCode = 36
+-        versionName = "1.22.3"
++        versionCode = 37
++        versionName = "1.22.4"
+     }
+ 
+     buildTypes {
+diff -ruN /mnt/data/v1223inspect/android/app/src/main/assets/todo.html /mnt/data/todo_v1224_final_user/android/app/src/main/assets/todo.html
+--- /mnt/data/v1223inspect/android/app/src/main/assets/todo.html
++++ /mnt/data/todo_v1224_final_user/android/app/src/main/assets/todo.html
+@@ -4042,6 +4042,7 @@
+   if (titleInput) titleInput.value = note.title;
+   if (bodyEl) bodyEl.innerHTML = note.content;
+   _boldActive = false;
++  _strikeActive = false;
+   _highlightActive = false;
+   if (searchInput) searchInput.value = '';
+ 
+@@ -4060,7 +4061,7 @@
+     if (options.preserveKeyboard !== false) {
+       try { bodyEl.focus({preventScroll:true}); } catch(e) { bodyEl.focus(); }
+     }
+-    _boldActive = !!document.queryCommandState('bold');
++    syncCollapsedNoteTypingFormat();
+     updateToolbarState();
+     syncNoteImeLayout();
+   }, options.preserveKeyboard === false ? 0 : 100);
+@@ -7604,18 +7605,28 @@
+ document.getElementById('noteEditorBody')?.addEventListener('pointerup', function(e) {
+   if (e.target.closest('.note-file-card[data-note-file-name]')) return;
+   if (noteImeSpacePx > 0) scheduleNoteCaretReveal(24, true);
++  // A caret move must not adopt formatting from the character it lands beside.
++  // Normalize Chromium's pending typing state to the three manual toolbar switches after selection settles.
++  setTimeout(syncCollapsedNoteTypingFormat, 0);
+ });
+ 
+-// ===== Highlight state =====
++// ===== Manual inline-format state (B / S / H) =====
+ var highlightColor = '#ffd93d'; // default yellow
+ var highlightColors = ['#ffd93d', '#ff6b6b', '#ff8787', '#b794f6', '#2EC4B6', '#4A90D9', '#FF9F43', '#ff9ff3'];
+ var EDITOR_BG_COLOR = 'rgb(245, 236, 216)'; // #f5ecd8
+-
+-// Init H button state
+-setTimeout(updateToolbarState, 50);
+-
++var EDITOR_BG_HEX = '#f5ecd8';
++
++// B / S / H are deliberately NOT mirrors of the caret's inherited formatting.
++// These three booleans are the single source of truth for FUTURE collapsed-caret input.
++// Moving the caret into formatted text must never flip them.
+ var _highlightActive = false;
+ var _boldActive = false;
++var _strikeActive = false;
++var _syncingTypingFormat = false;
++var _noteColorCache = {};
++
++// Init format-button visuals.
++setTimeout(updateToolbarState, 50);
+ 
+ function focusNoteBodyPreserveSelection() {
+   var bodyEl = document.getElementById('noteEditorBody');
+@@ -7630,15 +7641,141 @@
+   return bodyEl;
+ }
+ 
++function getNoteEditorSelectionRange() {
++  var bodyEl = document.getElementById('noteEditorBody');
++  var sel = window.getSelection();
++  if (!bodyEl || !sel || !sel.rangeCount) return null;
++  var range = sel.getRangeAt(0);
++  if (!bodyEl.contains(range.commonAncestorContainer)) return null;
++  return range;
++}
++
++function normalizeNoteCssColor(value) {
++  value = String(value || '').trim().toLowerCase();
++  if (!value) return '';
++  if (_noteColorCache[value]) return _noteColorCache[value];
++  if (value === 'transparent') return (_noteColorCache[value] = 'transparent');
++  var probe = document.createElement('span');
++  probe.style.color = value;
++  probe.style.position = 'fixed';
++  probe.style.visibility = 'hidden';
++  document.body.appendChild(probe);
++  var normalized = String(getComputedStyle(probe).color || value).replace(/\s+/g, '').toLowerCase();
++  probe.remove();
++  _noteColorCache[value] = normalized;
++  return normalized;
++}
++
++function isNeutralNoteBackColor(value) {
++  var normalized = normalizeNoteCssColor(value);
++  if (!normalized || normalized === 'transparent' || normalized === 'rgba(0,0,0,0)') return true;
++  return normalized === normalizeNoteCssColor(EDITOR_BG_COLOR) || normalized === normalizeNoteCssColor(EDITOR_BG_HEX);
++}
++
++function isKnownNoteHighlightColor(value) {
++  var normalized = normalizeNoteCssColor(value);
++  for (var i = 0; i < highlightColors.length; i++) {
++    if (normalized === normalizeNoteCssColor(highlightColors[i])) return true;
++  }
++  return false;
++}
++
++function setCollapsedCommandState(cmd, desired) {
++  var actual = false;
++  try { actual = !!document.queryCommandState(cmd); } catch(e) {}
++  if (actual !== !!desired) document.execCommand(cmd, false, null);
++}
++
++// Synchronize Chromium's *pending* collapsed-caret format to the manual toolbar switches.
++// This does not prevent/cancel beforeinput and does not rewrite input text, preserving IME/composition/undo.
++function syncCollapsedNoteTypingFormat() {
++  if (_syncingTypingFormat) return;
++  var bodyEl = document.getElementById('noteEditorBody');
++  var range = getNoteEditorSelectionRange();
++  if (!bodyEl || !range || !range.collapsed) return;
++  _syncingTypingFormat = true;
++  try {
++    setCollapsedCommandState('bold', _boldActive);
++    setCollapsedCommandState('strikeThrough', _strikeActive);
++
++    var currentBack = '';
++    try { currentBack = document.queryCommandValue('backColor') || ''; } catch(e) {}
++    if (_highlightActive) {
++      if (normalizeNoteCssColor(currentBack) !== normalizeNoteCssColor(highlightColor)) {
++        document.execCommand('backColor', false, highlightColor);
++      }
++    } else if (isKnownNoteHighlightColor(currentBack)) {
++      // Neutralize only H-palette inheritance. Unknown/pasted background styles are left untouched.
++      document.execCommand('backColor', false, EDITOR_BG_HEX);
++    }
++  } finally {
++    _syncingTypingFormat = false;
++  }
++}
++
++function effectiveNoteBackColorForNode(node, bodyEl) {
++  var el = node && node.nodeType === 1 ? node : (node ? node.parentElement : null);
++  while (el && el !== bodyEl) {
++    var bg = '';
++    try { bg = getComputedStyle(el).backgroundColor || ''; } catch(e) {}
++    if (!isNeutralNoteBackColor(bg)) return bg;
++    el = el.parentElement;
++  }
++  return EDITOR_BG_COLOR;
++}
++
++function selectionBackColorIsActive() {
++  var bodyEl = document.getElementById('noteEditorBody');
++  var range = getNoteEditorSelectionRange();
++  if (!bodyEl || !range || range.collapsed) return false;
++  var walker = document.createTreeWalker(bodyEl, NodeFilter.SHOW_TEXT);
++  var node, sawText = false;
++  while ((node = walker.nextNode())) {
++    if (!node.nodeValue || !node.nodeValue.trim()) continue;
++    var intersects = false;
++    try { intersects = range.intersectsNode(node); } catch(e) {}
++    if (!intersects) continue;
++    sawText = true;
++    if (isNeutralNoteBackColor(effectiveNoteBackColorForNode(node, bodyEl))) return false;
++  }
++  // Fully highlighted selection -> one H tap removes it; mixed/plain selection -> one H tap highlights all.
++  return sawText;
++}
++
++function toggleManualInlineCommand(cmd) {
++  var bodyEl = focusNoteBodyPreserveSelection();
++  if (!bodyEl) return;
++  var range = getNoteEditorSelectionRange();
++  if (!range) return;
++
++  if (!range.collapsed) {
++    // Selection mode edits EXISTING text only; it must not leak into future typing switches.
++    document.execCommand(cmd, false, null);
++  } else {
++    if (cmd === 'bold') _boldActive = !_boldActive;
++    if (cmd === 'strikeThrough') _strikeActive = !_strikeActive;
++    syncCollapsedNoteTypingFormat();
++  }
++  rememberNoteSelection();
++  updateToolbarState();
++}
++
+ function toggleHighlight() {
+   var bodyEl = focusNoteBodyPreserveSelection();
+   if (!bodyEl) return;
+-  _highlightActive = !_highlightActive;
+-  if (_highlightActive) {
+-    document.execCommand('backColor', false, highlightColor);
++  var range = getNoteEditorSelectionRange();
++  if (!range) return;
++
++  if (!range.collapsed) {
++    // Existing selection: H toggles highlight on that text only.
++    var selectedIsHighlighted = selectionBackColorIsActive();
++    document.execCommand('backColor', false, selectedIsHighlighted ? EDITOR_BG_HEX : highlightColor);
+   } else {
+-    document.execCommand('backColor', false, '#f5ecd8');
+-  }
++    // Collapsed caret: H is a persistent future-input switch controlled only by the toolbar.
++    _highlightActive = !_highlightActive;
++    syncCollapsedNoteTypingFormat();
++  }
++  rememberNoteSelection();
+   updateToolbarState();
+ }
+ 
+@@ -7670,9 +7807,19 @@
+     var sw = ev.target.closest('.color-picker-pop__swatch');
+     if (!sw) return;
+     highlightColor = sw.getAttribute('data-color');
+-    _highlightActive = true;
+-    var bodyEl = document.getElementById('noteEditorBody');
+-    if (bodyEl) { focusNoteBodyPreserveSelection(); document.execCommand('backColor', false, highlightColor); }
++    var bodyEl = focusNoteBodyPreserveSelection();
++    var range = getNoteEditorSelectionRange();
++    if (bodyEl && range) {
++      if (!range.collapsed) {
++        // Color-picking over a selection recolors existing text only.
++        document.execCommand('backColor', false, highlightColor);
++      } else {
++        // Color-picking at a caret intentionally turns future highlight input ON in the chosen color.
++        _highlightActive = true;
++        syncCollapsedNoteTypingFormat();
++      }
++      rememberNoteSelection();
++    }
+     updateToolbarState();
+     pop.remove();
+   });
+@@ -7689,6 +7836,7 @@
+ }
+ 
+ // Format bar button clicks
++// B / S / H use the manual-state model; the remaining commands keep their established behavior.
+ document.getElementById('noteFormatBar').addEventListener('click', function(e) {
+   var btn = e.target.closest('button');
+   if (!btn) return;
+@@ -7697,10 +7845,8 @@
+   var bodyEl = focusNoteBodyPreserveSelection();
+   if (cmd === 'hiliteColor') {
+     toggleHighlight();
+-  } else if (cmd === 'bold') {
+-    document.execCommand('bold', false, null);
+-    _boldActive = !!document.queryCommandState('bold');
+-    updateToolbarState();
++  } else if (cmd === 'bold' || cmd === 'strikeThrough') {
++    toggleManualInlineCommand(cmd);
+   } else if (cmd === 'indent') {
+     document.execCommand('insertHTML', false, '&emsp;');
+   } else if (cmd === 'outdent') {
+@@ -7711,6 +7857,18 @@
+   }
+   setTimeout(updateToolbarState, 10);
+ });
++
++// Keep native WebView input/composition intact. We only align pending format immediately before
++// text-like insertion; the event is never prevented and no character is manually reinserted.
++var noteBodyForTypingFormat = document.getElementById('noteEditorBody');
++if (noteBodyForTypingFormat) {
++  noteBodyForTypingFormat.addEventListener('beforeinput', function(e) {
++    var inputType = String(e.inputType || '');
++    var shouldSync = !inputType || inputType === 'insertText' || inputType === 'insertCompositionText' ||
++      inputType === 'insertReplacementText' || inputType === 'insertParagraph' || inputType === 'insertLineBreak';
++    if (shouldSync) syncCollapsedNoteTypingFormat();
++  });
++}
+ 
+ // Long-press on H button for color picker
+ var hiliteBtn = document.querySelector('#noteFormatBar button[data-cmd="hiliteColor"]');
+@@ -7886,7 +8044,8 @@
+   });
+ })();
+ 
+-// Selection changes must never mutate the note. They only mirror the caret's real formatting state.
++// Selection changes remember the editing range only. B / S / H manual switches are never
++// imported from caret ancestry, so landing beside formatted text cannot activate future input.
+ document.addEventListener('selectionchange', function() {
+   var editor = document.getElementById('noteEditor');
+   if (!editor || editor.style.display === 'none') return;
+@@ -7895,7 +8054,6 @@
+   var sel = window.getSelection();
+   if (sel && sel.rangeCount && bodyEl.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+     noteLastSelectionRange = sel.getRangeAt(0).cloneRange();
+-    _boldActive = !!document.queryCommandState('bold');
+     updateToolbarState();
+   }
+ });
+@@ -8128,24 +8286,23 @@
+ function updateToolbarState() {
+   var bodyEl = document.getElementById('noteEditorBody');
+   if (!bodyEl || document.activeElement !== bodyEl) return;
+-  var cmds = ['strikeThrough', 'insertUnorderedList', 'insertOrderedList'];
++
++  // List controls keep the established caret/selection mirroring behavior.
++  var cmds = ['insertUnorderedList', 'insertOrderedList'];
+   for (var i = 0; i < cmds.length; i++) {
+     var btn = document.querySelector('#noteFormatBar button[data-cmd="' + cmds[i] + '"]');
+     if (!btn) continue;
+-    if (document.queryCommandState(cmds[i])) {
+-      btn.classList.add('toolbar-active');
+-    } else {
+-      btn.classList.remove('toolbar-active');
+-    }
+-  }
+-  // B button mirrors the actual caret formatting. Default text remains normal weight.
++    if (document.queryCommandState(cmds[i])) btn.classList.add('toolbar-active');
++    else btn.classList.remove('toolbar-active');
++  }
++
++  // B / S / H display only the user's explicit future-input switches.
+   var boldBtn = document.querySelector('#noteFormatBar button[data-cmd="bold"]');
+-  if (boldBtn) {
+-    _boldActive = !!document.queryCommandState('bold');
+-    if (_boldActive) { boldBtn.classList.add('toolbar-active'); }
+-    else { boldBtn.classList.remove('toolbar-active'); }
+-  }
+-  // H button: pure manual toggle
++  if (boldBtn) boldBtn.classList.toggle('toolbar-active', !!_boldActive);
++
++  var strikeBtn = document.querySelector('#noteFormatBar button[data-cmd="strikeThrough"]');
++  if (strikeBtn) strikeBtn.classList.toggle('toolbar-active', !!_strikeActive);
++
+   var hiliteBtn = document.querySelector('#noteFormatBar button[data-cmd="hiliteColor"]');
+   if (hiliteBtn) {
+     if (_highlightActive) {
+diff -ruN /mnt/data/v1223inspect/build-apk.bat /mnt/data/todo_v1224_final_user/build-apk.bat
+--- /mnt/data/v1223inspect/build-apk.bat
++++ /mnt/data/todo_v1224_final_user/build-apk.bat
+@@ -10,9 +10,9 @@
+ )
+ if not exist "dist" mkdir "dist"
+ for %%F in ("android\app\build\outputs\apk\debug\*.apk") do (
+-  copy /Y "%%~fF" "dist\To-Do-v1.22.3.apk" >nul
++  copy /Y "%%~fF" "dist\To-Do-v1.22.4.apk" >nul
+   echo.
+-  echo APK: %CD%\dist\To-Do-v1.22.3.apk
++  echo APK: %CD%\dist\To-Do-v1.22.4.apk
+   exit /b 0
+ )
+ echo Build finished but no APK was found under android\app\build\outputs\apk\debug
+diff -ruN /mnt/data/v1223inspect/changes/CHANGELOG_V1.22.4.md /mnt/data/todo_v1224_final_user/changes/CHANGELOG_V1.22.4.md
+--- /mnt/data/v1223inspect/changes/CHANGELOG_V1.22.4.md
++++ /mnt/data/todo_v1224_final_user/changes/CHANGELOG_V1.22.4.md
+@@ -0,0 +1,32 @@
++# To-Do v1.22.4 — Note Manual B / S / H Typing State Fix
++
++Base: v1.22.3 NoteImeCaretFix
++Target: v1.22.4
++
++## Scope
++This release is limited to the Note editor inline-format state bug reported by the user. No new feature is added.
++
++## Fixes
++1. **B / S / H become explicit future-input switches**
++   - Bold, strikeThrough and highlight no longer import their active state from the caret's inherited formatting.
++   - Moving a collapsed caret into or immediately after already-formatted text cannot re-activate the toolbar or force the next character to inherit that format.
++
++2. **Selection editing is separated from future typing state**
++   - With a non-collapsed selection, B / S / H toggle the existing selected text only.
++   - Selection formatting does not alter the persistent future-input switches.
++   - H selection toggle treats a fully highlighted selection as removable; mixed/plain selection is highlighted in one tap.
++
++3. **Native input is preserved**
++   - No `beforeinput` event is cancelled and no typed character is manually reinserted.
++   - Before text-like insertion, Chromium's pending collapsed-caret command state is only synchronized to the three manual switches.
++   - This avoids introducing a custom text-input pipeline that could break Android IME composition, undo/redo or caret behavior.
++
++4. **Highlight color picker remains compatible**
++   - With a selection: recolors existing selected text only.
++   - With a collapsed caret: choosing a color intentionally enables future highlight input in that color.
++
++## Explicitly unchanged
++- v1.22.3 IME geometry, toolbar-at-keyboard-edge and one-shot caret reveal functions.
++- `#noteEditorBody` remains the only Note text scroll owner.
++- Reminder / Daily / Banner / Snooze stable native core.
++- Note attachments, WeChat/QQ import, file/image cards, PDF/file viewer and business storage keys.
+diff -ruN /mnt/data/v1223inspect/changes/LOCKED_CORE_GUARD_V1.22.4.txt /mnt/data/todo_v1224_final_user/changes/LOCKED_CORE_GUARD_V1.22.4.txt
+--- /mnt/data/v1223inspect/changes/LOCKED_CORE_GUARD_V1.22.4.txt
++++ /mnt/data/todo_v1224_final_user/changes/LOCKED_CORE_GUARD_V1.22.4.txt
+@@ -0,0 +1,39 @@
++Locked Core Guard — V1.22.3 -> V1.22.4 Note B/S/H Manual Typing State Fix
++
++Authorized scope:
++- Note editor B/S/H manual future-input state, selected-text formatting compatibility, and pending-format synchronization.
++- Mirrored ui/todo.html / Android asset / script_0.js.
++- Version metadata, README, build-apk and release docs.
++
++Explicitly unchanged:
++- V1.22.3 IME geometry, single Scroll Owner, toolbar-at-keyboard-edge and caret reveal architecture.
++- Reminder / Daily / Banner / Snooze stable native core.
++- Note attachment import, WeChat/QQ receiver, file/image cards and PDF/file viewer.
++
++- PASS  android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt  49dbbad17f11d7109eb4d82a55857e01b219e22b2d68c91289e801f2f6d9468f
++- PASS  android/app/src/main/java/com/todolist/app/receiver/BootReceiver.kt  5c749c6186e9ba2e9226e29e93856753879c898e8b2dcbe5d7a9922c4d27ca7d
++- PASS  android/app/src/main/java/com/todolist/app/receiver/DailyTaskActionReceiver.kt  9bd9bb60566ee86da41ce282cf3b1b845f4f4caa05b34567cc5612ac33c092de
++- PASS  android/app/src/main/java/com/todolist/app/receiver/DailyTaskReminderReceiver.kt  26928a47fd1f97f7ab9b51500f5c58f20333e2c1d1cc72edd4cc6a3ed9907292
++- PASS  android/app/src/main/java/com/todolist/app/receiver/MidnightReceiver.kt  49ebf2634854cd20c6d03656d4c1da7de3a6c0a30f542cdf23e7b0c9b9f1219e
++- PASS  android/app/src/main/java/com/todolist/app/receiver/ReminderActionReceiver.kt  ba2b57ee965759555fe4913827b2aa4fdeb1499854fb40c298efeb2bcfc3e361
++- PASS  android/app/src/main/java/com/todolist/app/receiver/TodoReminderReceiver.kt  36b242a80eaa2a9d4f4cd1aad3d8ff7105027e68ce0f166efd1b8aea495cb207
++- PASS  android/app/src/main/java/com/todolist/app/reminder/DailyTaskStore.kt  5770232c61f413fa8e88dadd07182f1a3a81d04a8758d9e3b4e37d43d417162e
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderDiagnostics.kt  445283809d9ecbafd08e80e8cd882444372127ef7aebea8d38c30a9857be4898
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderNotifier.kt  2b99868689598268ac27e07ed55385d5e2786ab6c1b9027b80dff2459b5642fc
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderScheduler.kt  4d58be9846178a49e45ca62d69368be10190512599c19e5aeac5431e9bd79a1e
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderStore.kt  f2e941bc491f4d743697136e135888e98c14324236abb8814b9632669a183df6
++- PASS  android/app/src/main/java/com/todolist/app/reminder/SnoozeStore.kt  87f3a0ee2af0af3bf1d43453a24b2d4429de4b653b9faf4482f616a9da574b6d
++- PASS  android/app/src/main/java/com/todolist/app/reminder/TodoSnapshotStore.kt  74ea806ecddc1680c3e7cb5f7e0abb9db8ba1a69ab9a4b3ac2e90a7cd5e9c1b3
++- PASS  android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt  be35d5eff3dd8067f0596d13055b9dda7f8d77204fe4ff1015c7f57499a58ca4
++- PASS  android/app/src/main/java/com/todolist/app/ui/BannerView.kt  f5e3fb07f5700e148e26cb4c9091f17e5ed06d2f82ad22bf15b9af24c328d68a
++- PASS  android/app/src/main/java/com/todolist/app/ui/DailyTaskBannerView.kt  41aa1e68973d2b77462484c22be00b9b712349c452a4db3c819e534854ea2bb5
++- PASS  android/app/src/main/java/com/todolist/app/ui/SnoozeSwipeBannerView.kt  4b99f2224df38ca6d90b749290174f69291e5f24589af35a58af12720bc829f4
++- PASS  android/app/src/main/java/com/todolist/app/ui/TodoReminderBannerView.kt  c53e279feafaa0b46f470c4e0ee0ab3d0cd48420171ac006079a6988f867c408
++- PASS  android/app/src/main/java/com/todolist/app/util/Dp.kt  4076197dac4258610e66978ffa4d4347ba1c1eb75ec364ddca9344c99ee617e8
++
++Locked reminder/banner core: 20/20 PASS.
++ui/todo.html == Android asset mirror: PASS
++MainActivity.kt unchanged vs v1.22.3: PASS
++applicationId / namespace remain com.todolist.app.
++
++Result: PASS
+diff -ruN /mnt/data/v1223inspect/changes/NOTE_EDITOR_MANUAL_FORMAT_STATE_V1.22.4.md /mnt/data/todo_v1224_final_user/changes/NOTE_EDITOR_MANUAL_FORMAT_STATE_V1.22.4.md
+--- /mnt/data/v1223inspect/changes/NOTE_EDITOR_MANUAL_FORMAT_STATE_V1.22.4.md
++++ /mnt/data/todo_v1224_final_user/changes/NOTE_EDITOR_MANUAL_FORMAT_STATE_V1.22.4.md
+@@ -0,0 +1,29 @@
++# Note editor manual inline-format state — v1.22.4
++
++## Reported v1.22.3 behavior
++- B could turn itself back on when the caret was placed at the end of existing bold text, causing the next character to inherit bold.
++- S strike-through showed the same caret-inheritance problem.
++- H could be visually off while Chromium still retained a highlighted pending insertion state, so one H tap appeared ineffective and a second tap was needed to truly return to normal text.
++
++## Root model problem
++The editor mixed two different concepts:
++1. **Formatting already present at the caret/selection**, exposed by `queryCommandState()` / `queryCommandValue()`.
++2. **Formatting the user explicitly wants for the next input.**
++
++V1.22.3 allowed caret ancestry to drive B (and S through generic toolbar mirroring), while H kept a separate manual boolean. Chromium contenteditable also retains inline command state at a collapsed caret. Those sources could disagree.
++
++## v1.22.4 model
++- `_boldActive`, `_strikeActive`, `_highlightActive` are the only authority for future collapsed-caret input.
++- A caret move never imports B/S/H state from surrounding text.
++- Pointer placement and text-like `beforeinput` only synchronize Chromium's pending command state to those booleans; they do not alter `scrollTop`, prevent input or insert replacement characters.
++- Non-collapsed selections use native `execCommand` to edit existing text, without changing future typing booleans.
++- Highlight OFF neutralizes inherited background only for the pending collapsed insertion state using the Note editor background color.
++
++## Acceptance behavior
++1. Turn B on, type bold, turn B off, place caret after existing bold text, type: new text is normal and B stays off.
++2. Repeat exactly for S.
++3. Turn H on, type highlighted text, turn H off, place caret after highlighted text, type: new text is normal in one OFF action; no two-tap exit.
++4. Select existing plain text and tap B/S/H: selection is formatted; tap the same control again while selected: format is removed.
++5. Selection formatting does not silently arm future typing.
++6. Long-press H color picker continues to recolor selections and enable the chosen highlight color for collapsed-caret future input.
++7. Long-note keyboard/caret/scroll behavior from v1.22.3 remains unchanged.
+diff -ruN /mnt/data/v1223inspect/script_0.js /mnt/data/todo_v1224_final_user/script_0.js
+--- /mnt/data/v1223inspect/script_0.js
++++ /mnt/data/todo_v1224_final_user/script_0.js
+@@ -1133,6 +1133,7 @@
+   if (titleInput) titleInput.value = note.title;
+   if (bodyEl) bodyEl.innerHTML = note.content;
+   _boldActive = false;
++  _strikeActive = false;
+   _highlightActive = false;
+   if (searchInput) searchInput.value = '';
+ 
+@@ -1151,7 +1152,7 @@
+     if (options.preserveKeyboard !== false) {
+       try { bodyEl.focus({preventScroll:true}); } catch(e) { bodyEl.focus(); }
+     }
+-    _boldActive = !!document.queryCommandState('bold');
++    syncCollapsedNoteTypingFormat();
+     updateToolbarState();
+     syncNoteImeLayout();
+   }, options.preserveKeyboard === false ? 0 : 100);
+@@ -4695,18 +4696,28 @@
+ document.getElementById('noteEditorBody')?.addEventListener('pointerup', function(e) {
+   if (e.target.closest('.note-file-card[data-note-file-name]')) return;
+   if (noteImeSpacePx > 0) scheduleNoteCaretReveal(24, true);
+-});
+-
+-// ===== Highlight state =====
++  // A caret move must not adopt formatting from the character it lands beside.
++  // Normalize Chromium's pending typing state to the three manual toolbar switches after selection settles.
++  setTimeout(syncCollapsedNoteTypingFormat, 0);
++});
++
++// ===== Manual inline-format state (B / S / H) =====
+ var highlightColor = '#ffd93d'; // default yellow
+ var highlightColors = ['#ffd93d', '#ff6b6b', '#ff8787', '#b794f6', '#2EC4B6', '#4A90D9', '#FF9F43', '#ff9ff3'];
+ var EDITOR_BG_COLOR = 'rgb(245, 236, 216)'; // #f5ecd8
+-
+-// Init H button state
+-setTimeout(updateToolbarState, 50);
+-
++var EDITOR_BG_HEX = '#f5ecd8';
++
++// B / S / H are deliberately NOT mirrors of the caret's inherited formatting.
++// These three booleans are the single source of truth for FUTURE collapsed-caret input.
++// Moving the caret into formatted text must never flip them.
+ var _highlightActive = false;
+ var _boldActive = false;
++var _strikeActive = false;
++var _syncingTypingFormat = false;
++var _noteColorCache = {};
++
++// Init format-button visuals.
++setTimeout(updateToolbarState, 50);
+ 
+ function focusNoteBodyPreserveSelection() {
+   var bodyEl = document.getElementById('noteEditorBody');
+@@ -4721,15 +4732,141 @@
+   return bodyEl;
+ }
+ 
++function getNoteEditorSelectionRange() {
++  var bodyEl = document.getElementById('noteEditorBody');
++  var sel = window.getSelection();
++  if (!bodyEl || !sel || !sel.rangeCount) return null;
++  var range = sel.getRangeAt(0);
++  if (!bodyEl.contains(range.commonAncestorContainer)) return null;
++  return range;
++}
++
++function normalizeNoteCssColor(value) {
++  value = String(value || '').trim().toLowerCase();
++  if (!value) return '';
++  if (_noteColorCache[value]) return _noteColorCache[value];
++  if (value === 'transparent') return (_noteColorCache[value] = 'transparent');
++  var probe = document.createElement('span');
++  probe.style.color = value;
++  probe.style.position = 'fixed';
++  probe.style.visibility = 'hidden';
++  document.body.appendChild(probe);
++  var normalized = String(getComputedStyle(probe).color || value).replace(/\s+/g, '').toLowerCase();
++  probe.remove();
++  _noteColorCache[value] = normalized;
++  return normalized;
++}
++
++function isNeutralNoteBackColor(value) {
++  var normalized = normalizeNoteCssColor(value);
++  if (!normalized || normalized === 'transparent' || normalized === 'rgba(0,0,0,0)') return true;
++  return normalized === normalizeNoteCssColor(EDITOR_BG_COLOR) || normalized === normalizeNoteCssColor(EDITOR_BG_HEX);
++}
++
++function isKnownNoteHighlightColor(value) {
++  var normalized = normalizeNoteCssColor(value);
++  for (var i = 0; i < highlightColors.length; i++) {
++    if (normalized === normalizeNoteCssColor(highlightColors[i])) return true;
++  }
++  return false;
++}
++
++function setCollapsedCommandState(cmd, desired) {
++  var actual = false;
++  try { actual = !!document.queryCommandState(cmd); } catch(e) {}
++  if (actual !== !!desired) document.execCommand(cmd, false, null);
++}
++
++// Synchronize Chromium's *pending* collapsed-caret format to the manual toolbar switches.
++// This does not prevent/cancel beforeinput and does not rewrite input text, preserving IME/composition/undo.
++function syncCollapsedNoteTypingFormat() {
++  if (_syncingTypingFormat) return;
++  var bodyEl = document.getElementById('noteEditorBody');
++  var range = getNoteEditorSelectionRange();
++  if (!bodyEl || !range || !range.collapsed) return;
++  _syncingTypingFormat = true;
++  try {
++    setCollapsedCommandState('bold', _boldActive);
++    setCollapsedCommandState('strikeThrough', _strikeActive);
++
++    var currentBack = '';
++    try { currentBack = document.queryCommandValue('backColor') || ''; } catch(e) {}
++    if (_highlightActive) {
++      if (normalizeNoteCssColor(currentBack) !== normalizeNoteCssColor(highlightColor)) {
++        document.execCommand('backColor', false, highlightColor);
++      }
++    } else if (isKnownNoteHighlightColor(currentBack)) {
++      // Neutralize only H-palette inheritance. Unknown/pasted background styles are left untouched.
++      document.execCommand('backColor', false, EDITOR_BG_HEX);
++    }
++  } finally {
++    _syncingTypingFormat = false;
++  }
++}
++
++function effectiveNoteBackColorForNode(node, bodyEl) {
++  var el = node && node.nodeType === 1 ? node : (node ? node.parentElement : null);
++  while (el && el !== bodyEl) {
++    var bg = '';
++    try { bg = getComputedStyle(el).backgroundColor || ''; } catch(e) {}
++    if (!isNeutralNoteBackColor(bg)) return bg;
++    el = el.parentElement;
++  }
++  return EDITOR_BG_COLOR;
++}
++
++function selectionBackColorIsActive() {
++  var bodyEl = document.getElementById('noteEditorBody');
++  var range = getNoteEditorSelectionRange();
++  if (!bodyEl || !range || range.collapsed) return false;
++  var walker = document.createTreeWalker(bodyEl, NodeFilter.SHOW_TEXT);
++  var node, sawText = false;
++  while ((node = walker.nextNode())) {
++    if (!node.nodeValue || !node.nodeValue.trim()) continue;
++    var intersects = false;
++    try { intersects = range.intersectsNode(node); } catch(e) {}
++    if (!intersects) continue;
++    sawText = true;
++    if (isNeutralNoteBackColor(effectiveNoteBackColorForNode(node, bodyEl))) return false;
++  }
++  // Fully highlighted selection -> one H tap removes it; mixed/plain selection -> one H tap highlights all.
++  return sawText;
++}
++
++function toggleManualInlineCommand(cmd) {
++  var bodyEl = focusNoteBodyPreserveSelection();
++  if (!bodyEl) return;
++  var range = getNoteEditorSelectionRange();
++  if (!range) return;
++
++  if (!range.collapsed) {
++    // Selection mode edits EXISTING text only; it must not leak into future typing switches.
++    document.execCommand(cmd, false, null);
++  } else {
++    if (cmd === 'bold') _boldActive = !_boldActive;
++    if (cmd === 'strikeThrough') _strikeActive = !_strikeActive;
++    syncCollapsedNoteTypingFormat();
++  }
++  rememberNoteSelection();
++  updateToolbarState();
++}
++
+ function toggleHighlight() {
+   var bodyEl = focusNoteBodyPreserveSelection();
+   if (!bodyEl) return;
+-  _highlightActive = !_highlightActive;
+-  if (_highlightActive) {
+-    document.execCommand('backColor', false, highlightColor);
++  var range = getNoteEditorSelectionRange();
++  if (!range) return;
++
++  if (!range.collapsed) {
++    // Existing selection: H toggles highlight on that text only.
++    var selectedIsHighlighted = selectionBackColorIsActive();
++    document.execCommand('backColor', false, selectedIsHighlighted ? EDITOR_BG_HEX : highlightColor);
+   } else {
+-    document.execCommand('backColor', false, '#f5ecd8');
+-  }
++    // Collapsed caret: H is a persistent future-input switch controlled only by the toolbar.
++    _highlightActive = !_highlightActive;
++    syncCollapsedNoteTypingFormat();
++  }
++  rememberNoteSelection();
+   updateToolbarState();
+ }
+ 
+@@ -4761,9 +4898,19 @@
+     var sw = ev.target.closest('.color-picker-pop__swatch');
+     if (!sw) return;
+     highlightColor = sw.getAttribute('data-color');
+-    _highlightActive = true;
+-    var bodyEl = document.getElementById('noteEditorBody');
+-    if (bodyEl) { focusNoteBodyPreserveSelection(); document.execCommand('backColor', false, highlightColor); }
++    var bodyEl = focusNoteBodyPreserveSelection();
++    var range = getNoteEditorSelectionRange();
++    if (bodyEl && range) {
++      if (!range.collapsed) {
++        // Color-picking over a selection recolors existing text only.
++        document.execCommand('backColor', false, highlightColor);
++      } else {
++        // Color-picking at a caret intentionally turns future highlight input ON in the chosen color.
++        _highlightActive = true;
++        syncCollapsedNoteTypingFormat();
++      }
++      rememberNoteSelection();
++    }
+     updateToolbarState();
+     pop.remove();
+   });
+@@ -4780,6 +4927,7 @@
+ }
+ 
+ // Format bar button clicks
++// B / S / H use the manual-state model; the remaining commands keep their established behavior.
+ document.getElementById('noteFormatBar').addEventListener('click', function(e) {
+   var btn = e.target.closest('button');
+   if (!btn) return;
+@@ -4788,10 +4936,8 @@
+   var bodyEl = focusNoteBodyPreserveSelection();
+   if (cmd === 'hiliteColor') {
+     toggleHighlight();
+-  } else if (cmd === 'bold') {
+-    document.execCommand('bold', false, null);
+-    _boldActive = !!document.queryCommandState('bold');
+-    updateToolbarState();
++  } else if (cmd === 'bold' || cmd === 'strikeThrough') {
++    toggleManualInlineCommand(cmd);
+   } else if (cmd === 'indent') {
+     document.execCommand('insertHTML', false, '&emsp;');
+   } else if (cmd === 'outdent') {
+@@ -4802,6 +4948,18 @@
+   }
+   setTimeout(updateToolbarState, 10);
+ });
++
++// Keep native WebView input/composition intact. We only align pending format immediately before
++// text-like insertion; the event is never prevented and no character is manually reinserted.
++var noteBodyForTypingFormat = document.getElementById('noteEditorBody');
++if (noteBodyForTypingFormat) {
++  noteBodyForTypingFormat.addEventListener('beforeinput', function(e) {
++    var inputType = String(e.inputType || '');
++    var shouldSync = !inputType || inputType === 'insertText' || inputType === 'insertCompositionText' ||
++      inputType === 'insertReplacementText' || inputType === 'insertParagraph' || inputType === 'insertLineBreak';
++    if (shouldSync) syncCollapsedNoteTypingFormat();
++  });
++}
+ 
+ // Long-press on H button for color picker
+ var hiliteBtn = document.querySelector('#noteFormatBar button[data-cmd="hiliteColor"]');
+@@ -4977,7 +5135,8 @@
+   });
+ })();
+ 
+-// Selection changes must never mutate the note. They only mirror the caret's real formatting state.
++// Selection changes remember the editing range only. B / S / H manual switches are never
++// imported from caret ancestry, so landing beside formatted text cannot activate future input.
+ document.addEventListener('selectionchange', function() {
+   var editor = document.getElementById('noteEditor');
+   if (!editor || editor.style.display === 'none') return;
+@@ -4986,7 +5145,6 @@
+   var sel = window.getSelection();
+   if (sel && sel.rangeCount && bodyEl.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+     noteLastSelectionRange = sel.getRangeAt(0).cloneRange();
+-    _boldActive = !!document.queryCommandState('bold');
+     updateToolbarState();
+   }
+ });
+@@ -5219,24 +5377,23 @@
+ function updateToolbarState() {
+   var bodyEl = document.getElementById('noteEditorBody');
+   if (!bodyEl || document.activeElement !== bodyEl) return;
+-  var cmds = ['strikeThrough', 'insertUnorderedList', 'insertOrderedList'];
++
++  // List controls keep the established caret/selection mirroring behavior.
++  var cmds = ['insertUnorderedList', 'insertOrderedList'];
+   for (var i = 0; i < cmds.length; i++) {
+     var btn = document.querySelector('#noteFormatBar button[data-cmd="' + cmds[i] + '"]');
+     if (!btn) continue;
+-    if (document.queryCommandState(cmds[i])) {
+-      btn.classList.add('toolbar-active');
+-    } else {
+-      btn.classList.remove('toolbar-active');
+-    }
+-  }
+-  // B button mirrors the actual caret formatting. Default text remains normal weight.
++    if (document.queryCommandState(cmds[i])) btn.classList.add('toolbar-active');
++    else btn.classList.remove('toolbar-active');
++  }
++
++  // B / S / H display only the user's explicit future-input switches.
+   var boldBtn = document.querySelector('#noteFormatBar button[data-cmd="bold"]');
+-  if (boldBtn) {
+-    _boldActive = !!document.queryCommandState('bold');
+-    if (_boldActive) { boldBtn.classList.add('toolbar-active'); }
+-    else { boldBtn.classList.remove('toolbar-active'); }
+-  }
+-  // H button: pure manual toggle
++  if (boldBtn) boldBtn.classList.toggle('toolbar-active', !!_boldActive);
++
++  var strikeBtn = document.querySelector('#noteFormatBar button[data-cmd="strikeThrough"]');
++  if (strikeBtn) strikeBtn.classList.toggle('toolbar-active', !!_strikeActive);
++
+   var hiliteBtn = document.querySelector('#noteFormatBar button[data-cmd="hiliteColor"]');
+   if (hiliteBtn) {
+     if (_highlightActive) {
+diff -ruN /mnt/data/v1223inspect/ui/todo.html /mnt/data/todo_v1224_final_user/ui/todo.html
+--- /mnt/data/v1223inspect/ui/todo.html
++++ /mnt/data/todo_v1224_final_user/ui/todo.html
+@@ -4042,6 +4042,7 @@
+   if (titleInput) titleInput.value = note.title;
+   if (bodyEl) bodyEl.innerHTML = note.content;
+   _boldActive = false;
++  _strikeActive = false;
+   _highlightActive = false;
+   if (searchInput) searchInput.value = '';
+ 
+@@ -4060,7 +4061,7 @@
+     if (options.preserveKeyboard !== false) {
+       try { bodyEl.focus({preventScroll:true}); } catch(e) { bodyEl.focus(); }
+     }
+-    _boldActive = !!document.queryCommandState('bold');
++    syncCollapsedNoteTypingFormat();
+     updateToolbarState();
+     syncNoteImeLayout();
+   }, options.preserveKeyboard === false ? 0 : 100);
+@@ -7604,18 +7605,28 @@
+ document.getElementById('noteEditorBody')?.addEventListener('pointerup', function(e) {
+   if (e.target.closest('.note-file-card[data-note-file-name]')) return;
+   if (noteImeSpacePx > 0) scheduleNoteCaretReveal(24, true);
++  // A caret move must not adopt formatting from the character it lands beside.
++  // Normalize Chromium's pending typing state to the three manual toolbar switches after selection settles.
++  setTimeout(syncCollapsedNoteTypingFormat, 0);
+ });
+ 
+-// ===== Highlight state =====
++// ===== Manual inline-format state (B / S / H) =====
+ var highlightColor = '#ffd93d'; // default yellow
+ var highlightColors = ['#ffd93d', '#ff6b6b', '#ff8787', '#b794f6', '#2EC4B6', '#4A90D9', '#FF9F43', '#ff9ff3'];
+ var EDITOR_BG_COLOR = 'rgb(245, 236, 216)'; // #f5ecd8
+-
+-// Init H button state
+-setTimeout(updateToolbarState, 50);
+-
++var EDITOR_BG_HEX = '#f5ecd8';
++
++// B / S / H are deliberately NOT mirrors of the caret's inherited formatting.
++// These three booleans are the single source of truth for FUTURE collapsed-caret input.
++// Moving the caret into formatted text must never flip them.
+ var _highlightActive = false;
+ var _boldActive = false;
++var _strikeActive = false;
++var _syncingTypingFormat = false;
++var _noteColorCache = {};
++
++// Init format-button visuals.
++setTimeout(updateToolbarState, 50);
+ 
+ function focusNoteBodyPreserveSelection() {
+   var bodyEl = document.getElementById('noteEditorBody');
+@@ -7630,15 +7641,141 @@
+   return bodyEl;
+ }
+ 
++function getNoteEditorSelectionRange() {
++  var bodyEl = document.getElementById('noteEditorBody');
++  var sel = window.getSelection();
++  if (!bodyEl || !sel || !sel.rangeCount) return null;
++  var range = sel.getRangeAt(0);
++  if (!bodyEl.contains(range.commonAncestorContainer)) return null;
++  return range;
++}
++
++function normalizeNoteCssColor(value) {
++  value = String(value || '').trim().toLowerCase();
++  if (!value) return '';
++  if (_noteColorCache[value]) return _noteColorCache[value];
++  if (value === 'transparent') return (_noteColorCache[value] = 'transparent');
++  var probe = document.createElement('span');
++  probe.style.color = value;
++  probe.style.position = 'fixed';
++  probe.style.visibility = 'hidden';
++  document.body.appendChild(probe);
++  var normalized = String(getComputedStyle(probe).color || value).replace(/\s+/g, '').toLowerCase();
++  probe.remove();
++  _noteColorCache[value] = normalized;
++  return normalized;
++}
++
++function isNeutralNoteBackColor(value) {
++  var normalized = normalizeNoteCssColor(value);
++  if (!normalized || normalized === 'transparent' || normalized === 'rgba(0,0,0,0)') return true;
++  return normalized === normalizeNoteCssColor(EDITOR_BG_COLOR) || normalized === normalizeNoteCssColor(EDITOR_BG_HEX);
++}
++
++function isKnownNoteHighlightColor(value) {
++  var normalized = normalizeNoteCssColor(value);
++  for (var i = 0; i < highlightColors.length; i++) {
++    if (normalized === normalizeNoteCssColor(highlightColors[i])) return true;
++  }
++  return false;
++}
++
++function setCollapsedCommandState(cmd, desired) {
++  var actual = false;
++  try { actual = !!document.queryCommandState(cmd); } catch(e) {}
++  if (actual !== !!desired) document.execCommand(cmd, false, null);
++}
++
++// Synchronize Chromium's *pending* collapsed-caret format to the manual toolbar switches.
++// This does not prevent/cancel beforeinput and does not rewrite input text, preserving IME/composition/undo.
++function syncCollapsedNoteTypingFormat() {
++  if (_syncingTypingFormat) return;
++  var bodyEl = document.getElementById('noteEditorBody');
++  var range = getNoteEditorSelectionRange();
++  if (!bodyEl || !range || !range.collapsed) return;
++  _syncingTypingFormat = true;
++  try {
++    setCollapsedCommandState('bold', _boldActive);
++    setCollapsedCommandState('strikeThrough', _strikeActive);
++
++    var currentBack = '';
++    try { currentBack = document.queryCommandValue('backColor') || ''; } catch(e) {}
++    if (_highlightActive) {
++      if (normalizeNoteCssColor(currentBack) !== normalizeNoteCssColor(highlightColor)) {
++        document.execCommand('backColor', false, highlightColor);
++      }
++    } else if (isKnownNoteHighlightColor(currentBack)) {
++      // Neutralize only H-palette inheritance. Unknown/pasted background styles are left untouched.
++      document.execCommand('backColor', false, EDITOR_BG_HEX);
++    }
++  } finally {
++    _syncingTypingFormat = false;
++  }
++}
++
++function effectiveNoteBackColorForNode(node, bodyEl) {
++  var el = node && node.nodeType === 1 ? node : (node ? node.parentElement : null);
++  while (el && el !== bodyEl) {
++    var bg = '';
++    try { bg = getComputedStyle(el).backgroundColor || ''; } catch(e) {}
++    if (!isNeutralNoteBackColor(bg)) return bg;
++    el = el.parentElement;
++  }
++  return EDITOR_BG_COLOR;
++}
++
++function selectionBackColorIsActive() {
++  var bodyEl = document.getElementById('noteEditorBody');
++  var range = getNoteEditorSelectionRange();
++  if (!bodyEl || !range || range.collapsed) return false;
++  var walker = document.createTreeWalker(bodyEl, NodeFilter.SHOW_TEXT);
++  var node, sawText = false;
++  while ((node = walker.nextNode())) {
++    if (!node.nodeValue || !node.nodeValue.trim()) continue;
++    var intersects = false;
++    try { intersects = range.intersectsNode(node); } catch(e) {}
++    if (!intersects) continue;
++    sawText = true;
++    if (isNeutralNoteBackColor(effectiveNoteBackColorForNode(node, bodyEl))) return false;
++  }
++  // Fully highlighted selection -> one H tap removes it; mixed/plain selection -> one H tap highlights all.
++  return sawText;
++}
++
++function toggleManualInlineCommand(cmd) {
++  var bodyEl = focusNoteBodyPreserveSelection();
++  if (!bodyEl) return;
++  var range = getNoteEditorSelectionRange();
++  if (!range) return;
++
++  if (!range.collapsed) {
++    // Selection mode edits EXISTING text only; it must not leak into future typing switches.
++    document.execCommand(cmd, false, null);
++  } else {
++    if (cmd === 'bold') _boldActive = !_boldActive;
++    if (cmd === 'strikeThrough') _strikeActive = !_strikeActive;
++    syncCollapsedNoteTypingFormat();
++  }
++  rememberNoteSelection();
++  updateToolbarState();
++}
++
+ function toggleHighlight() {
+   var bodyEl = focusNoteBodyPreserveSelection();
+   if (!bodyEl) return;
+-  _highlightActive = !_highlightActive;
+-  if (_highlightActive) {
+-    document.execCommand('backColor', false, highlightColor);
++  var range = getNoteEditorSelectionRange();
++  if (!range) return;
++
++  if (!range.collapsed) {
++    // Existing selection: H toggles highlight on that text only.
++    var selectedIsHighlighted = selectionBackColorIsActive();
++    document.execCommand('backColor', false, selectedIsHighlighted ? EDITOR_BG_HEX : highlightColor);
+   } else {
+-    document.execCommand('backColor', false, '#f5ecd8');
+-  }
++    // Collapsed caret: H is a persistent future-input switch controlled only by the toolbar.
++    _highlightActive = !_highlightActive;
++    syncCollapsedNoteTypingFormat();
++  }
++  rememberNoteSelection();
+   updateToolbarState();
+ }
+ 
+@@ -7670,9 +7807,19 @@
+     var sw = ev.target.closest('.color-picker-pop__swatch');
+     if (!sw) return;
+     highlightColor = sw.getAttribute('data-color');
+-    _highlightActive = true;
+-    var bodyEl = document.getElementById('noteEditorBody');
+-    if (bodyEl) { focusNoteBodyPreserveSelection(); document.execCommand('backColor', false, highlightColor); }
++    var bodyEl = focusNoteBodyPreserveSelection();
++    var range = getNoteEditorSelectionRange();
++    if (bodyEl && range) {
++      if (!range.collapsed) {
++        // Color-picking over a selection recolors existing text only.
++        document.execCommand('backColor', false, highlightColor);
++      } else {
++        // Color-picking at a caret intentionally turns future highlight input ON in the chosen color.
++        _highlightActive = true;
++        syncCollapsedNoteTypingFormat();
++      }
++      rememberNoteSelection();
++    }
+     updateToolbarState();
+     pop.remove();
+   });
+@@ -7689,6 +7836,7 @@
+ }
+ 
+ // Format bar button clicks
++// B / S / H use the manual-state model; the remaining commands keep their established behavior.
+ document.getElementById('noteFormatBar').addEventListener('click', function(e) {
+   var btn = e.target.closest('button');
+   if (!btn) return;
+@@ -7697,10 +7845,8 @@
+   var bodyEl = focusNoteBodyPreserveSelection();
+   if (cmd === 'hiliteColor') {
+     toggleHighlight();
+-  } else if (cmd === 'bold') {
+-    document.execCommand('bold', false, null);
+-    _boldActive = !!document.queryCommandState('bold');
+-    updateToolbarState();
++  } else if (cmd === 'bold' || cmd === 'strikeThrough') {
++    toggleManualInlineCommand(cmd);
+   } else if (cmd === 'indent') {
+     document.execCommand('insertHTML', false, '&emsp;');
+   } else if (cmd === 'outdent') {
+@@ -7711,6 +7857,18 @@
+   }
+   setTimeout(updateToolbarState, 10);
+ });
++
++// Keep native WebView input/composition intact. We only align pending format immediately before
++// text-like insertion; the event is never prevented and no character is manually reinserted.
++var noteBodyForTypingFormat = document.getElementById('noteEditorBody');
++if (noteBodyForTypingFormat) {
++  noteBodyForTypingFormat.addEventListener('beforeinput', function(e) {
++    var inputType = String(e.inputType || '');
++    var shouldSync = !inputType || inputType === 'insertText' || inputType === 'insertCompositionText' ||
++      inputType === 'insertReplacementText' || inputType === 'insertParagraph' || inputType === 'insertLineBreak';
++    if (shouldSync) syncCollapsedNoteTypingFormat();
++  });
++}
+ 
+ // Long-press on H button for color picker
+ var hiliteBtn = document.querySelector('#noteFormatBar button[data-cmd="hiliteColor"]');
+@@ -7886,7 +8044,8 @@
+   });
+ })();
+ 
+-// Selection changes must never mutate the note. They only mirror the caret's real formatting state.
++// Selection changes remember the editing range only. B / S / H manual switches are never
++// imported from caret ancestry, so landing beside formatted text cannot activate future input.
+ document.addEventListener('selectionchange', function() {
+   var editor = document.getElementById('noteEditor');
+   if (!editor || editor.style.display === 'none') return;
+@@ -7895,7 +8054,6 @@
+   var sel = window.getSelection();
+   if (sel && sel.rangeCount && bodyEl.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+     noteLastSelectionRange = sel.getRangeAt(0).cloneRange();
+-    _boldActive = !!document.queryCommandState('bold');
+     updateToolbarState();
+   }
+ });
+@@ -8128,24 +8286,23 @@
+ function updateToolbarState() {
+   var bodyEl = document.getElementById('noteEditorBody');
+   if (!bodyEl || document.activeElement !== bodyEl) return;
+-  var cmds = ['strikeThrough', 'insertUnorderedList', 'insertOrderedList'];
++
++  // List controls keep the established caret/selection mirroring behavior.
++  var cmds = ['insertUnorderedList', 'insertOrderedList'];
+   for (var i = 0; i < cmds.length; i++) {
+     var btn = document.querySelector('#noteFormatBar button[data-cmd="' + cmds[i] + '"]');
+     if (!btn) continue;
+-    if (document.queryCommandState(cmds[i])) {
+-      btn.classList.add('toolbar-active');
+-    } else {
+-      btn.classList.remove('toolbar-active');
+-    }
+-  }
+-  // B button mirrors the actual caret formatting. Default text remains normal weight.
++    if (document.queryCommandState(cmds[i])) btn.classList.add('toolbar-active');
++    else btn.classList.remove('toolbar-active');
++  }
++
++  // B / S / H display only the user's explicit future-input switches.
+   var boldBtn = document.querySelector('#noteFormatBar button[data-cmd="bold"]');
+-  if (boldBtn) {
+-    _boldActive = !!document.queryCommandState('bold');
+-    if (_boldActive) { boldBtn.classList.add('toolbar-active'); }
+-    else { boldBtn.classList.remove('toolbar-active'); }
+-  }
+-  // H button: pure manual toggle
++  if (boldBtn) boldBtn.classList.toggle('toolbar-active', !!_boldActive);
++
++  var strikeBtn = document.querySelector('#noteFormatBar button[data-cmd="strikeThrough"]');
++  if (strikeBtn) strikeBtn.classList.toggle('toolbar-active', !!_strikeActive);
++
+   var hiliteBtn = document.querySelector('#noteFormatBar button[data-cmd="hiliteColor"]');
+   if (hiliteBtn) {
+     if (_highlightActive) {

@@ -1,0 +1,8 @@
+To-Do V1.30.8 Stable self-test
+PASS: package identity = com.todolist.app
+PASS: versionCode = 1308; versionName = 1.30.8
+PASS: no custom signingConfig/keystore introduced; Android Studio debug build uses the machine's existing debug.keystore.
+PASS: todo composer has native/visual IME docking adapter.
+PASS: checklist parent/child toggle uses surgical DOM refresh rather than full list render.
+PASS: checklist expansion transition is gated by explicit checklist-animating class.
+PASS: ui/todo.html mirrored to android/app/src/main/assets/todo.html.

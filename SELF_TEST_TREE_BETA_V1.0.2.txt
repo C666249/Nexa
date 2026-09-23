@@ -1,0 +1,78 @@
+To-Do Tree Beta V1.0.2 — Final Self Test
+=========================================
+
+Baseline
+- Exact previous Beta baseline: To-Do-Tree-Beta-V1.0.1-Full.zip
+- Stable Golden: To-Do-v1.22.12-NoteAttachmentDeleteGuard-Full.zip
+- Beta applicationId: com.todolist.app.beta
+- versionCode: 1002
+- versionName: 1.0.2-beta1
+- APK output: To-Do-Tree-Beta-V1.0.2.apk
+
+A. True-device toolbar regression — ROOT-LEVEL FIX IMPLEMENTED
+- V1.0.1 repeated WindowInsets probing did not fix the user's Honor true-device regression.
+- V1.0.2 removes that experiment instead of adding another patch.
+- V1.22.12 Golden IME JS block: byte-exact PASS.
+- V1.22.12 MainActivity.kt: byte-exact PASS.
+- Golden format-bar layout CSS: byte-exact PASS.
+- Read Mode keeps noteEditorBody contenteditable=true and blurred; no false->true contenteditable transition exists at IME open.
+- Ordinary body pointerdown changes the shell to Edit before Chromium native focus/default action.
+- No preventDefault is used for ordinary body activation, preserving native caret/focus behavior.
+- Image/file/link/timestamp interaction islands remain excluded.
+
+B. V1.0.1 experimental IME patch removal — PASS
+- requestNoteImeInsets(): removed.
+- native IME probe timers: removed.
+- stale-native-zero visual override: removed.
+- resolveNoteImeSpace() is the exact V1.22.12 Golden implementation again.
+
+C. Note top-right more menu — PASS
+Exactly two actions remain:
+1) 移到主题…
+2) 删除笔记
+
+D. Mature Note protection — PASS
+Source-identical vs Beta V1.0.1:
+- syncCollapsedNoteTypingFormat
+- toggleManualInlineCommand / toggleHighlight
+- image preview open/close/reset
+- createNoteFileCard / insertPickedFileItems / openNoteFileActions
+- HTTP autolink/open external
+- attachment protected-node/range/caret/delete guard helpers
+
+E. Native Locked Core — PASS
+- Reminder / Daily / Banner / Snooze: 20/20 exact vs Stable V1.22.12.
+- MainActivity is intentionally no longer a Beta delta: it is restored to Stable V1.22.12 exact.
+
+F. Fixed Beta signing — PASS (static/key validation)
+- Dedicated android/app/beta-debug.keystore exists.
+- build.gradle.kts debug signing explicitly references betaDebug.
+- Keystore SHA-256: 6af592d340eac79435f07ce22393af0fd419349b482ce02970852b0ca0f1ef3a
+- Cert SHA-256: F8:44:1C:45:A5:2E:1D:5D:FA:2F:44:12:C4:6C:BE:06:84:41:5E:83:84:D3:DF:71:BB:91:54:E0:40:DD:48:51
+- Beta-only key; never valid as Stable release identity.
+
+G. Static gates — PASS
+- ui/todo.html == Android asset: byte-identical.
+- inline runtime script == script_0.js: PASS.
+- node --check script_0.js: PASS.
+- Android XML parse: PASS.
+- applicationId com.todolist.app.beta: PASS.
+- versionCode/versionName/output name: PASS.
+- detailed regression log: dev-logs/TREE_BETA_V1.0.2_REGRESSION.txt
+
+H. Headless browser environment — BLOCKED BY SANDBOX POLICY
+- Chromium launch is available, but navigation to local file/localhost test pages is blocked by the execution environment administrator.
+- No false headless PASS is claimed.
+- Read/Edit ordering is covered by source invariants/static checks; final IME placement must be confirmed by Honor true-device test.
+
+I. Gradle compiler attempt — LOCAL ENVIRONMENT BLOCKED
+- Attempted: ./gradlew --no-daemon :app:assembleDebug
+- Result: gradle-8.11.1 wrapper download fails with java.net.UnknownHostException: services.gradle.org.
+- Full log: tree_beta_v102_gradle_build.log
+- No local compiler PASS is claimed.
+- GitHub Actions green build is required before installation.
+
+Delivery verdict
+- V1.0.2 is a narrow architecture correction: restore Golden IME/Native code, change only Read/Edit activation timing, and establish permanent Beta signing.
+- Internal static/locked-core/key checks: PASS.
+- Real compile and final MagicOS keyboard placement: GitHub Actions + user's true-device test remain the final gates.

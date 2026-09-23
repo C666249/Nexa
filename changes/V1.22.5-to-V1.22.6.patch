@@ -1,0 +1,309 @@
+--- /mnt/data/todo_v1225_base/README.md
++++ /mnt/data/todo_v1226_work/README.md
+@@ -1,4 +1,4 @@
+-# To-Do V1.22.5
++# To-Do V1.22.6
+ 
+ 本地优先的 To-Do + Note Android 应用。UI 使用 HTML/CSS/Vanilla JS，Android 原生层使用 Kotlin WebView，并负责精确定时、后台提醒守护与悬浮 Banner。
+ 
+@@ -8,6 +8,15 @@
+ 
+ 
+ 
++
++
++## V1.22.6 Note 图片预览焦点安全修复
++
++- 基于 V1.22.5 最小增量修复：点击 Note 正文中由系统相册/Photo Picker 插入的图片时，不再让 `contenteditable` 先抢焦点并唤起软键盘。
++- 直接复用现有、已验证的 `closeNoteKeyboardForOverlay()`：在图片 pointer-down 阶段保存当前 selection、让 Note 正文/标题失焦并调用 Native `hideNoteKeyboard()`。
++- 图片预览只在短距离 pointer-up 后打开；超过 12px 视为滚动，不误触预览。图片增加 `touch-action: pan-y`，保持 Note 正文原有纵向滚动。
++- V1.22.5 的图片 1×–5× pinch/pan 预览逻辑原样保留；PDF 缩放代码完全未改。
++- V1.22.3 IME/光标/唯一 Scroll Owner、V1.22.4 B/S/H 手动格式状态以及 Reminder/Daily/Banner/Snooze 均保持锁定。
+ 
+ ## V1.22.5 PDF / Note 图片手势缩放
+ 
+@@ -201,7 +210,7 @@
+ 成功后 APK 会复制到：
+ 
+ ```text
+-dist/To-Do-v1.22.5.apk
++dist/To-Do-v1.22.6.apk
+ ```
+ 
+ ## 技术栈
+--- /mnt/data/todo_v1225_base/android/app/build.gradle.kts
++++ /mnt/data/todo_v1226_work/android/app/build.gradle.kts
+@@ -11,8 +11,8 @@
+         applicationId = "com.todolist.app"
+         minSdk = 26
+         targetSdk = 35
+-        versionCode = 38
+-        versionName = "1.22.5"
++        versionCode = 39
++        versionName = "1.22.6"
+     }
+ 
+     buildTypes {
+--- /mnt/data/todo_v1225_base/android/app/src/main/assets/todo.html
++++ /mnt/data/todo_v1226_work/android/app/src/main/assets/todo.html
+@@ -2105,7 +2105,7 @@
+ .note-image-grid--single .note-image-item { max-height:380px; }
+ .note-image-item img {
+   display:block; width:100%; height:100%; max-height:300px; object-fit:cover;
+-  background:#efe9df; cursor:pointer;
++  background:#efe9df; cursor:pointer; touch-action:pan-y;
+ }
+ .note-image-grid--single .note-image-item img { height:auto; max-height:380px; object-fit:contain; }
+ .note-image-remove {
+@@ -7176,6 +7176,28 @@
+   noteImagePreviewImg.addEventListener('touchend', onNoteImagePreviewTouchEnd, { passive: false });
+   noteImagePreviewImg.addEventListener('touchcancel', onNoteImagePreviewTouchEnd, { passive: false });
+ }
++
++// Inline note images are focus-safe interaction islands, just like file attachment cards.
++// Intercept pointer-down before contenteditable can focus/reopen the IME, preserve the last caret,
++// then commit the preview only on a short pointer-up so normal vertical note scrolling still works.
++var noteImagePointerTap = null;
++document.getElementById('noteEditorBody')?.addEventListener('pointerdown', function(e) {
++  var img = e.target.closest('img[data-note-image-preview]');
++  if (!img) return;
++  e.preventDefault();
++  e.stopPropagation();
++  closeNoteKeyboardForOverlay();
++  noteImagePointerTap = { img:img, x:e.clientX, y:e.clientY, pointerId:e.pointerId };
++}, true);
++document.getElementById('noteEditorBody')?.addEventListener('pointerup', function(e) {
++  var tap = noteImagePointerTap; noteImagePointerTap = null;
++  if (!tap || tap.pointerId !== e.pointerId) return;
++  if (Math.abs(e.clientX - tap.x) > 12 || Math.abs(e.clientY - tap.y) > 12) return;
++  e.preventDefault(); e.stopPropagation();
++  openNoteImagePreview(tap.img.src);
++}, true);
++document.getElementById('noteEditorBody')?.addEventListener('pointercancel', function(){ noteImagePointerTap = null; }, true);
++
+ document.getElementById('noteEditorBody')?.addEventListener('click', function(e) {
+   var remove = e.target.closest('[data-note-image-remove]');
+   if (remove) {
+@@ -7191,7 +7213,7 @@
+     return;
+   }
+   var img = e.target.closest('img[data-note-image-preview]');
+-  if (img) { e.preventDefault(); e.stopPropagation(); openNoteImagePreview(img.src); return; }
++  if (img) { e.preventDefault(); e.stopPropagation(); return; }
+ });
+ 
+ // ===== Note file picker / inline attachment cards =====
+--- /mnt/data/todo_v1225_base/build-apk.bat
++++ /mnt/data/todo_v1226_work/build-apk.bat
+@@ -10,9 +10,9 @@
+ )
+ if not exist "dist" mkdir "dist"
+ for %%F in ("android\app\build\outputs\apk\debug\*.apk") do (
+-  copy /Y "%%~fF" "dist\To-Do-v1.22.5.apk" >nul
++  copy /Y "%%~fF" "dist\To-Do-v1.22.6.apk" >nul
+   echo.
+-  echo APK: %CD%\dist\To-Do-v1.22.5.apk
++  echo APK: %CD%\dist\To-Do-v1.22.6.apk
+   exit /b 0
+ )
+ echo Build finished but no APK was found under android\app\build\outputs\apk\debug
+--- /mnt/data/todo_v1225_base/script_0.js
++++ /mnt/data/todo_v1226_work/script_0.js
+@@ -4263,6 +4263,28 @@
+   noteImagePreviewImg.addEventListener('touchend', onNoteImagePreviewTouchEnd, { passive: false });
+   noteImagePreviewImg.addEventListener('touchcancel', onNoteImagePreviewTouchEnd, { passive: false });
+ }
++
++// Inline note images are focus-safe interaction islands, just like file attachment cards.
++// Intercept pointer-down before contenteditable can focus/reopen the IME, preserve the last caret,
++// then commit the preview only on a short pointer-up so normal vertical note scrolling still works.
++var noteImagePointerTap = null;
++document.getElementById('noteEditorBody')?.addEventListener('pointerdown', function(e) {
++  var img = e.target.closest('img[data-note-image-preview]');
++  if (!img) return;
++  e.preventDefault();
++  e.stopPropagation();
++  closeNoteKeyboardForOverlay();
++  noteImagePointerTap = { img:img, x:e.clientX, y:e.clientY, pointerId:e.pointerId };
++}, true);
++document.getElementById('noteEditorBody')?.addEventListener('pointerup', function(e) {
++  var tap = noteImagePointerTap; noteImagePointerTap = null;
++  if (!tap || tap.pointerId !== e.pointerId) return;
++  if (Math.abs(e.clientX - tap.x) > 12 || Math.abs(e.clientY - tap.y) > 12) return;
++  e.preventDefault(); e.stopPropagation();
++  openNoteImagePreview(tap.img.src);
++}, true);
++document.getElementById('noteEditorBody')?.addEventListener('pointercancel', function(){ noteImagePointerTap = null; }, true);
++
+ document.getElementById('noteEditorBody')?.addEventListener('click', function(e) {
+   var remove = e.target.closest('[data-note-image-remove]');
+   if (remove) {
+@@ -4278,7 +4300,7 @@
+     return;
+   }
+   var img = e.target.closest('img[data-note-image-preview]');
+-  if (img) { e.preventDefault(); e.stopPropagation(); openNoteImagePreview(img.src); return; }
++  if (img) { e.preventDefault(); e.stopPropagation(); return; }
+ });
+ 
+ // ===== Note file picker / inline attachment cards =====
+--- /mnt/data/todo_v1225_base/ui/todo.html
++++ /mnt/data/todo_v1226_work/ui/todo.html
+@@ -2105,7 +2105,7 @@
+ .note-image-grid--single .note-image-item { max-height:380px; }
+ .note-image-item img {
+   display:block; width:100%; height:100%; max-height:300px; object-fit:cover;
+-  background:#efe9df; cursor:pointer;
++  background:#efe9df; cursor:pointer; touch-action:pan-y;
+ }
+ .note-image-grid--single .note-image-item img { height:auto; max-height:380px; object-fit:contain; }
+ .note-image-remove {
+@@ -7176,6 +7176,28 @@
+   noteImagePreviewImg.addEventListener('touchend', onNoteImagePreviewTouchEnd, { passive: false });
+   noteImagePreviewImg.addEventListener('touchcancel', onNoteImagePreviewTouchEnd, { passive: false });
+ }
++
++// Inline note images are focus-safe interaction islands, just like file attachment cards.
++// Intercept pointer-down before contenteditable can focus/reopen the IME, preserve the last caret,
++// then commit the preview only on a short pointer-up so normal vertical note scrolling still works.
++var noteImagePointerTap = null;
++document.getElementById('noteEditorBody')?.addEventListener('pointerdown', function(e) {
++  var img = e.target.closest('img[data-note-image-preview]');
++  if (!img) return;
++  e.preventDefault();
++  e.stopPropagation();
++  closeNoteKeyboardForOverlay();
++  noteImagePointerTap = { img:img, x:e.clientX, y:e.clientY, pointerId:e.pointerId };
++}, true);
++document.getElementById('noteEditorBody')?.addEventListener('pointerup', function(e) {
++  var tap = noteImagePointerTap; noteImagePointerTap = null;
++  if (!tap || tap.pointerId !== e.pointerId) return;
++  if (Math.abs(e.clientX - tap.x) > 12 || Math.abs(e.clientY - tap.y) > 12) return;
++  e.preventDefault(); e.stopPropagation();
++  openNoteImagePreview(tap.img.src);
++}, true);
++document.getElementById('noteEditorBody')?.addEventListener('pointercancel', function(){ noteImagePointerTap = null; }, true);
++
+ document.getElementById('noteEditorBody')?.addEventListener('click', function(e) {
+   var remove = e.target.closest('[data-note-image-remove]');
+   if (remove) {
+@@ -7191,7 +7213,7 @@
+     return;
+   }
+   var img = e.target.closest('img[data-note-image-preview]');
+-  if (img) { e.preventDefault(); e.stopPropagation(); openNoteImagePreview(img.src); return; }
++  if (img) { e.preventDefault(); e.stopPropagation(); return; }
+ });
+ 
+ // ===== Note file picker / inline attachment cards =====
+--- /mnt/data/todo_v1225_base/SELF_TEST_V1.22.6.txt
++++ /mnt/data/todo_v1226_work/SELF_TEST_V1.22.6.txt
+@@ -0,0 +1,30 @@
++To-Do V1.22.6 Self Test
++========================
++Base: V1.22.5 ImagePdfGestureZoom
++
++Target fix:
++- Tap a Photo Picker image inside a Note without letting contenteditable reopen the IME.
++- Preserve existing image pinch/pan and Note vertical scroll.
++
++Static/source checks:
++- Node JS syntax PASS
++- ui/todo.html == Android asset mirror PASS
++- inline main script == script_0.js PASS
++- Android XML parse PASS
++- versionCode=39 / versionName=1.22.6 PASS
++- MainActivity.kt byte-identical to V1.22.5 PASS
++- NoteFileViewerActivity.kt byte-identical to V1.22.5 PASS
++- Reminder/Daily/Banner/Snooze locked core 20/20 PASS
++- V1.22.5 image preview zoom functions unchanged PASS
++- V1.22.3 IME/caret functions unchanged PASS
++- V1.22.4 manual B/S/H state markers unchanged PASS
++- Photo Picker / image import bridge unchanged PASS
++
++Target-phone acceptance:
++1. With Note keyboard closed, tap an inline Photo Picker image: preview opens and keyboard stays closed.
++2. With Note keyboard open, tap an inline image: keyboard closes and preview opens without requiring a second manual dismissal.
++3. Pinch 1x-5x and pan still work exactly as V1.22.5.
++4. Start a vertical swipe on an inline image: Note can still scroll; a drag over 12px does not accidentally open preview.
++5. Close preview and resume typing: caret/toolbar/IME behavior remains normal.
++6. Recheck B/S/H manual state, Backspace/Delete, low-caret reveal and no jump-to-top.
++7. PDF continuous scrolling + PDF pinch/pan remain unchanged.
+--- /mnt/data/todo_v1225_base/changes/CHANGELOG_V1.22.6.md
++++ /mnt/data/todo_v1226_work/changes/CHANGELOG_V1.22.6.md
+@@ -0,0 +1,6 @@
++# V1.22.6 Changelog
++
++- Fixed Note inline-image taps reopening the soft keyboard before image preview.
++- Added focus-safe pointer-down/up handling for inline Note images.
++- Preserved vertical scrolling with `touch-action: pan-y`.
++- No changes to PDF zoom, image-preview zoom, IME geometry, B/S/H formatting, imports, reminders or other application features.
+--- /mnt/data/todo_v1225_base/changes/LOCKED_CORE_GUARD_V1.22.6.txt
++++ /mnt/data/todo_v1226_work/changes/LOCKED_CORE_GUARD_V1.22.6.txt
+@@ -0,0 +1,42 @@
++Locked Core Guard — V1.22.5 -> V1.22.6 Note Image Focus-Safe Preview
++
++Authorized scope:
++- ui/todo.html + Android asset + script_0.js: inline Note image focus-safe pointer entry only.
++- Version/readme/release metadata.
++
++Explicitly unchanged:
++- V1.22.5 Note full-screen image pinch/pan.
++- NoteFileViewerActivity / PDF rendering and gesture zoom.
++- V1.22.3 IME geometry, toolbar-at-keyboard-edge, one-shot caret reveal and single Scroll Owner.
++- V1.22.4 B/S/H manual typing-state architecture.
++- MainActivity Photo Picker/import/private storage and file import chain.
++- Reminder / Daily / Banner / Snooze locked core.
++
++- PASS  android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt  49dbbad17f11d7109eb4d82a55857e01b219e22b2d68c91289e801f2f6d9468f
++- PASS  android/app/src/main/java/com/todolist/app/receiver/BootReceiver.kt  5c749c6186e9ba2e9226e29e93856753879c898e8b2dcbe5d7a9922c4d27ca7d
++- PASS  android/app/src/main/java/com/todolist/app/receiver/DailyTaskActionReceiver.kt  9bd9bb60566ee86da41ce282cf3b1b845f4f4caa05b34567cc5612ac33c092de
++- PASS  android/app/src/main/java/com/todolist/app/receiver/DailyTaskReminderReceiver.kt  26928a47fd1f97f7ab9b51500f5c58f20333e2c1d1cc72edd4cc6a3ed9907292
++- PASS  android/app/src/main/java/com/todolist/app/receiver/MidnightReceiver.kt  49ebf2634854cd20c6d03656d4c1da7de3a6c0a30f542cdf23e7b0c9b9f1219e
++- PASS  android/app/src/main/java/com/todolist/app/receiver/ReminderActionReceiver.kt  ba2b57ee965759555fe4913827b2aa4fdeb1499854fb40c298efeb2bcfc3e361
++- PASS  android/app/src/main/java/com/todolist/app/receiver/TodoReminderReceiver.kt  36b242a80eaa2a9d4f4cd1aad3d8ff7105027e68ce0f166efd1b8aea495cb207
++- PASS  android/app/src/main/java/com/todolist/app/reminder/DailyTaskStore.kt  5770232c61f413fa8e88dadd07182f1a3a81d04a8758d9e3b4e37d43d417162e
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderDiagnostics.kt  445283809d9ecbafd08e80e8cd882444372127ef7aebea8d38c30a9857be4898
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderNotifier.kt  2b99868689598268ac27e07ed55385d5e2786ab6c1b9027b80dff2459b5642fc
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderScheduler.kt  4d58be9846178a49e45ca62d69368be10190512599c19e5aeac5431e9bd79a1e
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderStore.kt  f2e941bc491f4d743697136e135888e98c14324236abb8814b9632669a183df6
++- PASS  android/app/src/main/java/com/todolist/app/reminder/SnoozeStore.kt  87f3a0ee2af0af3bf1d43453a24b2d4429de4b653b9faf4482f616a9da574b6d
++- PASS  android/app/src/main/java/com/todolist/app/reminder/TodoSnapshotStore.kt  74ea806ecddc1680c3e7cb5f7e0abb9db8ba1a69ab9a4b3ac2e90a7cd5e9c1b3
++- PASS  android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt  be35d5eff3dd8067f0596d13055b9dda7f8d77204fe4ff1015c7f57499a58ca4
++- PASS  android/app/src/main/java/com/todolist/app/ui/BannerView.kt  f5e3fb07f5700e148e26cb4c9091f17e5ed06d2f82ad22bf15b9af24c328d68a
++- PASS  android/app/src/main/java/com/todolist/app/ui/DailyTaskBannerView.kt  41aa1e68973d2b77462484c22be00b9b712349c452a4db3c819e534854ea2bb5
++- PASS  android/app/src/main/java/com/todolist/app/ui/SnoozeSwipeBannerView.kt  4b99f2224df38ca6d90b749290174f69291e5f24589af35a58af12720bc829f4
++- PASS  android/app/src/main/java/com/todolist/app/ui/TodoReminderBannerView.kt  c53e279feafaa0b46f470c4e0ee0ab3d0cd48420171ac006079a6988f867c408
++- PASS  android/app/src/main/java/com/todolist/app/util/Dp.kt  4076197dac4258610e66978ffa4d4347ba1c1eb75ec364ddca9344c99ee617e8
++- PASS unchanged  android/app/src/main/java/com/todolist/app/MainActivity.kt
++- PASS unchanged  android/app/src/main/java/com/todolist/app/NoteFileViewerActivity.kt
++- PASS unchanged  android/app/src/main/java/com/todolist/app/ImportReceiverActivity.kt
++- PASS unchanged  android/app/src/main/AndroidManifest.xml
++- PASS unchanged  android/app/src/main/res/xml/file_paths.xml
++
++Locked reminder/banner core: 20/20 PASS.
++Result: PASS
+--- /mnt/data/todo_v1225_base/changes/NOTE_IMAGE_FOCUS_SAFE_PREVIEW_V1.22.6.md
++++ /mnt/data/todo_v1226_work/changes/NOTE_IMAGE_FOCUS_SAFE_PREVIEW_V1.22.6.md
+@@ -0,0 +1,21 @@
++# V1.22.6 Note Image Focus-Safe Preview
++
++## Problem
++Tapping an inline image inserted from Android Photo Picker could allow the surrounding contenteditable Note body to focus first, reopening the soft keyboard before the full-screen image preview appeared.
++
++## Fix
++- Reuse the existing `closeNoteKeyboardForOverlay()` path; no new IME geometry code.
++- Inline preview images now use the same focus-safe pointer model already proven by Note file attachment cards.
++- `pointerdown`: prevent contenteditable default focus, preserve current selection, blur editor/title, request native keyboard hide.
++- `pointerup`: only open preview if movement stayed within 12px.
++- `pointercancel`: clear pending tap.
++- `touch-action: pan-y` preserves vertical Note scrolling when a gesture begins on an image.
++- Compatibility click is consumed so the preview is not opened twice.
++
++## Explicitly unchanged
++- V1.22.5 full-screen image pinch/pan implementation.
++- PDF viewer and PDF gesture zoom.
++- V1.22.3 IME/toolbar/caret/single-scroll-owner architecture.
++- V1.22.4 B/S/H manual typing-state architecture.
++- Photo Picker/import/private image storage/delete/save flows.
++- Reminder/Daily/Banner/Snooze.

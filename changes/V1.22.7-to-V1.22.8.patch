@@ -1,0 +1,274 @@
+diff -ruN /mnt/data/todo_v1227_base_for_v1228/README.md /mnt/data/todo_v1228_work/README.md
+--- /mnt/data/todo_v1227_base_for_v1228/README.md
++++ /mnt/data/todo_v1228_work/README.md
+@@ -1,4 +1,4 @@
+-# To-Do V1.22.7
++# To-Do V1.22.8
+ 
+ 本地优先的 To-Do + Note Android 应用。UI 使用 HTML/CSS/Vanilla JS，Android 原生层使用 Kotlin WebView，并负责精确定时、后台提醒守护与悬浮 Banner。
+ 
+@@ -11,9 +11,16 @@
+ 
+ 
+ 
++## V1.22.8 Note HTTP(S) 青蓝绿紫渐变链接
++
++- 本轮是**纯视觉层更新**：HTTP(S) 链接文字由 V1.22.7 的单色蓝改为 `青 → 蓝 → 绿 → 紫` 的柔和横向渐变，并保留轻量下划线和按压反馈。
++- `:visited` 继续使用同一套渐变，不出现浏览器默认紫色；文字被选中时临时恢复深色字形 + 半透明蓝色选区，保证编辑可读性。
++- V1.22.7 的 URL 识别、局部 linkify、旧笔记升级、点击跳默认浏览器、http/https 安全校验全部**字节级逻辑不变**。
++- 不修改 IME/caret/唯一 Scroll Owner、B/S/H、图片/PDF 缩放、图片 focus-safe 预览、文件导入、Reminder/Daily/Banner/Snooze。
++
+ ## V1.22.7 Note HTTP(S) 自动链接
+ 
+-- Note 正文中的 `http://` / `https://` 明文网址会显示为 To-Do 风格蓝色可点击链接。
++- Note 正文中的 `http://` / `https://` 明文网址会自动成为可点击链接。
+ - 第一版故意不识别 `example.com` / `www.example.com` 等无协议“模糊网址”，降低误判。
+ - 输入空格、换行或粘贴完整 URL 后，只 linkify 最近完成的文本 token，不在每次输入时重写整篇 Note。
+ - 旧笔记中的明文 HTTP(S) URL 在打开编辑器、尚未获取焦点前做一次安全 DOM linkify。
+@@ -220,7 +227,7 @@
+ 成功后 APK 会复制到：
+ 
+ ```text
+-dist/To-Do-v1.22.7.apk
++dist/To-Do-v1.22.8.apk
+ ```
+ 
+ ## 技术栈
+diff -ruN /mnt/data/todo_v1227_base_for_v1228/SELF_TEST_V1.22.8.txt /mnt/data/todo_v1228_work/SELF_TEST_V1.22.8.txt
+--- /mnt/data/todo_v1227_base_for_v1228/SELF_TEST_V1.22.8.txt
++++ /mnt/data/todo_v1228_work/SELF_TEST_V1.22.8.txt
+@@ -0,0 +1,35 @@
++To-Do v1.22.8 Self Test
++========================
++Base: v1.22.7 NoteHttpAutoLink
++Target: v1.22.8 NoteHttpGradientLink
++
++Implementation boundary:
++- Runtime behavior change is CSS-only for Note http(s) anchors.
++- No JavaScript edits.
++- No Kotlin edits.
++- No IME/caret/toolbar/format/image/file/reminder edits.
++
++Static/source validation:
++- script_0.js node --check PASS
++- ui/todo.html == Android asset mirror PASS
++- inline main script == script_0.js PASS
++- inline main script byte-identical to v1.22.7 PASS
++- MainActivity.kt byte-identical to v1.22.7 PASS
++- NoteFileViewerActivity.kt / ImportReceiverActivity.kt / Manifest / FileProvider byte-identical to v1.22.7 PASS
++- Reminder/Daily/Banner/Snooze locked core SHA-256 20/20 PASS
++- V1.22.7 Note auto-link JavaScript block exact-text unchanged PASS
++- V1.22.3 IME/caret critical functions exact-text unchanged PASS
++- V1.22.4 B/S/H critical functions exact-text unchanged PASS
++- V1.22.5 image zoom functions exact-text unchanged PASS
++- V1.22.6 focus-safe image preview block exact-text unchanged PASS
++- versionCode=41 / versionName=1.22.8 PASS
++- ZIP integrity PASS
++
++Target-phone acceptance:
++1. Existing and newly-created http(s) links render cyan → blue → green → purple.
++2. Visited links remain in the same gradient; no default purple visited style.
++3. Long-press/select link text remains readable in the selection highlight.
++4. Tap still opens the same default browser/system URL handler.
++5. Type URL + Space / Enter / Paste: linkify behavior is identical to v1.22.7.
++6. Recheck long-note IME: no jump-to-top and toolbar remains above keyboard.
++7. Recheck B/S/H, image preview/zoom, PDF zoom/scroll and file import.
+diff -ruN /mnt/data/todo_v1227_base_for_v1228/android/app/build.gradle.kts /mnt/data/todo_v1228_work/android/app/build.gradle.kts
+--- /mnt/data/todo_v1227_base_for_v1228/android/app/build.gradle.kts
++++ /mnt/data/todo_v1228_work/android/app/build.gradle.kts
+@@ -11,8 +11,8 @@
+         applicationId = "com.todolist.app"
+         minSdk = 26
+         targetSdk = 35
+-        versionCode = 40
+-        versionName = "1.22.7"
++        versionCode = 41
++        versionName = "1.22.8"
+     }
+ 
+     buildTypes {
+diff -ruN /mnt/data/todo_v1227_base_for_v1228/android/app/src/main/assets/todo.html /mnt/data/todo_v1228_work/android/app/src/main/assets/todo.html
+--- /mnt/data/todo_v1227_base_for_v1228/android/app/src/main/assets/todo.html
++++ /mnt/data/todo_v1228_work/android/app/src/main/assets/todo.html
+@@ -2093,12 +2093,26 @@
+ .note-editor__body a[href^="https://"],
+ .note-editor__body a[href^="http://"]:visited,
+ .note-editor__body a[href^="https://"]:visited {
+-  color:#3b82c4;
+-  text-decoration:none;
+-  border-bottom:1px solid rgba(59,130,196,.32);
++  color:#3b82c4; /* fallback for engines without text clipping */
++  background-image:linear-gradient(90deg, #22c7c7 0%, #3f8cff 33%, #39c98b 66%, #9167f2 100%);
++  background-repeat:no-repeat;
++  background-size:100% 100%;
++  -webkit-background-clip:text;
++  background-clip:text;
++  -webkit-text-fill-color:transparent;
++  text-decoration:underline;
++  text-decoration-color:rgba(63,140,210,.26);
++  text-decoration-thickness:1px;
++  text-underline-offset:2px;
+   cursor:pointer;
+   overflow-wrap:anywhere;
+-  -webkit-tap-highlight-color:rgba(59,130,196,.10);
++  -webkit-tap-highlight-color:rgba(63,140,210,.10);
++}
++.note-editor__body a[href^="http://"]::selection,
++.note-editor__body a[href^="https://"]::selection {
++  background:rgba(79,142,247,.22);
++  color:#26313c;
++  -webkit-text-fill-color:#26313c;
+ }
+ .note-editor__body a[href^="http://"]:active,
+ .note-editor__body a[href^="https://"]:active { opacity:.66; }
+diff -ruN /mnt/data/todo_v1227_base_for_v1228/build-apk.bat /mnt/data/todo_v1228_work/build-apk.bat
+--- /mnt/data/todo_v1227_base_for_v1228/build-apk.bat
++++ /mnt/data/todo_v1228_work/build-apk.bat
+@@ -10,9 +10,9 @@
+ )
+ if not exist "dist" mkdir "dist"
+ for %%F in ("android\app\build\outputs\apk\debug\*.apk") do (
+-  copy /Y "%%~fF" "dist\To-Do-v1.22.7.apk" >nul
++  copy /Y "%%~fF" "dist\To-Do-v1.22.8.apk" >nul
+   echo.
+-  echo APK: %CD%\dist\To-Do-v1.22.7.apk
++  echo APK: %CD%\dist\To-Do-v1.22.8.apk
+   exit /b 0
+ )
+ echo Build finished but no APK was found under android\app\build\outputs\apk\debug
+diff -ruN /mnt/data/todo_v1227_base_for_v1228/changes/CHANGELOG_V1.22.8.md /mnt/data/todo_v1228_work/changes/CHANGELOG_V1.22.8.md
+--- /mnt/data/todo_v1227_base_for_v1228/changes/CHANGELOG_V1.22.8.md
++++ /mnt/data/todo_v1228_work/changes/CHANGELOG_V1.22.8.md
+@@ -0,0 +1,15 @@
++# V1.22.8 — Note HTTP(S) Gradient Link Styling
++
++## Scope
++Pure presentation-layer update for already-linked HTTP(S) anchors inside the Note editor.
++
++## Behavior
++- Replace the V1.22.7 single blue link text with a cyan → blue → green → purple horizontal text gradient.
++- Keep the same gradient for `:visited` links; never fall back to browser visited-purple.
++- Keep a light underline and existing press-opacity feedback so links remain recognizable as links.
++- Add a selection-only text-fill fallback so selected link text remains readable while editing.
++
++## Regression boundary
++- No JavaScript changes. URL recognition, local-token linkify, old-note migration and link-click interception are byte-identical to V1.22.7.
++- No Kotlin runtime changes. `openExternalUrl()` and all Android bridge behavior are byte-identical to V1.22.7.
++- No changes to IME/caret/toolbar/single Scroll Owner, B/S/H, image/PDF zoom, image focus-safe preview, file import or reminder stack.
+diff -ruN /mnt/data/todo_v1227_base_for_v1228/changes/LOCKED_CORE_GUARD_V1.22.8.txt /mnt/data/todo_v1228_work/changes/LOCKED_CORE_GUARD_V1.22.8.txt
+--- /mnt/data/todo_v1227_base_for_v1228/changes/LOCKED_CORE_GUARD_V1.22.8.txt
++++ /mnt/data/todo_v1228_work/changes/LOCKED_CORE_GUARD_V1.22.8.txt
+@@ -0,0 +1,46 @@
++Locked Core Guard — V1.22.7 -> V1.22.8 Note HTTP(S) Gradient Link Style
++
++Authorized runtime scope:
++- ui/todo.html + Android asset mirror: CSS presentation only for existing Note http(s) anchors.
++- Version/readme/release metadata.
++
++Explicitly unchanged:
++- All Note HTTP(S) recognition/linkify/click JavaScript from V1.22.7.
++- MainActivity.kt including openExternalUrl bridge.
++- V1.22.3 IME geometry, toolbar-at-keyboard-edge, caret reveal and single Scroll Owner.
++- V1.22.4 B/S/H manual future-input state.
++- V1.22.5 PDF/image gesture zoom.
++- V1.22.6 focus-safe inline image preview entry.
++- NoteFileViewerActivity, ImportReceiverActivity, image/file import/storage and FileProvider.
++- Reminder / Daily / Banner / Snooze locked core.
++
++- PASS  android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt  49dbbad17f11d7109eb4d82a55857e01b219e22b2d68c91289e801f2f6d9468f
++- PASS  android/app/src/main/java/com/todolist/app/receiver/BootReceiver.kt  5c749c6186e9ba2e9226e29e93856753879c898e8b2dcbe5d7a9922c4d27ca7d
++- PASS  android/app/src/main/java/com/todolist/app/receiver/DailyTaskActionReceiver.kt  9bd9bb60566ee86da41ce282cf3b1b845f4f4caa05b34567cc5612ac33c092de
++- PASS  android/app/src/main/java/com/todolist/app/receiver/DailyTaskReminderReceiver.kt  26928a47fd1f97f7ab9b51500f5c58f20333e2c1d1cc72edd4cc6a3ed9907292
++- PASS  android/app/src/main/java/com/todolist/app/receiver/MidnightReceiver.kt  49ebf2634854cd20c6d03656d4c1da7de3a6c0a30f542cdf23e7b0c9b9f1219e
++- PASS  android/app/src/main/java/com/todolist/app/receiver/ReminderActionReceiver.kt  ba2b57ee965759555fe4913827b2aa4fdeb1499854fb40c298efeb2bcfc3e361
++- PASS  android/app/src/main/java/com/todolist/app/receiver/TodoReminderReceiver.kt  36b242a80eaa2a9d4f4cd1aad3d8ff7105027e68ce0f166efd1b8aea495cb207
++- PASS  android/app/src/main/java/com/todolist/app/reminder/DailyTaskStore.kt  5770232c61f413fa8e88dadd07182f1a3a81d04a8758d9e3b4e37d43d417162e
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderDiagnostics.kt  445283809d9ecbafd08e80e8cd882444372127ef7aebea8d38c30a9857be4898
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderNotifier.kt  2b99868689598268ac27e07ed55385d5e2786ab6c1b9027b80dff2459b5642fc
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderScheduler.kt  4d58be9846178a49e45ca62d69368be10190512599c19e5aeac5431e9bd79a1e
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderStore.kt  f2e941bc491f4d743697136e135888e98c14324236abb8814b9632669a183df6
++- PASS  android/app/src/main/java/com/todolist/app/reminder/SnoozeStore.kt  87f3a0ee2af0af3bf1d43453a24b2d4429de4b653b9faf4482f616a9da574b6d
++- PASS  android/app/src/main/java/com/todolist/app/reminder/TodoSnapshotStore.kt  74ea806ecddc1680c3e7cb5f7e0abb9db8ba1a69ab9a4b3ac2e90a7cd5e9c1b3
++- PASS  android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt  be35d5eff3dd8067f0596d13055b9dda7f8d77204fe4ff1015c7f57499a58ca4
++- PASS  android/app/src/main/java/com/todolist/app/ui/BannerView.kt  f5e3fb07f5700e148e26cb4c9091f17e5ed06d2f82ad22bf15b9af24c328d68a
++- PASS  android/app/src/main/java/com/todolist/app/ui/DailyTaskBannerView.kt  41aa1e68973d2b77462484c22be00b9b712349c452a4db3c819e534854ea2bb5
++- PASS  android/app/src/main/java/com/todolist/app/ui/SnoozeSwipeBannerView.kt  4b99f2224df38ca6d90b749290174f69291e5f24589af35a58af12720bc829f4
++- PASS  android/app/src/main/java/com/todolist/app/ui/TodoReminderBannerView.kt  c53e279feafaa0b46f470c4e0ee0ab3d0cd48420171ac006079a6988f867c408
++- PASS  android/app/src/main/java/com/todolist/app/util/Dp.kt  4076197dac4258610e66978ffa4d4347ba1c1eb75ec364ddca9344c99ee617e8
++- PASS unchanged  android/app/src/main/java/com/todolist/app/MainActivity.kt
++- PASS unchanged  android/app/src/main/java/com/todolist/app/NoteFileViewerActivity.kt
++- PASS unchanged  android/app/src/main/java/com/todolist/app/ImportReceiverActivity.kt
++- PASS unchanged  android/app/src/main/AndroidManifest.xml
++- PASS unchanged  android/app/src/main/res/xml/file_paths.xml
++- PASS unchanged  script_0.js
++
++Locked reminder/banner core: 20/20 PASS.
++V1.22.7 inline main JavaScript exact-text unchanged: PASS.
++Result: PASS.
+diff -ruN /mnt/data/todo_v1227_base_for_v1228/changes/NOTE_LINK_GRADIENT_STYLE_V1.22.8.md /mnt/data/todo_v1228_work/changes/NOTE_LINK_GRADIENT_STYLE_V1.22.8.md
+--- /mnt/data/todo_v1227_base_for_v1228/changes/NOTE_LINK_GRADIENT_STYLE_V1.22.8.md
++++ /mnt/data/todo_v1228_work/changes/NOTE_LINK_GRADIENT_STYLE_V1.22.8.md
+@@ -0,0 +1,29 @@
++# Note HTTP(S) Gradient Link Style — V1.22.8
++
++## Goal
++Give Note web links a recognizable but more product-specific visual treatment without touching the editor/link architecture that was stabilized in V1.22.7.
++
++## Style
++The existing HTTP(S) anchor selector keeps a normal blue `color` as a compatibility fallback, then applies a text-clipped gradient:
++
++- Cyan: `#22c7c7`
++- Blue: `#3f8cff`
++- Green: `#39c98b`
++- Purple: `#9167f2`
++
++The gradient is horizontal and static. There is no animated gradient, filter animation, layout animation or JS-driven repaint.
++
++## Editing compatibility
++Text gradients on Chromium/WebView use `-webkit-background-clip:text` + transparent text fill. For selected link text, V1.22.8 explicitly restores a dark text fill inside `::selection` so selection/editing remains legible.
++
++## Locked architecture
++This release does not change:
++- URL parsing or fuzzy-link policy.
++- `beforeinput`, `input`, paste, Enter or selection handling.
++- `execCommand(createLink)` behavior.
++- Android `ACTION_VIEW` bridge.
++- Note IME/caret/scroll/toolbar code.
++- B/S/H manual typing-state code.
++- Image/PDF preview, import or reminder code.
++
++The implementation is therefore intentionally CSS-only at runtime.
+diff -ruN /mnt/data/todo_v1227_base_for_v1228/ui/todo.html /mnt/data/todo_v1228_work/ui/todo.html
+--- /mnt/data/todo_v1227_base_for_v1228/ui/todo.html
++++ /mnt/data/todo_v1228_work/ui/todo.html
+@@ -2093,12 +2093,26 @@
+ .note-editor__body a[href^="https://"],
+ .note-editor__body a[href^="http://"]:visited,
+ .note-editor__body a[href^="https://"]:visited {
+-  color:#3b82c4;
+-  text-decoration:none;
+-  border-bottom:1px solid rgba(59,130,196,.32);
++  color:#3b82c4; /* fallback for engines without text clipping */
++  background-image:linear-gradient(90deg, #22c7c7 0%, #3f8cff 33%, #39c98b 66%, #9167f2 100%);
++  background-repeat:no-repeat;
++  background-size:100% 100%;
++  -webkit-background-clip:text;
++  background-clip:text;
++  -webkit-text-fill-color:transparent;
++  text-decoration:underline;
++  text-decoration-color:rgba(63,140,210,.26);
++  text-decoration-thickness:1px;
++  text-underline-offset:2px;
+   cursor:pointer;
+   overflow-wrap:anywhere;
+-  -webkit-tap-highlight-color:rgba(59,130,196,.10);
++  -webkit-tap-highlight-color:rgba(63,140,210,.10);
++}
++.note-editor__body a[href^="http://"]::selection,
++.note-editor__body a[href^="https://"]::selection {
++  background:rgba(79,142,247,.22);
++  color:#26313c;
++  -webkit-text-fill-color:#26313c;
+ }
+ .note-editor__body a[href^="http://"]:active,
+ .note-editor__body a[href^="https://"]:active { opacity:.66; }

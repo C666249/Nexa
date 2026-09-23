@@ -1,0 +1,53 @@
+To-Do v1.22.5 Self Test
+========================
+Base: v1.22.4 NoteManualFormatState
+Target: v1.22.5
+
+Authorized feature:
+- Pinch zoom / pan for PDF page images in the existing continuous PDF viewer.
+- Pinch zoom / pan for the full-screen preview of images inserted from Android Photo Picker into Note.
+
+Regression checks performed:
+- Node JS syntax PASS
+- Kotlin parser smoke: no syntax-like diagnostics PASS (Android SDK symbols unresolved in standalone kotlinc are expected)
+- ui/todo.html == Android asset mirror PASS
+- inline main script == script_0.js PASS
+- Android XML parse PASS
+- business localStorage literal keys unchanged (2) PASS
+- MainActivity.kt byte-identical to v1.22.4 PASS
+- ImportReceiverActivity.kt byte-identical PASS
+- AndroidManifest.xml / file_paths.xml byte-identical PASS
+- Reminder/Daily/Banner/Snooze locked core 20/20 SHA-256 PASS
+- V1.22.3 IME/caret protected functions exact-text unchanged PASS
+- V1.22.4 B/S/H protected functions exact-text unchanged PASS
+- Note Photo Picker request + image insertion callback unchanged PASS
+- Existing-file runtime diff limited to NoteFileViewerActivity + mirrored Note preview HTML/JS; version/docs metadata separate PASS
+
+PDF gesture compatibility:
+- PDF holder image is ZoomImageView in nested vertical-scroll mode.
+- At 1x, one-finger MOVE does not lock parent ScrollView.
+- Two-finger gesture locks parent interception.
+- Above 1x, one-finger MOVE pans the page.
+- PDF zoom min=1x, max=5x.
+- Existing lazy render, nearby preload, far bitmap recycle code remains in place.
+
+Note image preview compatibility:
+- Preview zoom range 1x..5x.
+- One-finger pan only when scale > 1.
+- Transform resets on open and after close.
+- Touch listeners exist only on #noteImagePreviewImg.
+- Photo picking, private-file copy, delete, save, and note image card DOM are unchanged.
+
+Gradle build attempt:
+- ./gradlew :app:assembleDebug --offline --no-daemon attempted.
+- Could not start because Gradle 8.11.1 is not cached and services.gradle.org is unreachable in this sandbox (UnknownHostException).
+- This is an environment limitation, not an Android compile result.
+
+Target-phone acceptance:
+1. Open a multi-page PDF: normal 1x one-finger vertical scrolling must remain unchanged.
+2. Pinch one PDF page to zoom in; the page follows pinch and can be panned with one finger while zoomed.
+3. Pinch back to 1x; vertical scrolling between pages works again.
+4. Scroll far enough to force lazy recycling, return to a page, and verify it re-renders and can zoom again.
+5. Add an image from system Photo Picker to Note, tap it, pinch 1x..5x, and pan while zoomed.
+6. Close preview, reopen same/another image, and verify it starts at 1x.
+7. Recheck image delete, Note save/reopen, keyboard/caret behavior, B/S/H, attachments, Reminder/Daily/Banner/Snooze.

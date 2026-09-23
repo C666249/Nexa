@@ -1,0 +1,29 @@
+SELF TEST — To-Do V1.16
+Base: V1.15 Full
+Target: V1.16 Full
+
+FUNCTION / STATIC REVIEW
+- PASS  Android launcher icon replaced with the user-selected mint/cream calendar + recurring-check artwork.
+- PASS  Launcher density assets generated at mdpi 48x48, hdpi 72x72, xhdpi 96x96, xxhdpi 144x144, xxxhdpi 192x192.
+- PASS  Original selected 1254x1254 RGBA icon source preserved at assets/icons/ic_launcher_v1.16_source.png.
+- PASS  Snooze success Toast text remains exactly "5 分钟后再提醒" / "10 分钟后再提醒".
+- PASS  Snooze Toast exit no longer combines translation with alpha fade; exit is opacity-only.
+- PASS  Snooze Toast animation uses a temporary hardware layer.
+- PASS  After fade reaches alpha 0, Toast is set INVISIBLE and held for one rendered frame before WindowManager detachment.
+- PASS  WindowManager detachment uses removeViewImmediate after the transparent frame to avoid final-frame compositor flash.
+- PASS  Existing right-swipe +5/+10 snooze timing, thresholds, haptics, SnoozeStore data, Todo/Daily reminder semantics are unchanged.
+
+DATA / LOCKED CORE
+- PASS  applicationId and namespace remain com.todolist.app.
+- PASS  ui/todo.html is byte-identical to V1.15, so To-Do / Note / Daily / onboarding / Feature Coach web logic is untouched.
+- PASS  ui/todo.html and android/app/src/main/assets/todo.html remain byte-identical.
+- PASS  13/13 V1.15 Android/Manifest Locked Core guard files are byte-identical.
+- PASS  No business data model or localStorage key changes were made.
+
+TECHNICAL CHECKS
+- PASS  Inline JavaScript: node --check.
+- PASS  AndroidManifest.xml / strings.xml / styles.xml XML parse.
+- PASS  Modified FloatWindowManager.kt lexical delimiter/string/comment balance scan.
+- PASS  Standalone kotlinc produced no targeted syntax diagnostics (no syntax error / unexpected tokens / expecting / cannot be reassigned); Android unresolved references are expected without SDK classpath.
+- PASS  Changed-file review: only intended implementation/version/icon files changed outside release documentation.
+- LIMIT Full :app:compileDebugKotlin could not run because the Gradle wrapper still attempts to download Gradle 8.11.1 from services.gradle.org, which is unreachable in this sandbox. See v116_gradle_build.log. This is not reported as a successful Android build.

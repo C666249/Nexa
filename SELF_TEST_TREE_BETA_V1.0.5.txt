@@ -1,0 +1,59 @@
+To-Do Tree Beta V1.0.5 — Delivery Self-Test
+============================================
+
+A. Scope boundary — PASS
+- Development baseline is V1.0.4.
+- Only visible Recent/Tree labels, Drawer root labels, related icon CSS/help copy, Beta version metadata and delivery evidence change.
+- No native Java/Kotlin source changes.
+
+B. Icon-only UI — PASS
+- Top Recent button visible content is `◷`; title/aria-label remain `最近笔记`.
+- Top Tree button visible content is `🌳`; title/aria-label remain `知识树`.
+- Drawer header visible content is only `🌳`.
+- Drawer root row visible content is only `🌳`; semantic title/aria-label remain `知识树根目录`.
+- Compact view-switch button geometry is fixed at 34x32 CSS px.
+- Feature-coach copy describes icon switching rather than visible text tabs.
+
+C. V1.0.4 editor / IME lock — SOURCE-IDENTICAL PASS
+- measureVisualImeSpace
+- resolveNoteImeSpace
+- getNoteCaretRect
+- revealNoteCaretAboveIme
+- scheduleNoteCaretReveal
+- applyNoteImeSpace
+- syncResolvedNoteImeSpace
+- syncNoteViewportOffset
+- syncNoteImeLayout
+- setNoteEditorMode
+- openNoteEditor
+- closeNoteEditor
+
+D. Native / existing feature protection — PASS
+- android/app/src/main/java: 23/23 files byte-identical to V1.0.4.
+- Topic/Note, Schema V2, migration, Read/Edit, Breadcrumb, Origin Back, timestamp, image/file/annotation/link/B-S-H/delete-guard logic unchanged.
+- Note top-right menu remains only 移到主题… / 删除笔记.
+
+E. Static / package / signing — PASS
+- applicationId: com.todolist.app.beta
+- versionCode: 1005
+- versionName: 1.0.5-beta1
+- APK output: To-Do-Tree-Beta-V1.0.5.apk
+- Fixed Beta keystore readable with androiddebugkey.
+- ui/todo.html == android/app/src/main/assets/todo.html.
+- Inline runtime script extracted to script_0.js; node --check PASS.
+- Android XML parse: 5/5 PASS.
+
+F. Headless UI note
+- This sandbox's Chromium is administratively blocked from navigating to file:// and localhost pages, so a new browser-render pass could not be executed here.
+- The icon markup/CSS is the same UI-only delta already prepared for the V1.23.0 Stable candidate; static DOM/source assertions pass.
+- No claim of browser-headless PASS is made for this environment.
+
+G. Real compiler gate — LOCAL ENVIRONMENT BLOCKED
+- Attempted `./gradlew --no-daemon :app:assembleDebug`.
+- Gradle wrapper cannot resolve services.gradle.org (UnknownHostException).
+- This is NOT reported as compiler success.
+- GitHub Build Beta ZIP to APK & Release must be green before installation.
+
+Delivery verdict
+- V1.0.5 is a UI-only polish release on top of the real-device validated V1.0.4.
+- V1.0.4's format-bar/IME fix is protected and not reworked.

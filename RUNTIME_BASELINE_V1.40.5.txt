@@ -1,0 +1,6 @@
+To-Do V1.40.5 Stable
+Runtime baseline: V1.40.3 Stable
+Runtime/UI source hash (ui/todo.html): 28682f787f923eb532e5ec05cd4bd0c33fe83436a550f27bbc7ec007fee08cf1
+android/app/src/main/assets/todo.html has the same hash.
+All files under android/app/src/, ui/, assets/, plus script_0.js were compared against the original V1.40.3 Stable ZIP: 0 mismatches across 57 source/runtime files.
+Only version/build shell and current delivery documents were changed.

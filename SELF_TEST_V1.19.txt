@@ -1,0 +1,7 @@
+To-Do v1.19 Self Test
+=====================
+1. Replaced launcher icon resources in mipmap-mdpi/hdpi/xhdpi/xxhdpi/xxxhdpi.
+2. Replaced notification large icon resource.
+3. Replaced notification small vector icon.
+4. Did not modify package name or storage keys.
+5. Expected overwrite behavior: keep existing local data when signature matches existing install.

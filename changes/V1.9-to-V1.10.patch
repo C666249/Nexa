@@ -1,0 +1,3077 @@
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.10.txt' '--exclude=SELF_TEST_V1.10.txt' /mnt/data/todo_v19_base_compare/To-Do/README.md /mnt/data/todo_v110_work/To-Do/README.md
+--- /mnt/data/todo_v19_base_compare/To-Do/README.md	2026-08-11 15:55:24.000000000 +0000
++++ /mnt/data/todo_v110_work/To-Do/README.md	2026-08-11 17:36:36.720270367 +0000
+@@ -1,4 +1,4 @@
+-# To-Do V1.9
++# To-Do V1.10
+ 
+ 本地优先的 To-Do + Note Android 应用。UI 使用 HTML/CSS/Vanilla JS，Android 原生层使用 Kotlin WebView，并负责精确定时、后台提醒守护与悬浮 Banner。
+ 
+@@ -47,11 +47,23 @@
+ - 老 WebView 没有 `document.startViewTransition` 时自动使用 Web Animations API fallback；`prefers-reduced-motion` 继续直接切换。
+ 
+ 
++
++## V1.10 Daily + 抽屉式模式切换
++
++- To-Do ↔ Note 去掉 V1.9 的 View Transition / 淡入淡出 / 缩放组合，改成与待办左滑一致的纯 `translate3d` 跟手抽屉：拖到一半可回弹，超过约 30% 或快速甩动后完成切换。
++- 新增独立 `Daily` 半高浮动抽屉，不纳入普通 To-Do 数量与完成率；每天事项只有“未完成 / 今日已完成”两态。
++- Daily 每条只显示复选框、标题、时间和统计日历；编辑/删除隐藏在左滑后的两个独立按钮中。
++- Daily 到点显示单行常驻悬浮 Banner：`□ 事项   Daily · HH:mm   ✕`。勾选即记录今日完成并消失；✕ 仅忽略今日提醒并消失；点击正文进入 Daily、定位高亮该项并消失。
++- Daily 只存 `completedDates` 完成日期集合；第二天无需复制任务即可自然恢复为未完成。提前完成则当天到点不再提醒。
++- Daily 月历以日期数字为第一行，`✓ / × / ●` 固定显示在每个日期正下方：完成 / 过去未完成 / 今天未完成；未来及创建前日期留空。底部显示本月完成天数与完成率。
++- Daily 后台提醒复用 V1.7 已验证的 Reminder Keeper + AlarmManager 双链路，并增加独立 Native mirror、Receiver、Banner 和 mutation queue。
++
+ ## 当前功能
+ 
+ - **To-Do 模式**：全部 / 未完成 / 进行中 / 已完成、分类、搜索、日历、回收站、AI 助手等。
+ - **Note 模式**：保留 7 月 22 日版本的 Note / 文件夹 / 子笔记 / 编辑器能力。
+ - **每日总结提醒**：右上角时钟设置每天时间，到点显示今日完成进度悬浮 Banner，可展开并进入 APP。
++- **Daily 每日事项**：独立半高抽屉管理每天固定重复的小事；今日完成/未完成两态，左滑编辑删除、月历完成统计、到点单行常驻 Banner。
+ - **单条待办提醒**：左滑仍是两个独立按钮：绿色“提醒”、红色“删除”；提醒设置年月日时分。
+ - **常驻待办 Banner**：左侧复选框按“未完成 → 进行中 → 已完成”切换，右侧 ✕ 明确关闭；状态与 APP 双向同步。
+ - localStorage 继续作为 WebView 主数据源；Android 只保存后台提醒所需的轻量镜像。
+@@ -84,7 +96,7 @@
+ 成功后 APK 会复制到：
+ 
+ ```text
+-dist/To-Do-v1.9.apk
++dist/To-Do-v1.10.apk
+ ```
+ 
+ ## 技术栈
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.10.txt' '--exclude=SELF_TEST_V1.10.txt' /mnt/data/todo_v19_base_compare/To-Do/android/app/build.gradle.kts /mnt/data/todo_v110_work/To-Do/android/app/build.gradle.kts
+--- /mnt/data/todo_v19_base_compare/To-Do/android/app/build.gradle.kts	2026-08-11 15:53:50.000000000 +0000
++++ /mnt/data/todo_v110_work/To-Do/android/app/build.gradle.kts	2026-08-11 17:20:11.899347087 +0000
+@@ -11,8 +11,8 @@
+         applicationId = "com.todolist.app"
+         minSdk = 26
+         targetSdk = 35
+-        versionCode = 19
+-        versionName = "1.9"
++        versionCode = 20
++        versionName = "1.10"
+     }
+ 
+     buildTypes {
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.10.txt' '--exclude=SELF_TEST_V1.10.txt' /mnt/data/todo_v19_base_compare/To-Do/android/app/src/main/AndroidManifest.xml /mnt/data/todo_v110_work/To-Do/android/app/src/main/AndroidManifest.xml
+--- /mnt/data/todo_v19_base_compare/To-Do/android/app/src/main/AndroidManifest.xml	2026-08-11 11:42:23.000000000 +0000
++++ /mnt/data/todo_v110_work/To-Do/android/app/src/main/AndroidManifest.xml	2026-08-11 17:20:11.899050356 +0000
+@@ -64,6 +64,14 @@
+             android:exported="false" />
+ 
+         <receiver
++            android:name=".receiver.DailyTaskReminderReceiver"
++            android:exported="false" />
++
++        <receiver
++            android:name=".receiver.DailyTaskActionReceiver"
++            android:exported="false" />
++
++        <receiver
+             android:name=".receiver.ReminderActionReceiver"
+             android:exported="false" />
+ 
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.10.txt' '--exclude=SELF_TEST_V1.10.txt' /mnt/data/todo_v19_base_compare/To-Do/android/app/src/main/assets/todo.html /mnt/data/todo_v110_work/To-Do/android/app/src/main/assets/todo.html
+--- /mnt/data/todo_v19_base_compare/To-Do/android/app/src/main/assets/todo.html	2026-08-11 15:53:50.000000000 +0000
++++ /mnt/data/todo_v110_work/To-Do/android/app/src/main/assets/todo.html	2026-08-11 17:32:12.809902397 +0000
+@@ -966,6 +966,91 @@
+ .reminder-picker__cancel-reminder.visible { display: block; }
+ .reminder-picker__confirm { flex: 1; border: none; border-radius: 12px; padding: 12px; background: linear-gradient(135deg, #21c8b1, #13a4d6); color: #fff; font-size: 14px; font-weight: 750; cursor: pointer; }
+ 
++/* ===== Daily recurring tasks: floating drawer ===== */
++.daily-drawer-overlay {
++  position: fixed; inset: 0; z-index: 10040;
++  display: flex; align-items: flex-start; justify-content: center;
++  padding-top: max(14vh, 78px);
++  background: rgba(63,54,45,0.24);
++  backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
++  opacity:0; visibility:hidden; pointer-events:none;
++  transition: opacity 180ms ease-out, visibility 0s linear 280ms;
++}
++.daily-drawer-overlay.active { opacity:1; visibility:visible; pointer-events:auto; transition-delay:0s; }
++.daily-drawer {
++  width: min(92vw, 392px); height: min(66vh, 570px);
++  display: flex; flex-direction: column; overflow: hidden;
++  border-radius: 30px;
++  background: linear-gradient(180deg, rgba(255,255,252,0.98), rgba(255,250,244,0.98));
++  border: 1px solid rgba(255,255,255,0.78);
++  box-shadow: 0 24px 72px rgba(76,60,46,0.22), 0 4px 16px rgba(76,60,46,0.08);
++  transform: translateX(108%);
++  transition: transform 270ms cubic-bezier(0.22,0.82,0.28,1);
++}
++.daily-drawer-overlay.active .daily-drawer { transform: translateX(0); }
++.daily-drawer__grab { width: 44px; height: 4px; border-radius: 99px; background: rgba(133,118,102,0.18); margin: 9px auto 2px; }
++.daily-drawer__header { display:flex; align-items:center; gap:10px; padding: 14px 18px 12px; }
++.daily-drawer__title { font-size: 21px; font-weight: 850; color:#4d4339; letter-spacing:-0.4px; }
++.daily-drawer__subtitle { font-size: 11px; color:#a09285; margin-top:2px; }
++.daily-drawer__progress { margin-left:auto; padding:6px 10px; border-radius:999px; background:rgba(37,185,154,0.09); color:#299d86; font-size:11px; font-weight:750; }
++.daily-drawer__close { width:34px; height:34px; border:0; border-radius:50%; background:#f5f0ea; color:#94887d; font-size:16px; }
++.daily-list { flex:1; overflow-y:auto; padding: 2px 12px 14px; -webkit-overflow-scrolling:touch; }
++.daily-empty { text-align:center; color:#a99b8f; font-size:13px; line-height:1.7; padding:58px 18px; }
++.daily-empty__icon { font-size:34px; opacity:.58; margin-bottom:8px; }
++.daily-item { position:relative; overflow:hidden; margin: 7px 0; border-radius:17px; background:#fffefa; border:1px solid #eee7de; box-shadow:0 3px 12px rgba(139,119,101,.07); }
++.daily-item.highlight-flash { animation: dailyFocusFlash 1.4s ease-out; }
++@keyframes dailyFocusFlash { 0%{box-shadow:0 0 0 0 rgba(37,185,154,.55),0 3px 12px rgba(139,119,101,.07)} 45%{box-shadow:0 0 0 7px rgba(37,185,154,0),0 8px 25px rgba(37,185,154,.18)} 100%{box-shadow:0 3px 12px rgba(139,119,101,.07)} }
++.daily-item__actions { position:absolute; right:0; top:0; bottom:0; width:116px; display:flex; align-items:center; justify-content:flex-end; gap:7px; padding-right:7px; background:transparent; }
++.daily-item__action { width:49px; height:37px; border:0; border-radius:11px; color:#fff; font-size:11px; font-weight:750; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; box-shadow:0 3px 10px rgba(70,60,52,.11); }
++.daily-item__edit { background:#7d9dcb; } .daily-item__delete { background:#ef6f6c; }
++.daily-item__inner { position:relative; z-index:2; min-height:62px; display:flex; align-items:center; gap:10px; padding:10px 11px; background:#fffefa; transition:transform 200ms ease-out; }
++.daily-check { width:23px; height:23px; flex:0 0 23px; border:2px solid #d0d6d7; border-radius:7px; display:flex; align-items:center; justify-content:center; transition:all 180ms ease; }
++.daily-check.checked { background:linear-gradient(135deg,#34cfaa,#1cae8f); border-color:transparent; box-shadow:0 3px 10px rgba(37,185,154,.22); }
++.daily-check.checked::after { content:'✓'; color:#fff; font-size:13px; font-weight:850; }
++.daily-item__text { flex:1; min-width:0; color:#302a25; font-size:15px; font-weight:650; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
++.daily-item.completed .daily-item__text { color:#8d9992; text-decoration:line-through; text-decoration-thickness:1.3px; }
++.daily-item__time { font-size:11px; font-weight:700; color:rgba(92,77,60,.42); font-variant-numeric:tabular-nums; }
++.daily-item__calendar { width:34px; height:34px; border:1px solid rgba(37,185,154,.12); border-radius:11px; background:rgba(37,185,154,.06); color:#46a58f; display:flex; align-items:center; justify-content:center; font-size:15px; }
++.daily-drawer__footer { padding: 10px 16px max(14px, env(safe-area-inset-bottom)); border-top:1px solid rgba(220,207,195,.45); background:rgba(255,254,250,.92); }
++.daily-add-btn { width:100%; border:0; border-radius:15px; padding:12px 14px; background:linear-gradient(135deg,#2bc9ac,#27b7d6); color:#fff; font-size:14px; font-weight:800; box-shadow:0 7px 18px rgba(39,183,214,.16); }
++
++/* Daily editor */
++.daily-editor-overlay, .daily-calendar-overlay { position:fixed; inset:0; z-index:10060; display:none; align-items:center; justify-content:center; padding:18px; background:rgba(54,48,42,.30); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
++.daily-editor-overlay.active, .daily-calendar-overlay.active { display:flex; }
++.daily-editor { width:min(90vw,350px); border-radius:24px; background:#fffefa; border:1px solid rgba(230,220,210,.72); box-shadow:0 22px 66px rgba(76,60,46,.22); padding:19px; }
++.daily-editor__head { display:flex; align-items:center; justify-content:space-between; margin-bottom:15px; }
++.daily-editor__title { font-size:18px; font-weight:820; color:#493f36; }
++.daily-editor__close { width:34px;height:34px;border:0;border-radius:50%;background:#f4efe9;color:#95887d;font-size:16px; }
++.daily-editor__label { font-size:11px; color:#9e9083; font-weight:700; margin:10px 2px 6px; }
++.daily-editor__name { width:100%; border:1px solid #ece4dc; border-radius:13px; padding:12px 13px; background:#faf7f3; outline:none; color:#3d352f; font-size:15px; font-family:inherit; }
++.daily-editor__time { display:grid; grid-template-columns:1fr 12px 1fr; align-items:center; gap:8px; }
++.daily-editor__time input { width:100%; border:1px solid #e8e0d8; border-radius:14px; padding:12px 8px; text-align:center; background:#f8f5f1; color:#3c3530; font-size:22px; font-weight:800; font-variant-numeric:tabular-nums; outline:none; }
++.daily-editor__colon { text-align:center; color:#9a8c80; font-size:22px; }
++.daily-editor__save { width:100%; margin-top:17px; border:0; border-radius:14px; padding:12px; background:linear-gradient(135deg,#2bc9ac,#27b7d6); color:#fff; font-size:14px; font-weight:800; }
++
++/* Daily completion calendar */
++.daily-calendar { width:min(94vw,390px); max-height:82vh; overflow:hidden; border-radius:28px; background:#fffefa; border:1px solid rgba(230,220,210,.72); box-shadow:0 24px 75px rgba(76,60,46,.24); }
++.daily-calendar__top { padding:20px 20px 16px; background:linear-gradient(135deg,rgba(227,249,241,.96),rgba(236,250,246,.96)); border-bottom:1px solid rgba(37,185,154,.10); }
++.daily-calendar__task { font-size:12px; font-weight:750; color:#3ba18a; margin-bottom:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
++.daily-calendar__row { display:flex; align-items:center; }
++.daily-calendar__month { font-size:21px; font-weight:850; color:#51463b; }
++.daily-calendar__nav { margin-left:auto; display:flex; gap:8px; }
++.daily-calendar__nav button, .daily-calendar__close { width:38px; height:38px; border:0; border-radius:12px; background:rgba(255,255,255,.78); color:#655b51; font-size:21px; box-shadow:0 2px 8px rgba(80,66,54,.05); }
++.daily-calendar__close { font-size:15px; margin-left:8px; }
++.daily-calendar__body { padding:16px 14px 10px; }
++.daily-calendar__grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px 2px; }
++.daily-cal-week { text-align:center; color:#a09285; font-size:11px; font-weight:750; padding:3px 0 8px; }
++.daily-cal-day { min-height:52px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; border-radius:12px; padding-top:5px; }
++.daily-cal-day.today { background:rgba(37,185,154,.07); }
++.daily-cal-day__num { font-size:14px; line-height:20px; font-weight:650; color:#554b41; }
++.daily-cal-day.future .daily-cal-day__num { color:#c9c0b7; }
++.daily-cal-day.before-created .daily-cal-day__num { color:#d4ccc4; }
++.daily-cal-day__mark { display:block; width:100%; height:18px; line-height:18px; margin-top:2px; text-align:center; font-size:13px; font-weight:900; }
++.daily-cal-day__mark.done { color:#22b792; }
++.daily-cal-day__mark.miss { color:#e57f79; }
++.daily-cal-day__mark.today-dot { color:#e3a43b; font-size:16px; }
++.daily-calendar__stats { margin:5px 16px 17px; padding:11px 13px; border-radius:14px; background:#f8f5f1; color:#75695f; font-size:12px; font-weight:650; text-align:center; }
++
+ /* ===== Category Picker ===== */
+ .category-picker {
+   display: none;
+@@ -1487,96 +1572,30 @@
+   border-color: rgba(164, 119, 222, 0.5);
+ }
+ 
+-/* ===== To-Do / Note mode transition: native-like layered spring slide ===== */
+-/*
+- * V1.9 motion design:
+- * - same-document View Transition API where Chromium/WebView supports it;
+- * - simultaneous old/new snapshots, so there is no blank "fade-out then fade-in" frame;
+- * - transform + opacity only on the main shell for compositor-friendly motion;
+- * - slightly different old/new distances create a restrained parallax/depth feel;
+- * - WAAPI fallback remains for older WebView builds.
+- */
+-.app { view-transition-name: mode-shell; }
+-#categoryBar { view-transition-name: mode-category; }
+-#fabRecycle { view-transition-name: mode-recycle; }
+-#fabAi { view-transition-name: mode-ai; }
+-#fab { view-transition-name: mode-fab; }
+-
+-::view-transition-group(mode-shell) {
+-  animation-duration: 380ms;
+-  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+-}
+-::view-transition-image-pair(mode-shell) { isolation: isolate; }
+-::view-transition-old(mode-shell),
+-::view-transition-new(mode-shell) {
+-  mix-blend-mode: normal;
+-  backface-visibility: hidden;
+-  transform-origin: 50% 14%;
+-}
+-
+-/* A rightward user gesture reveals the incoming mode from the left. */
+-html.mode-vt-right::view-transition-old(mode-shell) {
+-  animation: modeShellOldRight 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
+-}
+-html.mode-vt-right::view-transition-new(mode-shell) {
+-  animation: modeShellNewRight 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+-}
+-html.mode-vt-left::view-transition-old(mode-shell) {
+-  animation: modeShellOldLeft 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
+-}
+-html.mode-vt-left::view-transition-new(mode-shell) {
+-  animation: modeShellNewLeft 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+-}
+-
+-@keyframes modeShellOldRight {
+-  from { opacity: 1; transform: translate3d(0,0,0) scale(1); }
+-  to   { opacity: 0.30; transform: translate3d(18px,0,0) scale(0.992); }
+-}
+-@keyframes modeShellNewRight {
+-  from { opacity: 0.42; transform: translate3d(-24px,0,0) scale(0.988); }
+-  72%  { opacity: 1; transform: translate3d(1.5px,0,0) scale(1.001); }
+-  to   { opacity: 1; transform: translate3d(0,0,0) scale(1); }
+-}
+-@keyframes modeShellOldLeft {
+-  from { opacity: 1; transform: translate3d(0,0,0) scale(1); }
+-  to   { opacity: 0.30; transform: translate3d(-18px,0,0) scale(0.992); }
+-}
+-@keyframes modeShellNewLeft {
+-  from { opacity: 0.42; transform: translate3d(24px,0,0) scale(0.988); }
+-  72%  { opacity: 1; transform: translate3d(-1.5px,0,0) scale(1.001); }
+-  to   { opacity: 1; transform: translate3d(0,0,0) scale(1); }
+-}
+-
+-/* Mode-only controls enter/exit with a shorter shared fade, while the paper background stays calm. */
+-::view-transition-group(mode-category),
+-::view-transition-group(mode-recycle),
+-::view-transition-group(mode-ai),
+-::view-transition-group(mode-fab) {
+-  animation-duration: 300ms;
+-  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+-}
+-::view-transition-old(mode-category),
+-::view-transition-old(mode-recycle),
+-::view-transition-old(mode-ai),
+-::view-transition-old(mode-fab),
+-::view-transition-new(mode-category),
+-::view-transition-new(mode-recycle),
+-::view-transition-new(mode-ai),
+-::view-transition-new(mode-fab) {
+-  mix-blend-mode: normal;
+-}
+-
+-/* During a real header swipe the current page follows the finger a little, then the transition carries that momentum. */
+-.app.mode-swipe-preview {
+-  will-change: transform, opacity;
+-}
+-
++/* ===== To-Do / Note mode transition: simple interactive drawer slide ===== */
++.mode-drawer-underlay {
++  position: fixed; inset: 0; z-index: 0;
++  max-width: 430px; margin: 0 auto;
++  pointer-events: none; opacity: 0;
++  display: flex; align-items: center;
++  background: linear-gradient(180deg, rgba(255,254,250,0.94), rgba(245,236,216,0.88));
++  transition: opacity 120ms ease-out;
++}
++.mode-drawer-underlay.active { opacity: 1; }
++.mode-drawer-underlay__label {
++  margin: 0 26px; padding: 12px 16px;
++  border-radius: 18px;
++  background: rgba(255,255,255,0.62);
++  border: 1px solid rgba(255,255,255,0.72);
++  box-shadow: 0 8px 28px rgba(139,119,101,0.10);
++  color: rgba(92,77,60,0.72); font-size: 17px; font-weight: 800;
++  letter-spacing: -0.2px;
++}
++.mode-drawer-underlay.from-right { justify-content: flex-start; }
++.mode-drawer-underlay.from-left { justify-content: flex-end; }
++.app.mode-drawer-moving { will-change: transform; }
+ @media (prefers-reduced-motion: reduce) {
+-  ::view-transition-group(mode-shell),
+-  ::view-transition-group(mode-category),
+-  ::view-transition-group(mode-recycle),
+-  ::view-transition-group(mode-ai),
+-  ::view-transition-group(mode-fab) { animation-duration: 0.01ms; }
++  .app.mode-drawer-moving { transition-duration: 0.01ms !important; }
+ }
+ 
+ /* ===== Note Container ===== */
+@@ -2056,6 +2075,9 @@
+   <div class="bg-layer__orb bg-layer__orb--5"></div>
+ </div>
+ 
++<!-- Simple drawer underlay used by the interactive To-Do / Note swipe -->
++<div class="mode-drawer-underlay" id="modeDrawerUnderlay"><div class="mode-drawer-underlay__label" id="modeDrawerLabel">Note</div></div>
++
+ <!-- App -->
+ <div class="app">
+   <div class="sticky-header">
+@@ -2066,7 +2088,8 @@
+         <div class="header__stats">
+           <span id="completed-count">0</span><span id="stats-sep">/</span><span id="total-count">0</span>
+           <button class="test-banner-btn" id="calendarBtn" title="日历">🗓️</button>
+-          <button class="test-banner-btn" id="timePickerBtn" title="设置提醒时间">🕐</button>
++          <button class="test-banner-btn" id="timePickerBtn" title="设置每天总结提醒">🕐</button>
++          <button class="test-banner-btn" id="dailyBtn" title="每日事项">↻</button>
+         </div>
+       </div>
+       <div class="search-wrap">
+@@ -2254,6 +2277,55 @@
+     <button class="time-picker__test" id="timePickerTest">10 秒测试提醒</button>
+   </div>
+ </div>
++<!-- Daily recurring tasks drawer -->
++<div class="daily-drawer-overlay" id="dailyDrawerOverlay">
++  <section class="daily-drawer" id="dailyDrawer" aria-label="每日事项">
++    <div class="daily-drawer__grab"></div>
++    <div class="daily-drawer__header">
++      <div>
++        <div class="daily-drawer__title">Daily</div>
++        <div class="daily-drawer__subtitle">每天重新开始的小事</div>
++      </div>
++      <div class="daily-drawer__progress" id="dailyProgress">今天 0/0</div>
++      <button class="daily-drawer__close" id="dailyDrawerClose" aria-label="关闭">✕</button>
++    </div>
++    <div class="daily-list" id="dailyList"></div>
++    <div class="daily-drawer__footer"><button class="daily-add-btn" id="dailyAddBtn">＋ 新增每日事项</button></div>
++  </section>
++</div>
++
++<!-- Daily add/edit -->
++<div class="daily-editor-overlay" id="dailyEditorOverlay">
++  <div class="daily-editor">
++    <div class="daily-editor__head"><span class="daily-editor__title" id="dailyEditorTitle">新增每日事项</span><button class="daily-editor__close" id="dailyEditorClose">✕</button></div>
++    <div class="daily-editor__label">每天要做的事情</div>
++    <input class="daily-editor__name" id="dailyEditorName" maxlength="60" placeholder="例如：喝水、吃药、洗衣服">
++    <div class="daily-editor__label">每天提醒时间</div>
++    <div class="daily-editor__time">
++      <input id="dailyEditorHour" type="number" inputmode="numeric" min="0" max="23" aria-label="小时">
++      <div class="daily-editor__colon">:</div>
++      <input id="dailyEditorMinute" type="number" inputmode="numeric" min="0" max="59" aria-label="分钟">
++    </div>
++    <button class="daily-editor__save" id="dailyEditorSave">保存 · 每天重复</button>
++  </div>
++</div>
++
++<!-- Daily completion calendar -->
++<div class="daily-calendar-overlay" id="dailyCalendarOverlay">
++  <div class="daily-calendar">
++    <div class="daily-calendar__top">
++      <div class="daily-calendar__task" id="dailyCalendarTask"></div>
++      <div class="daily-calendar__row">
++        <div class="daily-calendar__month" id="dailyCalendarMonth"></div>
++        <div class="daily-calendar__nav"><button id="dailyCalendarPrev">‹</button><button id="dailyCalendarNext">›</button></div>
++        <button class="daily-calendar__close" id="dailyCalendarClose">✕</button>
++      </div>
++    </div>
++    <div class="daily-calendar__body"><div class="daily-calendar__grid" id="dailyCalendarGrid"></div></div>
++    <div class="daily-calendar__stats" id="dailyCalendarStats">本月完成 0 / 0 天</div>
++  </div>
++</div>
++
+ <div class="reminder-picker-overlay" id="reminderPickerOverlay">
+   <div class="reminder-picker">
+     <div class="reminder-picker__header">
+@@ -2330,6 +2402,13 @@
+ let currentNoteId = null; // currently editing note id (null = list view)
+ let notesFolderFilter = ''; // '' = all notes, otherwise folder name
+ 
++// ===== Daily recurring tasks state =====
++const DAILY_TASKS_KEY = 'todo_glass_daily_tasks_v1';
++let dailyTasks = [];
++let dailyEditingId = null;
++let dailyCalendarTaskId = null;
++let dailyCalendarCursor = new Date();
++
+ // ===== DOM refs =====
+ const todoListEl = document.getElementById('todo-list');
+ const searchInput = document.getElementById('search-input');
+@@ -2690,7 +2769,6 @@
+ }
+ 
+ let modeSwitchAnimating = false;
+-let modeSwitchTimer = null;
+ let modeSwipePreviewActive = false;
+ 
+ function applyMode(mode) {
+@@ -2699,82 +2777,66 @@
+   renderModeUI();
+ }
+ 
+-function clearModeSwipePreview() {
+-  var appEl = document.querySelector('.app');
+-  if (!appEl) return;
+-  appEl.classList.remove('mode-swipe-preview');
+-  appEl.style.removeProperty('transform');
+-  appEl.style.removeProperty('opacity');
+-  appEl.style.removeProperty('transition');
++function prepareModeDrawer(targetMode, direction) {
++  const underlay = document.getElementById('modeDrawerUnderlay');
++  const label = document.getElementById('modeDrawerLabel');
++  if (!underlay) return;
++  if (label) label.textContent = targetMode === 'notes' ? 'Note' : 'To-Do';
++  underlay.classList.remove('from-left', 'from-right');
++  underlay.classList.add(direction > 0 ? 'from-right' : 'from-left', 'active');
++}
++
++function clearModeDrawerPreview() {
++  const appEl = document.querySelector('.app');
++  const underlay = document.getElementById('modeDrawerUnderlay');
++  if (appEl) {
++    appEl.classList.remove('mode-drawer-moving');
++    appEl.style.removeProperty('transform');
++    appEl.style.removeProperty('transition');
++  }
++  if (underlay) underlay.classList.remove('active', 'from-left', 'from-right');
+   modeSwipePreviewActive = false;
+ }
+ 
+-function finishModeSwitch() {
+-  clearTimeout(modeSwitchTimer);
+-  document.documentElement.classList.remove('mode-vt-left', 'mode-vt-right');
+-  clearModeSwipePreview();
+-  modeSwitchAnimating = false;
++function springBackModeDrawer() {
++  const appEl = document.querySelector('.app');
++  if (!appEl) return clearModeDrawerPreview();
++  appEl.classList.add('mode-drawer-moving');
++  appEl.style.transition = 'transform 205ms cubic-bezier(0.22,0.82,0.28,1)';
++  appEl.style.transform = 'translate3d(0,0,0)';
++  setTimeout(clearModeDrawerPreview, 210);
+ }
+ 
+ function switchMode(mode, motion) {
+   if (mode === currentMode || modeSwitchAnimating) return;
+   const appEl = document.querySelector('.app');
++  if (!appEl) { applyMode(mode); return; }
+   const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+-  if (!appEl || reduceMotion) {
+-    clearModeSwipePreview();
+-    applyMode(mode);
+-    return;
+-  }
++  if (reduceMotion) { clearModeDrawerPreview(); applyMode(mode); return; }
+ 
+-  const direction = motion === 'left' || motion === 'right' ? motion : (mode === 'notes' ? 'right' : 'left');
++  const direction = motion === 'left' ? -1 : motion === 'right' ? 1 : (mode === 'notes' ? 1 : -1);
++  const width = appEl.getBoundingClientRect().width || window.innerWidth;
+   modeSwitchAnimating = true;
+-  const root = document.documentElement;
+-  root.classList.remove('mode-vt-left', 'mode-vt-right');
+-  root.classList.add('mode-vt-' + direction);
+-
+-  /*
+-   * Modern Android WebView is Chromium-based and supports same-document view transitions.
+-   * This snapshots old/new UI states and lets them animate at the same time, avoiding the
+-   * V1.8 sequential blank-ish frame. Fallback below uses Web Animations API only.
+-   */
+-  if (typeof document.startViewTransition === 'function') {
+-    try {
+-      const transition = document.startViewTransition(function() {
+-        clearModeSwipePreview();
+-        applyMode(mode);
+-      });
+-      transition.finished.then(finishModeSwitch, finishModeSwitch);
+-      modeSwitchTimer = setTimeout(finishModeSwitch, 520);
+-      return;
+-    } catch (e) {
+-      // Older/vendor WebView edge case: fall through to compositor-friendly WAAPI fallback.
+-    }
+-  }
+-
+-  const outX = direction === 'right' ? 16 : -16;
+-  const inX = -outX * 1.35;
+-  clearModeSwipePreview();
+-  let outAnim;
+-  try {
+-    outAnim = appEl.animate([
+-      { opacity: 1, transform: 'translate3d(0,0,0) scale(1)' },
+-      { opacity: 0.34, transform: 'translate3d(' + outX + 'px,0,0) scale(0.992)' }
+-    ], { duration: 125, easing: 'cubic-bezier(0.4,0,0.6,1)', fill: 'forwards' });
+-  } catch (e) {
+-    applyMode(mode);
+-    finishModeSwitch();
+-    return;
+-  }
++  prepareModeDrawer(mode, direction);
++  appEl.classList.add('mode-drawer-moving');
++  appEl.style.transition = 'transform 165ms cubic-bezier(0.22,0.78,0.25,1)';
++  appEl.style.transform = `translate3d(${direction * (width + 8)}px,0,0)`;
+ 
+-  outAnim.finished.catch(function() {}).then(function() {
++  setTimeout(() => {
+     applyMode(mode);
+-    appEl.animate([
+-      { opacity: 0.42, transform: 'translate3d(' + inX + 'px,0,0) scale(0.988)' },
+-      { opacity: 1, transform: 'translate3d(0,0,0) scale(1)' }
+-    ], { duration: 285, easing: 'cubic-bezier(0.16,1,0.3,1)', fill: 'both' })
+-      .finished.catch(function() {}).then(finishModeSwitch);
+-  });
+-  modeSwitchTimer = setTimeout(finishModeSwitch, 520);
++    appEl.style.transition = 'none';
++    appEl.style.transform = `translate3d(${-direction * 28}px,0,0)`;
++    requestAnimationFrame(() => requestAnimationFrame(() => {
++      appEl.style.transition = 'transform 135ms cubic-bezier(0.22,0.82,0.28,1)';
++      appEl.style.transform = 'translate3d(0,0,0)';
++      const underlay = document.getElementById('modeDrawerUnderlay');
++      if (underlay) underlay.classList.remove('active');
++      setTimeout(() => {
++        clearModeDrawerPreview();
++        modeSwitchAnimating = false;
++      }, 140);
++    }));
++  }, 170);
+ }
+ 
+ function renderModeUI() {
+@@ -2793,25 +2855,28 @@
+     }
+   }
+ 
+-  // Header title — the V1.9 shared page transition handles the visual interpolation.
++  // Header title updates only after the drawer-like switch commits.
+   var titleEl = document.querySelector('.header__title');
+   if (titleEl) titleEl.textContent = isNotes ? 'Note' : 'To-Do';
+ 
+   // Header stats (calendar, alarm — todo only)
+   var calendarBtn = document.getElementById('calendarBtn');
+   var timePickerBtn = document.getElementById('timePickerBtn');
++  var dailyBtn = document.getElementById('dailyBtn');
+   var completedSpan = document.getElementById('completed-count');
+   var totalSpan = document.getElementById('total-count');
+   var statsSep = document.getElementById('stats-sep');
+   if (isNotes) {
+     if (calendarBtn) calendarBtn.style.display = 'none';
+     if (timePickerBtn) timePickerBtn.style.display = 'none';
++    if (dailyBtn) dailyBtn.style.display = 'none';
+     if (completedSpan) completedSpan.style.display = 'none';
+     if (totalSpan) totalSpan.style.display = 'none';
+     if (statsSep) statsSep.style.display = 'none';
+   } else {
+     if (calendarBtn) calendarBtn.style.display = '';
+     if (timePickerBtn) timePickerBtn.style.display = '';
++    if (dailyBtn) dailyBtn.style.display = '';
+     if (completedSpan) completedSpan.style.display = '';
+     if (totalSpan) totalSpan.style.display = '';
+     if (statsSep) statsSep.style.display = '';
+@@ -2829,6 +2894,7 @@
+ 
+   if (isNotes) {
+     todoListEl.style.display = 'none';
++    noteContainer.style.display = '';
+     noteContainer.classList.add('note-container--open');
+     tabsWrap.style.display = 'none';
+     categoryBar.style.display = 'none';
+@@ -2839,6 +2905,7 @@
+     renderNoteList();
+   } else {
+     noteContainer.classList.remove('note-container--open');
++    noteContainer.style.display = 'none';
+     todoListEl.style.display = '';
+     tabsWrap.style.display = '';
+     categoryBar.style.display = '';
+@@ -3825,6 +3892,276 @@
+ });
+ 
+ 
++// ===== Daily recurring tasks =====
++function dailyDateKey(date) {
++  date = date || new Date();
++  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
++}
++function dailyTimeLabel(task) {
++  return `${String(task.hour).padStart(2,'0')}:${String(task.minute).padStart(2,'0')}`;
++}
++function isDailyCompleted(task, key) {
++  return Array.isArray(task.completedDates) && task.completedDates.includes(key || dailyDateKey());
++}
++function loadDailyTasks() {
++  try {
++    const raw = localStorage.getItem(DAILY_TASKS_KEY);
++    dailyTasks = raw ? JSON.parse(raw) : [];
++    if (!Array.isArray(dailyTasks)) dailyTasks = [];
++  } catch(e) { dailyTasks = []; }
++  dailyTasks = dailyTasks.filter(t => t && Number(t.id) > 0).map(t => ({
++    id: Number(t.id),
++    text: String(t.text || '每日事项'),
++    hour: Math.max(0, Math.min(23, Number.isFinite(Number(t.hour)) ? Number(t.hour) : 9)),
++    minute: Math.max(0, Math.min(59, Number.isFinite(Number(t.minute)) ? Number(t.minute) : 0)),
++    createdAt: Number(t.createdAt) > 0 ? Number(t.createdAt) : Date.now(),
++    completedDates: Array.from(new Set(Array.isArray(t.completedDates) ? t.completedDates.filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)) : [])).sort()
++  }));
++}
++function syncDailyTasksToAndroid() {
++  if (typeof AndroidBridge === 'undefined' || !AndroidBridge.syncDailyTasks) return;
++  try {
++    AndroidBridge.syncDailyTasks(JSON.stringify(dailyTasks.map(t => ({
++      id:t.id, text:t.text, hour:t.hour, minute:t.minute, createdAt:t.createdAt,
++      completedDates:t.completedDates || []
++    }))));
++  } catch(e) {}
++}
++function saveDailyTasks() {
++  localStorage.setItem(DAILY_TASKS_KEY, JSON.stringify(dailyTasks));
++  syncDailyTasksToAndroid();
++  if (document.getElementById('dailyDrawerOverlay')?.classList.contains('active')) renderDailyDrawer();
++  if (document.getElementById('dailyCalendarOverlay')?.classList.contains('active')) renderDailyCalendar();
++}
++function getDailyTask(id) { return dailyTasks.find(t => t.id === Number(id)); }
++function toggleDailyToday(id) {
++  const task = getDailyTask(id); if (!task) return;
++  const today = dailyDateKey();
++  task.completedDates = Array.isArray(task.completedDates) ? task.completedDates : [];
++  const idx = task.completedDates.indexOf(today);
++  if (idx >= 0) {
++    task.completedDates.splice(idx,1);
++    showToast('已恢复为今日未完成');
++  } else {
++    task.completedDates.push(today); task.completedDates.sort();
++    showToast('今日已完成 ✓');
++  }
++  saveDailyTasks();
++}
++function renderDailyDrawer() {
++  const list = document.getElementById('dailyList');
++  const progress = document.getElementById('dailyProgress');
++  if (!list) return;
++  const today = dailyDateKey();
++  const sorted = dailyTasks.slice().sort((a,b) => (a.hour*60+a.minute) - (b.hour*60+b.minute) || a.createdAt-b.createdAt);
++  const done = sorted.filter(t => isDailyCompleted(t,today)).length;
++  if (progress) progress.textContent = `今天 ${done}/${sorted.length}`;
++  if (!sorted.length) {
++    list.innerHTML = '<div class="daily-empty"><div class="daily-empty__icon">↻</div>还没有每日事项<br><small>每天固定时间提醒，第二天自动重新开始</small></div>';
++    return;
++  }
++  list.innerHTML = sorted.map(task => {
++    const completed = isDailyCompleted(task,today);
++    return `<div class="daily-item${completed?' completed':''}" data-daily-id="${task.id}">
++      <div class="daily-item__actions">
++        <button class="daily-item__action daily-item__edit" data-daily-edit="${task.id}"><span>✎</span><span>编辑</span></button>
++        <button class="daily-item__action daily-item__delete" data-daily-delete="${task.id}"><span>⌫</span><span>删除</span></button>
++      </div>
++      <div class="daily-item__inner">
++        <div class="daily-check${completed?' checked':''}" data-daily-check="${task.id}" aria-label="切换今日完成状态"></div>
++        <div class="daily-item__text">${escapeHtml(task.text)}</div>
++        <div class="daily-item__time">${dailyTimeLabel(task)}</div>
++        <button class="daily-item__calendar" data-daily-calendar="${task.id}" title="完成统计">🗓️</button>
++      </div>
++    </div>`;
++  }).join('');
++}
++function openDailyDrawer(focusId) {
++  if (currentMode !== 'todo') applyMode('todo');
++  renderDailyDrawer();
++  const overlay = document.getElementById('dailyDrawerOverlay');
++  overlay.classList.add('active');
++  if (focusId) {
++    setTimeout(() => {
++      const el = document.querySelector(`.daily-item[data-daily-id="${Number(focusId)}"]`);
++      if (el) {
++        el.scrollIntoView({behavior:'smooth', block:'center'});
++        el.classList.add('highlight-flash');
++        setTimeout(() => el.classList.remove('highlight-flash'), 1500);
++      }
++    }, 300);
++  }
++}
++function closeDailyDrawer() {
++  const overlay = document.getElementById('dailyDrawerOverlay');
++  const drawer = document.getElementById('dailyDrawer');
++  if (drawer) { drawer.style.removeProperty('transform'); drawer.style.removeProperty('transition'); }
++  overlay.classList.remove('active');
++}
++function openDailyEditor(id) {
++  dailyEditingId = id ? Number(id) : null;
++  const task = dailyEditingId ? getDailyTask(dailyEditingId) : null;
++  const now = new Date();
++  document.getElementById('dailyEditorTitle').textContent = task ? '编辑每日事项' : '新增每日事项';
++  document.getElementById('dailyEditorName').value = task ? task.text : '';
++  document.getElementById('dailyEditorHour').value = String(task ? task.hour : now.getHours()).padStart(2,'0');
++  document.getElementById('dailyEditorMinute').value = String(task ? task.minute : now.getMinutes()).padStart(2,'0');
++  document.getElementById('dailyEditorOverlay').classList.add('active');
++  setTimeout(() => document.getElementById('dailyEditorName').focus(), 80);
++}
++function closeDailyEditor() { document.getElementById('dailyEditorOverlay').classList.remove('active'); dailyEditingId = null; }
++function saveDailyEditor() {
++  const text = document.getElementById('dailyEditorName').value.trim();
++  const hour = parseInt(document.getElementById('dailyEditorHour').value,10);
++  const minute = parseInt(document.getElementById('dailyEditorMinute').value,10);
++  if (!text) return showToast('写一下每天要做的事情');
++  if (!Number.isFinite(hour) || hour<0 || hour>23 || !Number.isFinite(minute) || minute<0 || minute>59) return showToast('提醒时间不正确');
++  if (dailyEditingId) {
++    const task = getDailyTask(dailyEditingId); if (!task) return closeDailyEditor();
++    task.text = text; task.hour = hour; task.minute = minute;
++  } else {
++    const id = Date.now();
++    dailyTasks.push({id, text, hour, minute, createdAt:Date.now(), completedDates:[]});
++  }
++  saveDailyTasks(); closeDailyEditor(); renderDailyDrawer();
++  if (typeof AndroidBridge !== 'undefined' && AndroidBridge.requestReminderPermissions) { try { AndroidBridge.requestReminderPermissions(); } catch(e) {} }
++  showToast(`已保存 · 每天 ${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}`);
++}
++function deleteDailyTask(id) {
++  const task = getDailyTask(id); if (!task) return;
++  showConfirm(`删除每日事项“${task.text}”？`, function() {
++    dailyTasks = dailyTasks.filter(t => t.id !== Number(id));
++    saveDailyTasks(); renderDailyDrawer(); showToast('已删除每日事项');
++  });
++}
++
++function openDailyCalendar(id) {
++  dailyCalendarTaskId = Number(id);
++  dailyCalendarCursor = new Date();
++  dailyCalendarCursor.setDate(1); dailyCalendarCursor.setHours(12,0,0,0);
++  renderDailyCalendar();
++  document.getElementById('dailyCalendarOverlay').classList.add('active');
++}
++function closeDailyCalendar() { document.getElementById('dailyCalendarOverlay').classList.remove('active'); dailyCalendarTaskId = null; }
++function renderDailyCalendar() {
++  const task = getDailyTask(dailyCalendarTaskId); if (!task) return;
++  const y = dailyCalendarCursor.getFullYear(), m = dailyCalendarCursor.getMonth();
++  const first = new Date(y,m,1,12), last = new Date(y,m+1,0,12);
++  const todayKey = dailyDateKey();
++  const createdKey = dailyDateKey(new Date(task.createdAt));
++  document.getElementById('dailyCalendarTask').textContent = `${task.text} · Daily ${dailyTimeLabel(task)}`;
++  document.getElementById('dailyCalendarMonth').textContent = `${y}年${m+1}月`;
++  const grid = document.getElementById('dailyCalendarGrid');
++  const weeks = ['日','一','二','三','四','五','六'];
++  let html = weeks.map(w => `<div class="daily-cal-week">${w}</div>`).join('');
++  for (let i=0;i<first.getDay();i++) html += '<div class="daily-cal-day"></div>';
++  let eligible = 0, done = 0;
++  for (let d=1; d<=last.getDate(); d++) {
++    const date = new Date(y,m,d,12); const key = dailyDateKey(date);
++    const completed = isDailyCompleted(task,key);
++    let cls = '', mark = '', markCls = '';
++    if (key < createdKey) cls = ' before-created';
++    else if (key > todayKey) cls = ' future';
++    else {
++      eligible++;
++      if (key === todayKey) cls += ' today';
++      if (completed) { done++; mark='✓'; markCls=' done'; }
++      else if (key === todayKey) { mark='●'; markCls=' today-dot'; }
++      else { mark='×'; markCls=' miss'; }
++    }
++    html += `<div class="daily-cal-day${cls}"><div class="daily-cal-day__num">${d}</div><div class="daily-cal-day__mark${markCls}">${mark}</div></div>`;
++  }
++  grid.innerHTML = html;
++  const pct = eligible ? Math.round(done/eligible*100) : 0;
++  document.getElementById('dailyCalendarStats').textContent = `本月完成 ${done} / ${eligible} 天 · ${pct}%`;
++}
++
++// Drawer interactions
++const dailyListEl = document.getElementById('dailyList');
++document.getElementById('dailyBtn').addEventListener('click', () => openDailyDrawer());
++document.getElementById('dailyDrawerClose').addEventListener('click', closeDailyDrawer);
++document.getElementById('dailyDrawerOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeDailyDrawer(); });
++document.getElementById('dailyAddBtn').addEventListener('click', () => openDailyEditor());
++document.getElementById('dailyEditorClose').addEventListener('click', closeDailyEditor);
++document.getElementById('dailyEditorOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeDailyEditor(); });
++document.getElementById('dailyEditorSave').addEventListener('click', saveDailyEditor);
++document.getElementById('dailyCalendarClose').addEventListener('click', closeDailyCalendar);
++document.getElementById('dailyCalendarOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeDailyCalendar(); });
++document.getElementById('dailyCalendarPrev').addEventListener('click', () => { dailyCalendarCursor.setMonth(dailyCalendarCursor.getMonth()-1); renderDailyCalendar(); });
++document.getElementById('dailyCalendarNext').addEventListener('click', () => { dailyCalendarCursor.setMonth(dailyCalendarCursor.getMonth()+1); renderDailyCalendar(); });
++
++dailyListEl.addEventListener('click', e => {
++  const check = e.target.closest('[data-daily-check]');
++  const cal = e.target.closest('[data-daily-calendar]');
++  const edit = e.target.closest('[data-daily-edit]');
++  const del = e.target.closest('[data-daily-delete]');
++  if (check) { e.stopPropagation(); toggleDailyToday(Number(check.dataset.dailyCheck)); return; }
++  if (cal) { e.stopPropagation(); openDailyCalendar(Number(cal.dataset.dailyCalendar)); return; }
++  if (edit) { e.stopPropagation(); openDailyEditor(Number(edit.dataset.dailyEdit)); return; }
++  if (del) { e.stopPropagation(); deleteDailyTask(Number(del.dataset.dailyDelete)); return; }
++});
++
++let dailySwipeItem = null, dailySwipeStartX = 0, dailySwipeStartY = 0, dailySwipeOpen = false;
++const DAILY_SWIPE_WIDTH = 116;
++dailyListEl.addEventListener('touchstart', e => {
++  const item = e.target.closest('.daily-item');
++  if (!item || e.target.closest('.daily-check') || e.target.closest('.daily-item__calendar') || e.target.closest('.daily-item__actions')) { dailySwipeItem=null; return; }
++  dailySwipeItem=item; dailySwipeStartX=e.touches[0].clientX; dailySwipeStartY=e.touches[0].clientY; dailySwipeOpen=false;
++  const inner=item.querySelector('.daily-item__inner'); if(inner) inner.style.transition='none';
++},{passive:true});
++dailyListEl.addEventListener('touchmove', e => {
++  if(!dailySwipeItem) return;
++  const dx=e.touches[0].clientX-dailySwipeStartX, dy=e.touches[0].clientY-dailySwipeStartY;
++  if(Math.abs(dy)>Math.abs(dx)) return;
++  e.preventDefault();
++  const inner=dailySwipeItem.querySelector('.daily-item__inner'); if(!inner) return;
++  const x=Math.max(-DAILY_SWIPE_WIDTH, Math.min(0, dx)); inner.style.transform=`translateX(${x}px)`; dailySwipeOpen=x<-44;
++},{passive:false});
++dailyListEl.addEventListener('touchend', () => {
++  if(!dailySwipeItem) return; const inner=dailySwipeItem.querySelector('.daily-item__inner');
++  if(inner){ inner.style.transition='transform 200ms ease-out'; inner.style.transform=dailySwipeOpen?`translateX(-${DAILY_SWIPE_WIDTH}px)`:''; }
++  dailySwipeItem=null; dailySwipeOpen=false;
++},{passive:true});
++
++// Right swipe on empty/header area closes the floating Daily drawer, with the same half-drag/rebound feel.
++(function(){
++  const drawer=document.getElementById('dailyDrawer'); if(!drawer) return;
++  let sx=0, sy=0, active=false, horizontal=false;
++  drawer.addEventListener('touchstart', e => {
++    if(e.target.closest('.daily-item') || e.target.closest('button') || e.target.closest('input')) return;
++    sx=e.touches[0].clientX; sy=e.touches[0].clientY; active=true; horizontal=false; drawer.style.transition='none';
++  },{passive:true});
++  drawer.addEventListener('touchmove', e => {
++    if(!active) return; const dx=e.touches[0].clientX-sx, dy=e.touches[0].clientY-sy;
++    if(!horizontal && (Math.abs(dx)>6||Math.abs(dy)>6)) horizontal=Math.abs(dx)>Math.abs(dy)*1.15;
++    if(!horizontal) return; e.preventDefault();
++    const x=Math.max(0,dx); drawer.style.transform=`translateX(${x}px)`;
++  },{passive:false});
++  drawer.addEventListener('touchend', e => {
++    if(!active) return; active=false; const dx=e.changedTouches[0].clientX-sx; const width=drawer.getBoundingClientRect().width;
++    drawer.style.transition='transform 220ms cubic-bezier(0.22,0.82,0.28,1)';
++    if(horizontal && dx>width*.26){ drawer.style.transform='translateX(108%)'; setTimeout(closeDailyDrawer,220); }
++    else { drawer.style.transform='translateX(0)'; setTimeout(()=>{drawer.style.removeProperty('transition');drawer.style.removeProperty('transform');},225); }
++  },{passive:true});
++})();
++
++window.__pullNativeDailyTaskMutations = function() {
++  if (typeof AndroidBridge === 'undefined' || !AndroidBridge.getDailyTaskMutations) return;
++  let mutations=[]; try { mutations=JSON.parse(AndroidBridge.getDailyTaskMutations() || '[]'); } catch(e){ return; }
++  if(!Array.isArray(mutations) || !mutations.length) return;
++  let changed=false;
++  mutations.forEach(m => {
++    if(m.type !== 'dailyCompleted') return;
++    const task=getDailyTask(Number(m.id)); if(!task) return;
++    const date=String(m.date||''); if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
++    task.completedDates=Array.isArray(task.completedDates)?task.completedDates:[];
++    if(!task.completedDates.includes(date)){ task.completedDates.push(date); task.completedDates.sort(); changed=true; }
++  });
++  try { if(AndroidBridge.ackDailyTaskMutations) AndroidBridge.ackDailyTaskMutations(); } catch(e){}
++  if(changed){ localStorage.setItem(DAILY_TASKS_KEY, JSON.stringify(dailyTasks)); renderDailyDrawer(); if(document.getElementById('dailyCalendarOverlay').classList.contains('active')) renderDailyCalendar(); }
++};
++window.__focusDailyFromNative = function(id) { openDailyDrawer(Number(id)); };
++
+ // ===== Per-item reminders + native two-way sync =====
+ let reminderEditingTodoId = null;
+ function setReminderFields(date) {
+@@ -4946,8 +5283,11 @@
+ loadTodos();
+ loadRecycleBin();
+ loadSearchHistory();
++loadDailyTasks();
+ if (window.__pullNativeTodoMutations) window.__pullNativeTodoMutations();
++if (window.__pullNativeDailyTaskMutations) window.__pullNativeDailyTaskMutations();
+ syncToAndroid();
++syncDailyTasksToAndroid();
+ render();
+ updateCounts();
+ renderCategoryBar();
+@@ -5742,80 +6082,71 @@
+   return 'none';
+ }
+ 
+-// ===== Header horizontal swipe → interactive To-Do / Note mode switch =====
++// ===== Header horizontal swipe → drawer-like To-Do / Note mode switch =====
+ (function() {
+-  var headerEl = document.querySelector('.header__top');
++  const headerEl = document.querySelector('.header__top');
+   if (!headerEl) return;
+-  var swipeX = 0, swipeY = 0, swiping = false, horizontalIntent = false;
+-  var rafId = 0;
++  let startX = 0, startY = 0, lastX = 0, startAt = 0, swiping = false, horizontal = false;
+ 
+-  function renderSwipePreview(dx) {
+-    var appEl = document.querySelector('.app');
++  function preview(dx) {
++    const appEl = document.querySelector('.app');
+     if (!appEl || modeSwitchAnimating) return;
+-    var allowed = (dx > 0 && currentMode === 'todo') || (dx < 0 && currentMode === 'notes');
+-    var resisted = allowed ? dx * 0.18 : dx * 0.055;
+-    var offset = Math.max(-22, Math.min(22, resisted));
+-    var dim = Math.min(0.045, Math.abs(offset) / 520);
+-    appEl.classList.add('mode-swipe-preview');
++    const targetMode = currentMode === 'todo' ? 'notes' : 'todo';
++    const expectedDirection = currentMode === 'todo' ? 1 : -1;
++    const width = appEl.getBoundingClientRect().width || window.innerWidth;
++    const sameDirection = dx * expectedDirection > 0;
++    const offset = sameDirection
++      ? Math.max(-width * 0.88, Math.min(width * 0.88, dx))
++      : Math.max(-24, Math.min(24, dx * 0.12));
++    if (sameDirection) prepareModeDrawer(targetMode, expectedDirection);
++    appEl.classList.add('mode-drawer-moving');
+     appEl.style.transition = 'none';
+-    appEl.style.transform = 'translate3d(' + offset.toFixed(2) + 'px,0,0) scale(0.998)';
+-    appEl.style.opacity = String(1 - dim);
++    appEl.style.transform = `translate3d(${offset}px,0,0)`;
+     modeSwipePreviewActive = true;
+   }
+ 
+-  function springBackSwipePreview() {
+-    var appEl = document.querySelector('.app');
+-    if (!appEl || !modeSwipePreviewActive) { clearModeSwipePreview(); return; }
+-    appEl.style.transition = 'transform 220ms cubic-bezier(0.16,1,0.3,1), opacity 180ms ease-out';
+-    appEl.style.transform = 'translate3d(0,0,0) scale(1)';
+-    appEl.style.opacity = '1';
+-    setTimeout(clearModeSwipePreview, 230);
+-  }
+-
+-  headerEl.addEventListener('touchstart', function(e) {
++  headerEl.addEventListener('touchstart', e => {
+     if (modeSwitchAnimating || !e.touches.length) return;
+-    swipeX = e.touches[0].clientX;
+-    swipeY = e.touches[0].clientY;
++    startX = lastX = e.touches[0].clientX;
++    startY = e.touches[0].clientY;
++    startAt = performance.now();
+     swiping = true;
+-    horizontalIntent = false;
+-  }, { passive: true });
++    horizontal = false;
++  }, { passive:true });
+ 
+-  headerEl.addEventListener('touchmove', function(e) {
++  headerEl.addEventListener('touchmove', e => {
+     if (!swiping || modeSwitchAnimating || !e.touches.length) return;
+-    var dx = e.touches[0].clientX - swipeX;
+-    var dy = e.touches[0].clientY - swipeY;
+-    if (!horizontalIntent && (Math.abs(dx) > 7 || Math.abs(dy) > 7)) {
+-      horizontalIntent = Math.abs(dx) > Math.abs(dy) * 1.15;
+-    }
+-    if (!horizontalIntent) return;
++    const x = e.touches[0].clientX;
++    const dx = x - startX;
++    const dy = e.touches[0].clientY - startY;
++    lastX = x;
++    if (!horizontal && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) horizontal = Math.abs(dx) > Math.abs(dy) * 1.12;
++    if (!horizontal) return;
+     e.preventDefault();
+-    cancelAnimationFrame(rafId);
+-    rafId = requestAnimationFrame(function() { renderSwipePreview(dx); });
+-  }, { passive: false });
++    preview(dx);
++  }, { passive:false });
+ 
+-  headerEl.addEventListener('touchend', function(e) {
++  headerEl.addEventListener('touchend', e => {
+     if (!swiping) return;
+     swiping = false;
+-    cancelAnimationFrame(rafId);
+-    if (!e.changedTouches.length) { springBackSwipePreview(); return; }
+-    var dx = e.changedTouches[0].clientX - swipeX;
+-    var dy = Math.abs(e.changedTouches[0].clientY - swipeY);
+-    if (horizontalIntent && dx > 40 && dx > dy && currentMode === 'todo') {
+-      switchMode('notes', 'right');
+-      return;
+-    }
+-    if (horizontalIntent && dx < -40 && Math.abs(dx) > dy && currentMode === 'notes') {
+-      switchMode('todo', 'left');
+-      return;
++    if (!horizontal || !e.changedTouches.length) return springBackModeDrawer();
++    const dx = e.changedTouches[0].clientX - startX;
++    const dy = Math.abs(e.changedTouches[0].clientY - startY);
++    const elapsed = Math.max(1, performance.now() - startAt);
++    const velocity = Math.abs(dx) / elapsed;
++    const appEl = document.querySelector('.app');
++    const width = appEl ? (appEl.getBoundingClientRect().width || window.innerWidth) : window.innerWidth;
++    const expectedDirection = currentMode === 'todo' ? 1 : -1;
++    const validDirection = dx * expectedDirection > 0;
++    const commit = validDirection && Math.abs(dx) > dy && (Math.abs(dx) >= width * 0.30 || (Math.abs(dx) > 48 && velocity > 0.55));
++    if (commit) {
++      switchMode(currentMode === 'todo' ? 'notes' : 'todo', expectedDirection > 0 ? 'right' : 'left');
++    } else {
++      springBackModeDrawer();
+     }
+-    springBackSwipePreview();
+-  }, { passive: true });
++  }, { passive:true });
+ 
+-  headerEl.addEventListener('touchcancel', function() {
+-    swiping = false;
+-    cancelAnimationFrame(rafId);
+-    springBackSwipePreview();
+-  }, { passive: true });
++  headerEl.addEventListener('touchcancel', () => { swiping = false; springBackModeDrawer(); }, { passive:true });
+ })();
+ 
+ // Toolbar button active state feedback
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.10.txt' '--exclude=SELF_TEST_V1.10.txt' /mnt/data/todo_v19_base_compare/To-Do/android/app/src/main/java/com/todolist/app/MainActivity.kt /mnt/data/todo_v110_work/To-Do/android/app/src/main/java/com/todolist/app/MainActivity.kt
+--- /mnt/data/todo_v19_base_compare/To-Do/android/app/src/main/java/com/todolist/app/MainActivity.kt	2026-08-11 11:41:46.000000000 +0000
++++ /mnt/data/todo_v110_work/To-Do/android/app/src/main/java/com/todolist/app/MainActivity.kt	2026-08-11 17:27:10.819158257 +0000
+@@ -20,7 +20,9 @@
+ import androidx.core.content.ContextCompat
+ import com.todolist.app.manager.FloatWindowManager
+ import com.todolist.app.receiver.MidnightReceiver
++import com.todolist.app.reminder.DailyTaskStore
+ import com.todolist.app.reminder.ReminderDiagnostics
++import com.todolist.app.reminder.ReminderNotifier
+ import com.todolist.app.reminder.ReminderScheduler
+ import com.todolist.app.reminder.TodoReminderRecord
+ import com.todolist.app.reminder.ReminderStore
+@@ -31,12 +33,14 @@
+ 
+     companion object {
+         const val EXTRA_FOCUS_TODO_ID = "focus_todo_id"
++        const val EXTRA_FOCUS_DAILY_TASK_ID = "focus_daily_task_id"
+         private const val REQ_NOTIFICATIONS = 901
+     }
+ 
+     private lateinit var webView: WebView
+     private var pageReady = false
+     private var pendingFocusTodoId: Long = -1L
++    private var pendingFocusDailyTaskId: Long = -1L
+ 
+     private var permissionFlowActive = false
+     private var notificationAttempted = false
+@@ -54,6 +58,7 @@
+     override fun onCreate(savedInstanceState: Bundle?) {
+         super.onCreate(savedInstanceState)
+         pendingFocusTodoId = intent.getLongExtra(EXTRA_FOCUS_TODO_ID, -1L)
++        consumeDailyFocusIntent(intent)
+ 
+         webView = WebView(this).apply {
+             settings.apply {
+@@ -72,6 +77,7 @@
+                     pageReady = true
+                     pullNativeMutationsIntoWeb()
+                     deliverPendingFocus()
++                    deliverPendingDailyFocus()
+                 }
+             }
+             webChromeClient = WebChromeClient()
+@@ -99,6 +105,7 @@
+         }
+         pullNativeMutationsIntoWeb()
+         deliverPendingFocus()
++        deliverPendingDailyFocus()
+     }
+ 
+     override fun onNewIntent(intent: Intent) {
+@@ -106,8 +113,10 @@
+         setIntent(intent)
+         val id = intent.getLongExtra(EXTRA_FOCUS_TODO_ID, -1L)
+         if (id > 0L) pendingFocusTodoId = id
++        consumeDailyFocusIntent(intent)
+         pullNativeMutationsIntoWeb()
+         deliverPendingFocus()
++        deliverPendingDailyFocus()
+     }
+ 
+     override fun onDestroy() {
+@@ -229,7 +238,7 @@
+         if (!pageReady) return
+         webView.post {
+             webView.evaluateJavascript(
+-                "window.__pullNativeTodoMutations && window.__pullNativeTodoMutations();",
++                "window.__pullNativeTodoMutations && window.__pullNativeTodoMutations(); window.__pullNativeDailyTaskMutations && window.__pullNativeDailyTaskMutations();",
+                 null
+             )
+         }
+@@ -247,6 +256,32 @@
+         }
+     }
+ 
++    private fun consumeDailyFocusIntent(intent: Intent) {
++        val id = intent.getLongExtra(EXTRA_FOCUS_DAILY_TASK_ID, -1L)
++        if (id <= 0L) return
++        pendingFocusDailyTaskId = id
++        // AlarmClockInfo's "show alarm" intent is only an informational shortcut. It must not
++        // count as ignoring today's Daily item before the reminder has actually fired.
++        if (intent.action == "com.listnote.app.action.OPEN_REMINDER_INFO") return
++        try {
++            DailyTaskStore.markDismissed(this, id)
++            ReminderNotifier.cancelDailyTask(this, id)
++            DailyTaskStore.get(this, id)?.let { ReminderScheduler.scheduleDailyTask(this, it) }
++        } catch (_: Exception) {}
++    }
++
++    private fun deliverPendingDailyFocus() {
++        if (!pageReady || pendingFocusDailyTaskId <= 0L) return
++        val id = pendingFocusDailyTaskId
++        pendingFocusDailyTaskId = -1L
++        webView.post {
++            webView.evaluateJavascript(
++                "window.__focusDailyFromNative && window.__focusDailyFromNative($id);",
++                null
++            )
++        }
++    }
++
+     inner class AndroidBridge {
+         @JavascriptInterface
+         fun syncDailyData(
+@@ -287,6 +322,36 @@
+         }
+ 
+         @JavascriptInterface
++        fun syncDailyTasks(dailyJson: String) {
++            try {
++                val beforeIds = DailyTaskStore.getAll(this@MainActivity).map { it.id }.toSet()
++                ReminderScheduler.syncDailyTasks(this@MainActivity, dailyJson)
++                val afterIds = DailyTaskStore.getAll(this@MainActivity).map { it.id }.toSet()
++                (beforeIds - afterIds).forEach {
++                    FloatWindowManager.dismissDailyTask(it, silent = true)
++                    ReminderNotifier.cancelDailyTask(this@MainActivity, it)
++                }
++                val today = java.time.LocalDate.now().toString()
++                DailyTaskStore.getAll(this@MainActivity).filter { it.isCompleted(today) || it.isDismissed(today) }.forEach {
++                    FloatWindowManager.dismissDailyTask(it.id, silent = true)
++                    ReminderNotifier.cancelDailyTask(this@MainActivity, it.id)
++                }
++                if (ReminderScheduler.hasArmedWork(this@MainActivity)) {
++                    FloatWindowService.ensureKeeperRunning(this@MainActivity)
++                    FloatWindowService.refreshKeeper(this@MainActivity)
++                }
++            } catch (_: Exception) {}
++        }
++
++        @JavascriptInterface
++        fun getDailyTaskMutations(): String = DailyTaskStore.peekMutations(this@MainActivity)
++
++        @JavascriptInterface
++        fun ackDailyTaskMutations() {
++            DailyTaskStore.clearMutations(this@MainActivity)
++        }
++
++        @JavascriptInterface
+         fun scheduleTodoReminder(idRaw: String, text: String, status: String, reminderAtRaw: String): String {
+             return try {
+                 val id = idRaw.toLong()
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.10.txt' '--exclude=SELF_TEST_V1.10.txt' /mnt/data/todo_v19_base_compare/To-Do/android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt /mnt/data/todo_v110_work/To-Do/android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt
+--- /mnt/data/todo_v19_base_compare/To-Do/android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt	2026-08-11 11:42:21.000000000 +0000
++++ /mnt/data/todo_v110_work/To-Do/android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt	2026-08-11 17:19:09.286683298 +0000
+@@ -8,6 +8,7 @@
+ import android.view.WindowInsets
+ import android.view.WindowManager
+ import com.todolist.app.ui.BannerView
++import com.todolist.app.ui.DailyTaskBannerView
+ import com.todolist.app.ui.TodoReminderBannerView
+ 
+ object FloatWindowManager {
+@@ -16,6 +17,7 @@
+     private var appContext: Context? = null
+     private var dailyBannerView: BannerView? = null
+     private val todoBannerViews = linkedMapOf<Long, TodoReminderBannerView>()
++    private val dailyTaskBannerViews = linkedMapOf<Long, DailyTaskBannerView>()
+ 
+     var onDailyDismissed: (() -> Unit)? = null
+ 
+@@ -97,6 +99,52 @@
+         repositionTodoBanners()
+     }
+ 
++    fun showDailyTask(
++        context: Context,
++        id: Long,
++        text: String,
++        hour: Int,
++        minute: Int,
++        onComplete: () -> Unit,
++        onDismiss: () -> Unit,
++        onOpenApp: () -> Unit
++    ) {
++        if (!canShowOverlay(context)) return
++        val wm = ensureWindowManager(context)
++        if (dailyTaskBannerViews.containsKey(id)) return
++
++        val view = DailyTaskBannerView(context, id, text, hour, minute).apply {
++            this.onComplete = {
++                dismissDailyTask(id, silent = true)
++                onComplete()
++            }
++            this.onDismiss = {
++                dismissDailyTask(id, silent = true)
++                onDismiss()
++            }
++            this.onOpenApp = {
++                dismissDailyTask(id, silent = true)
++                onOpenApp()
++            }
++        }
++        dailyTaskBannerViews[id] = view
++        val screenWidth = context.resources.displayMetrics.widthPixels
++        val width = (screenWidth * 0.94).toInt()
++        wm.addView(view, makeParams(context, wm, width, yDp = 10f))
++        view.alpha = 0f
++        view.translationY = -42f * context.resources.displayMetrics.density
++        view.animate().alpha(1f).translationY(0f).setDuration(250).start()
++        repositionTodoBanners()
++    }
++
++    fun dismissDailyTask(id: Long, silent: Boolean = false) {
++        val view = dailyTaskBannerViews.remove(id) ?: return
++        try { windowManager?.removeView(view) } catch (_: Exception) {}
++        if (!silent) view.onDismiss?.invoke()
++        repositionTodoBanners()
++        clearWindowManagerIfIdle()
++    }
++
+     fun updateTodoStatus(id: Long, status: String) {
+         todoBannerViews[id]?.setStatus(status)
+     }
+@@ -141,23 +189,40 @@
+             try { windowManager?.removeView(view) } catch (_: Exception) {}
+         }
+         todoBannerViews.clear()
++        dailyTaskBannerViews.values.forEach { view ->
++            view.onDismiss = null
++            view.onOpenApp = null
++            view.onComplete = null
++            try { windowManager?.removeView(view) } catch (_: Exception) {}
++        }
++        dailyTaskBannerViews.clear()
+         onDailyDismissed = null
+         windowManager = null
+         appContext = null
+     }
+ 
+-    fun hasAnyOverlay(): Boolean = dailyBannerView != null || todoBannerViews.isNotEmpty()
++    fun hasAnyOverlay(): Boolean = dailyBannerView != null || todoBannerViews.isNotEmpty() || dailyTaskBannerViews.isNotEmpty()
+     fun hasTodoOverlays(): Boolean = todoBannerViews.isNotEmpty()
++    fun hasDailyTaskOverlays(): Boolean = dailyTaskBannerViews.isNotEmpty()
+ 
+     private fun repositionTodoBanners() {
+         val context = appContext ?: return
+         val wm = windowManager ?: return
+         val density = context.resources.displayMetrics.density
+         val baseDp = if (dailyBannerView != null) 62f else 10f
+-        val gapDp = 84f
+-        todoBannerViews.values.forEachIndexed { index, view ->
++        var index = 0
++        val dailyGapDp = 62f
++        val todoGapDp = 84f
++        dailyTaskBannerViews.values.forEach { view ->
++            val lp = view.layoutParams as? WindowManager.LayoutParams ?: return@forEach
++            lp.y = ((baseDp + index * dailyGapDp) * density).toInt()
++            try { wm.updateViewLayout(view, lp) } catch (_: Exception) {}
++            index++
++        }
++        val todoBaseDp = baseDp + index * dailyGapDp
++        todoBannerViews.values.forEachIndexed { todoIndex, view ->
+             val lp = view.layoutParams as? WindowManager.LayoutParams ?: return@forEachIndexed
+-            lp.y = ((baseDp + index * gapDp) * density).toInt()
++            lp.y = ((todoBaseDp + todoIndex * todoGapDp) * density).toInt()
+             try { wm.updateViewLayout(view, lp) } catch (_: Exception) {}
+         }
+     }
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.10.txt' '--exclude=SELF_TEST_V1.10.txt' /mnt/data/todo_v19_base_compare/To-Do/android/app/src/main/java/com/todolist/app/receiver/DailyTaskActionReceiver.kt /mnt/data/todo_v110_work/To-Do/android/app/src/main/java/com/todolist/app/receiver/DailyTaskActionReceiver.kt
+--- /mnt/data/todo_v19_base_compare/To-Do/android/app/src/main/java/com/todolist/app/receiver/DailyTaskActionReceiver.kt	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/todo_v110_work/To-Do/android/app/src/main/java/com/todolist/app/receiver/DailyTaskActionReceiver.kt	2026-08-11 17:26:26.513162075 +0000
+@@ -0,0 +1,46 @@
++package com.todolist.app.receiver
++
++import android.content.BroadcastReceiver
++import android.content.Context
++import android.content.Intent
++import com.todolist.app.manager.FloatWindowManager
++import com.todolist.app.reminder.DailyTaskStore
++import com.todolist.app.reminder.ReminderNotifier
++import com.todolist.app.reminder.ReminderScheduler
++import com.todolist.app.service.FloatWindowService
++
++class DailyTaskActionReceiver : BroadcastReceiver() {
++    companion object {
++        const val ACTION_COMPLETE = "com.todolist.app.action.DAILY_TASK_COMPLETE"
++        const val ACTION_DISMISS = "com.todolist.app.action.DAILY_TASK_DISMISS"
++        const val EXTRA_DAILY_TASK_ID = "daily_task_id"
++    }
++
++    override fun onReceive(context: Context, intent: Intent) {
++        val id = intent.getLongExtra(EXTRA_DAILY_TASK_ID, -1L)
++        if (id <= 0L) return
++        when (intent.action) {
++            ACTION_COMPLETE -> {
++                DailyTaskStore.markCompletedToday(context, id, enqueue = true)
++                FloatWindowManager.dismissDailyTask(id, silent = true)
++                ReminderNotifier.cancelDailyTask(context, id)
++                DailyTaskStore.get(context, id)?.let { ReminderScheduler.scheduleDailyTask(context, it) }
++                broadcastMutation(context)
++                FloatWindowService.refreshKeeper(context)
++            }
++            ACTION_DISMISS -> {
++                DailyTaskStore.markDismissed(context, id)
++                FloatWindowManager.dismissDailyTask(id, silent = true)
++                ReminderNotifier.cancelDailyTask(context, id)
++                DailyTaskStore.get(context, id)?.let { ReminderScheduler.scheduleDailyTask(context, it) }
++                FloatWindowService.refreshKeeper(context)
++            }
++        }
++    }
++
++    private fun broadcastMutation(context: Context) {
++        context.sendBroadcast(Intent(FloatWindowService.ACTION_NATIVE_TODO_MUTATED).apply {
++            setPackage(context.packageName)
++        })
++    }
++}
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.10.txt' '--exclude=SELF_TEST_V1.10.txt' /mnt/data/todo_v19_base_compare/To-Do/android/app/src/main/java/com/todolist/app/receiver/DailyTaskReminderReceiver.kt /mnt/data/todo_v110_work/To-Do/android/app/src/main/java/com/todolist/app/receiver/DailyTaskReminderReceiver.kt
+--- /mnt/data/todo_v19_base_compare/To-Do/android/app/src/main/java/com/todolist/app/receiver/DailyTaskReminderReceiver.kt	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/todo_v110_work/To-Do/android/app/src/main/java/com/todolist/app/receiver/DailyTaskReminderReceiver.kt	2026-08-11 17:26:26.513430574 +0000
+@@ -0,0 +1,43 @@
++package com.todolist.app.receiver
++
++import android.content.BroadcastReceiver
++import android.content.Context
++import android.content.Intent
++import android.os.PowerManager
++import com.todolist.app.reminder.DailyTaskStore
++import com.todolist.app.reminder.ReminderDiagnostics
++import com.todolist.app.reminder.ReminderNotifier
++import com.todolist.app.reminder.ReminderScheduler
++import com.todolist.app.service.FloatWindowService
++import java.time.LocalDate
++
++class DailyTaskReminderReceiver : BroadcastReceiver() {
++    companion object {
++        const val ACTION_DAILY_TASK = "com.todolist.app.action.DAILY_TASK_REMINDER"
++        const val EXTRA_DAILY_TASK_ID = "daily_task_id"
++    }
++
++    override fun onReceive(context: Context, intent: Intent) {
++        if (intent.action != ACTION_DAILY_TASK) return
++        val app = context.applicationContext
++        val id = intent.getLongExtra(EXTRA_DAILY_TASK_ID, -1L)
++        if (id <= 0L) return
++        val record = DailyTaskStore.get(app, id) ?: return
++        val today = LocalDate.now().toString()
++
++        // If the user already completed/dismissed today's instance, quietly arm tomorrow.
++        if (record.isCompleted(today) || record.isDismissed(today)) {
++            ReminderScheduler.scheduleDailyTask(app, record)
++            return
++        }
++
++        val pm = app.getSystemService(Context.POWER_SERVICE) as PowerManager
++        pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "ToDo:DailyTask").apply { acquire(20_000L) }
++
++        DailyTaskStore.markFired(app, id, today)
++        ReminderScheduler.scheduleDailyTask(app, DailyTaskStore.get(app, id) ?: record)
++        ReminderDiagnostics.record(app, "daily_task_alarm_received", id.toString())
++        ReminderNotifier.postDailyTask(app, record.id, record.text, record.hour, record.minute, alert = true)
++        FloatWindowService.dispatchDailyTaskAlarm(app, id)
++    }
++}
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.10.txt' '--exclude=SELF_TEST_V1.10.txt' /mnt/data/todo_v19_base_compare/To-Do/android/app/src/main/java/com/todolist/app/reminder/DailyTaskStore.kt /mnt/data/todo_v110_work/To-Do/android/app/src/main/java/com/todolist/app/reminder/DailyTaskStore.kt
+--- /mnt/data/todo_v19_base_compare/To-Do/android/app/src/main/java/com/todolist/app/reminder/DailyTaskStore.kt	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/todo_v110_work/To-Do/android/app/src/main/java/com/todolist/app/reminder/DailyTaskStore.kt	2026-08-11 17:18:18.361317886 +0000
+@@ -0,0 +1,180 @@
++package com.todolist.app.reminder
++
++import android.content.Context
++import org.json.JSONArray
++import org.json.JSONObject
++import java.time.LocalDate
++
++data class DailyTaskRecord(
++    val id: Long,
++    val text: String,
++    val hour: Int,
++    val minute: Int,
++    val createdAt: Long,
++    val completedDates: Set<String> = emptySet(),
++    val lastDismissedDate: String? = null,
++    val lastFiredDate: String? = null
++) {
++    fun isCompleted(date: String = LocalDate.now().toString()): Boolean = completedDates.contains(date)
++    fun isDismissed(date: String = LocalDate.now().toString()): Boolean = lastDismissedDate == date
++    fun isVisibleAfterFire(date: String = LocalDate.now().toString()): Boolean =
++        lastFiredDate == date && !isCompleted(date) && !isDismissed(date)
++}
++
++/** Native mirror for recurring Daily tasks. WebView localStorage owns task content/history. */
++object DailyTaskStore {
++    private const val PREFS = "daily_task_reminders"
++    private const val KEY_RECORDS = "records"
++    private const val MUTATION_PREFS = "daily_task_native_mutations"
++    private const val KEY_MUTATIONS = "mutations"
++
++    data class SyncResult(val records: List<DailyTaskRecord>, val removedIds: Set<Long>)
++
++    fun getAll(context: Context): List<DailyTaskRecord> {
++        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
++            .getString(KEY_RECORDS, "[]") ?: "[]"
++        return try {
++            val array = JSONArray(raw)
++            buildList {
++                for (i in 0 until array.length()) {
++                    val obj = array.optJSONObject(i) ?: continue
++                    val id = obj.optLong("id", -1L)
++                    if (id <= 0L) continue
++                    val dates = linkedSetOf<String>()
++                    val dateArray = obj.optJSONArray("completedDates") ?: JSONArray()
++                    for (j in 0 until dateArray.length()) {
++                        val date = dateArray.optString(j, "")
++                        if (date.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))) dates += date
++                    }
++                    add(
++                        DailyTaskRecord(
++                            id = id,
++                            text = obj.optString("text", "每日事项"),
++                            hour = obj.optInt("hour", 9).coerceIn(0, 23),
++                            minute = obj.optInt("minute", 0).coerceIn(0, 59),
++                            createdAt = obj.optLong("createdAt", System.currentTimeMillis()),
++                            completedDates = dates,
++                            lastDismissedDate = obj.optString("lastDismissedDate", "").ifBlank { null },
++                            lastFiredDate = obj.optString("lastFiredDate", "").ifBlank { null }
++                        )
++                    )
++                }
++            }
++        } catch (_: Exception) {
++            emptyList()
++        }
++    }
++
++    fun get(context: Context, id: Long): DailyTaskRecord? = getAll(context).firstOrNull { it.id == id }
++
++    fun syncSnapshot(context: Context, json: String): SyncResult {
++        val old = getAll(context).associateBy { it.id }
++        val next = linkedMapOf<Long, DailyTaskRecord>()
++        try {
++            val array = JSONArray(json)
++            for (i in 0 until array.length()) {
++                val obj = array.optJSONObject(i) ?: continue
++                val id = obj.optLong("id", -1L)
++                if (id <= 0L) continue
++                val previous = old[id]
++                val dates = linkedSetOf<String>()
++                val dateArray = obj.optJSONArray("completedDates") ?: JSONArray()
++                for (j in 0 until dateArray.length()) {
++                    val date = dateArray.optString(j, "")
++                    if (date.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))) dates += date
++                }
++                val hour = obj.optInt("hour", previous?.hour ?: 9).coerceIn(0, 23)
++                val minute = obj.optInt("minute", previous?.minute ?: 0).coerceIn(0, 59)
++                val timingChanged = previous != null && (previous.hour != hour || previous.minute != minute)
++                next[id] = DailyTaskRecord(
++                    id = id,
++                    text = obj.optString("text", previous?.text ?: "每日事项"),
++                    hour = hour,
++                    minute = minute,
++                    createdAt = obj.optLong("createdAt", previous?.createdAt ?: System.currentTimeMillis()),
++                    completedDates = dates,
++                    lastDismissedDate = if (timingChanged) null else previous?.lastDismissedDate,
++                    lastFiredDate = if (timingChanged) null else previous?.lastFiredDate
++                )
++            }
++        } catch (_: Exception) {
++            return SyncResult(old.values.toList(), emptySet())
++        }
++        val removed = old.keys - next.keys
++        saveAll(context, next.values.toList())
++        return SyncResult(next.values.toList(), removed)
++    }
++
++    fun markFired(context: Context, id: Long, date: String = LocalDate.now().toString()) {
++        saveAll(context, getAll(context).map { if (it.id == id) it.copy(lastFiredDate = date) else it })
++    }
++
++    fun markDismissed(context: Context, id: Long, date: String = LocalDate.now().toString()) {
++        saveAll(context, getAll(context).map {
++            if (it.id == id) it.copy(lastDismissedDate = date, lastFiredDate = date) else it
++        })
++    }
++
++    fun markCompletedToday(context: Context, id: Long, enqueue: Boolean = true) {
++        val today = LocalDate.now().toString()
++        saveAll(context, getAll(context).map {
++            if (it.id == id) it.copy(
++                completedDates = it.completedDates + today,
++                lastDismissedDate = today,
++                lastFiredDate = today
++            ) else it
++        })
++        if (enqueue) enqueueMutation(context, JSONObject().apply {
++            put("type", "dailyCompleted")
++            put("id", id)
++            put("date", today)
++        })
++    }
++
++    fun remove(context: Context, id: Long) {
++        saveAll(context, getAll(context).filterNot { it.id == id })
++    }
++
++    fun peekMutations(context: Context): String =
++        context.getSharedPreferences(MUTATION_PREFS, Context.MODE_PRIVATE)
++            .getString(KEY_MUTATIONS, "[]") ?: "[]"
++
++    fun clearMutations(context: Context) {
++        context.getSharedPreferences(MUTATION_PREFS, Context.MODE_PRIVATE)
++            .edit().putString(KEY_MUTATIONS, "[]").apply()
++    }
++
++    private fun saveAll(context: Context, records: List<DailyTaskRecord>) {
++        val array = JSONArray()
++        records.forEach { record ->
++            array.put(JSONObject().apply {
++                put("id", record.id)
++                put("text", record.text)
++                put("hour", record.hour)
++                put("minute", record.minute)
++                put("createdAt", record.createdAt)
++                put("completedDates", JSONArray(record.completedDates.sorted()))
++                put("lastDismissedDate", record.lastDismissedDate ?: "")
++                put("lastFiredDate", record.lastFiredDate ?: "")
++            })
++        }
++        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
++            .edit().putString(KEY_RECORDS, array.toString()).apply()
++    }
++
++    private fun enqueueMutation(context: Context, mutation: JSONObject) {
++        val prefs = context.getSharedPreferences(MUTATION_PREFS, Context.MODE_PRIVATE)
++        val current = try { JSONArray(prefs.getString(KEY_MUTATIONS, "[]") ?: "[]") }
++        catch (_: Exception) { JSONArray() }
++        val next = JSONArray()
++        for (i in 0 until current.length()) {
++            val obj = current.optJSONObject(i) ?: continue
++            if (obj.optString("type") == mutation.optString("type") &&
++                obj.optLong("id") == mutation.optLong("id") &&
++                obj.optString("date") == mutation.optString("date")) continue
++            next.put(obj)
++        }
++        next.put(mutation)
++        prefs.edit().putString(KEY_MUTATIONS, next.toString()).apply()
++    }
++}
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.10.txt' '--exclude=SELF_TEST_V1.10.txt' /mnt/data/todo_v19_base_compare/To-Do/android/app/src/main/java/com/todolist/app/reminder/ReminderNotifier.kt /mnt/data/todo_v110_work/To-Do/android/app/src/main/java/com/todolist/app/reminder/ReminderNotifier.kt
+--- /mnt/data/todo_v19_base_compare/To-Do/android/app/src/main/java/com/todolist/app/reminder/ReminderNotifier.kt	2026-08-11 11:18:34.000000000 +0000
++++ /mnt/data/todo_v110_work/To-Do/android/app/src/main/java/com/todolist/app/reminder/ReminderNotifier.kt	2026-08-11 17:26:02.930773563 +0000
+@@ -8,6 +8,7 @@
+ import android.content.Intent
+ import android.os.Build
+ import com.todolist.app.MainActivity
++import com.todolist.app.receiver.DailyTaskActionReceiver
+ import com.todolist.app.receiver.ReminderActionReceiver
+ 
+ /**
+@@ -19,10 +20,11 @@
+  */
+ object ReminderNotifier {
+     const val CHANNEL_ID = "listnote_alarm_alerts_v1"
+-    const val CHANNEL_NAME = "List-Note 定时提醒"
++    const val CHANNEL_NAME = "To-Do 定时提醒"
+ 
+     private const val DAILY_ID = 42000
+     private const val TODO_BASE_ID = 43000
++    private const val DAILY_TASK_BASE_ID = 76000
+ 
+     fun ensureChannel(context: Context) {
+         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+@@ -30,7 +32,7 @@
+         if (nm.getNotificationChannel(CHANNEL_ID) != null) return
+         nm.createNotificationChannel(
+             NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH).apply {
+-                description = "List-Note 到点提醒与后台兜底通知"
++                description = "To-Do 到点提醒与后台兜底通知"
+                 enableVibration(true)
+                 setShowBadge(true)
+                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+@@ -56,7 +58,7 @@
+         val text = "今日完成 ${"%.0f".format(percent)}% · $completed/$total 项"
+         val notification = Notification.Builder(context, CHANNEL_ID)
+             .setSmallIcon(android.R.drawable.ic_dialog_info)
+-            .setContentTitle("List-Note 每日总结")
++            .setContentTitle("To-Do 每日总结")
+             .setContentText(text)
+             .setStyle(Notification.BigTextStyle().bigText(text))
+             .setContentIntent(open)
+@@ -134,6 +136,68 @@
+         false
+     }
+ 
++    fun postDailyTask(
++        context: Context,
++        id: Long,
++        text: String,
++        hour: Int,
++        minute: Int,
++        alert: Boolean = true
++    ): Boolean = try {
++        ensureChannel(context)
++        val open = PendingIntent.getActivity(
++            context,
++            dailyTaskNotificationId(id),
++            Intent(context, MainActivity::class.java).apply {
++                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
++                putExtra(MainActivity.EXTRA_FOCUS_DAILY_TASK_ID, id)
++            },
++            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
++        )
++        val complete = PendingIntent.getBroadcast(
++            context,
++            (id.hashCode() xor 0x33C1),
++            Intent(context, DailyTaskActionReceiver::class.java).apply {
++                action = DailyTaskActionReceiver.ACTION_COMPLETE
++                putExtra(DailyTaskActionReceiver.EXTRA_DAILY_TASK_ID, id)
++            },
++            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
++        )
++        val dismiss = PendingIntent.getBroadcast(
++            context,
++            (id.hashCode() xor 0x5A91),
++            Intent(context, DailyTaskActionReceiver::class.java).apply {
++                action = DailyTaskActionReceiver.ACTION_DISMISS
++                putExtra(DailyTaskActionReceiver.EXTRA_DAILY_TASK_ID, id)
++            },
++            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
++        )
++        val time = "%02d:%02d".format(hour, minute)
++        val notification = Notification.Builder(context, CHANNEL_ID)
++            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
++            .setContentTitle("Daily · $time")
++            .setContentText(text.ifBlank { "每日事项" })
++            .setContentIntent(open)
++            .addAction(Notification.Action.Builder(android.R.drawable.ic_menu_agenda, "完成", complete).build())
++            .addAction(Notification.Action.Builder(android.R.drawable.ic_menu_close_clear_cancel, "忽略", dismiss).build())
++            .setOngoing(true)
++            .setOnlyAlertOnce(!alert)
++            .setCategory(Notification.CATEGORY_REMINDER)
++            .setVisibility(Notification.VISIBILITY_PUBLIC)
++            .setPriority(Notification.PRIORITY_HIGH)
++            .build()
++        (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
++            .notify(dailyTaskNotificationId(id), notification)
++        true
++    } catch (_: Exception) {
++        false
++    }
++
++    fun cancelDailyTask(context: Context, id: Long) {
++        (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
++            .cancel(dailyTaskNotificationId(id))
++    }
++
+     fun cancelDaily(context: Context) {
+         (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).cancel(DAILY_ID)
+     }
+@@ -144,4 +208,5 @@
+     }
+ 
+     private fun todoNotificationId(id: Long): Int = TODO_BASE_ID + (id.hashCode() and 0x3fff)
++    private fun dailyTaskNotificationId(id: Long): Int = DAILY_TASK_BASE_ID + (id.hashCode() and 0x3fff)
+ }
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.10.txt' '--exclude=SELF_TEST_V1.10.txt' /mnt/data/todo_v19_base_compare/To-Do/android/app/src/main/java/com/todolist/app/reminder/ReminderScheduler.kt /mnt/data/todo_v110_work/To-Do/android/app/src/main/java/com/todolist/app/reminder/ReminderScheduler.kt
+--- /mnt/data/todo_v19_base_compare/To-Do/android/app/src/main/java/com/todolist/app/reminder/ReminderScheduler.kt	2026-08-11 11:44:23.000000000 +0000
++++ /mnt/data/todo_v110_work/To-Do/android/app/src/main/java/com/todolist/app/reminder/ReminderScheduler.kt	2026-08-11 17:26:27.841281708 +0000
+@@ -8,6 +8,7 @@
+ import android.os.Build
+ import android.util.Log
+ import com.todolist.app.MainActivity
++import com.todolist.app.receiver.DailyTaskReminderReceiver
+ import com.todolist.app.receiver.MidnightReceiver
+ import com.todolist.app.receiver.TodoReminderReceiver
+ import java.util.Calendar
+@@ -35,7 +36,7 @@
+     fun hasArmedWork(context: Context): Boolean {
+         val prefs = context.getSharedPreferences("banner_time", Context.MODE_PRIVATE)
+         val daily = prefs.getBoolean("enabled", false) || prefs.contains("hour") || prefs.contains("minute")
+-        return daily || ReminderStore.getAll(context).isNotEmpty()
++        return daily || ReminderStore.getAll(context).isNotEmpty() || DailyTaskStore.getAll(context).isNotEmpty()
+     }
+ 
+     fun scheduleDaily(context: Context) {
+@@ -93,6 +94,36 @@
+         ReminderDiagnostics.record(context, "todo_cancelled", id.toString())
+     }
+ 
++    fun scheduleDailyTask(context: Context, record: DailyTaskRecord) {
++        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
++        val pi = dailyTaskPendingIntent(context, record.id)
++        val now = Calendar.getInstance()
++        val target = Calendar.getInstance().apply {
++            set(Calendar.HOUR_OF_DAY, record.hour.coerceIn(0, 23))
++            set(Calendar.MINUTE, record.minute.coerceIn(0, 59))
++            set(Calendar.SECOND, 0)
++            set(Calendar.MILLISECOND, 0)
++            val today = java.time.LocalDate.now().toString()
++            val blockedToday = record.isCompleted(today) || record.isDismissed(today)
++            if (blockedToday || !after(now)) add(Calendar.DAY_OF_MONTH, 1)
++        }
++        alarmManager.cancel(pi)
++        scheduleUserFacingAlarm(alarmManager, target.timeInMillis, pi, context, "daily_task", record.id)
++        ReminderDiagnostics.record(context, "daily_task_scheduled", "${record.id}:${target.timeInMillis}")
++    }
++
++    fun cancelDailyTask(context: Context, id: Long) {
++        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
++        alarmManager.cancel(dailyTaskPendingIntent(context, id))
++        ReminderDiagnostics.record(context, "daily_task_cancelled", id.toString())
++    }
++
++    fun syncDailyTasks(context: Context, dailyJson: String) {
++        val result = DailyTaskStore.syncSnapshot(context, dailyJson)
++        result.removedIds.forEach { cancelDailyTask(context, it) }
++        result.records.forEach { scheduleDailyTask(context, it) }
++    }
++
+     fun syncTodoSnapshot(context: Context, todosJson: String) {
+         TodoSnapshotStore.save(context, todosJson)
+         val result = ReminderStore.syncSnapshot(context, todosJson)
+@@ -109,6 +140,7 @@
+                 restoreFiredOverdue -> scheduleTodo(context, record)
+             }
+         }
++        DailyTaskStore.getAll(context).forEach { scheduleDailyTask(context, it) }
+     }
+ 
+     private fun scheduleUserFacingAlarm(
+@@ -135,7 +167,10 @@
+             action = "com.listnote.app.action.OPEN_REMINDER_INFO"
+             data = Uri.parse("listnote://alarm-info/$kind/${todoId ?: 0L}")
+             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+-            if (todoId != null) putExtra(MainActivity.EXTRA_FOCUS_TODO_ID, todoId)
++            if (todoId != null) {
++                if (kind == "daily_task") putExtra(MainActivity.EXTRA_FOCUS_DAILY_TASK_ID, todoId)
++                else putExtra(MainActivity.EXTRA_FOCUS_TODO_ID, todoId)
++            }
+         }
+         val requestCode = if (todoId == null) {
+             if (kind == "test") 9102 else 9101
+@@ -180,5 +215,19 @@
+             intent,
+             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+         )
++    }
++
++    private fun dailyTaskPendingIntent(context: Context, id: Long): PendingIntent {
++        val intent = Intent(context, DailyTaskReminderReceiver::class.java).apply {
++            action = DailyTaskReminderReceiver.ACTION_DAILY_TASK
++            data = Uri.parse("todo://daily-task/$id")
++            putExtra(DailyTaskReminderReceiver.EXTRA_DAILY_TASK_ID, id)
++        }
++        return PendingIntent.getBroadcast(
++            context,
++            12000 + ((id xor (id ushr 32)).toInt() and 0x3fffffff),
++            intent,
++            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
++        )
+     }
+ }
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.10.txt' '--exclude=SELF_TEST_V1.10.txt' /mnt/data/todo_v19_base_compare/To-Do/android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt /mnt/data/todo_v110_work/To-Do/android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt
+--- /mnt/data/todo_v19_base_compare/To-Do/android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt	2026-08-11 11:47:39.000000000 +0000
++++ /mnt/data/todo_v110_work/To-Do/android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt	2026-08-11 17:26:26.514038938 +0000
+@@ -15,6 +15,7 @@
+ import androidx.core.app.NotificationCompat
+ import com.todolist.app.MainActivity
+ import com.todolist.app.manager.FloatWindowManager
++import com.todolist.app.reminder.DailyTaskStore
+ import com.todolist.app.reminder.ReminderDiagnostics
+ import com.todolist.app.reminder.ReminderNotifier
+ import com.todolist.app.reminder.ReminderScheduler
+@@ -30,14 +31,14 @@
+  * or item reminder exists. AlarmManager remains the durable wake-up mechanism, while a Handler
+  * inside this already-running service acts as a second, in-process delivery path. This mirrors the
+  * reliability characteristic of FlowLedger's already-alive overlay host without requiring
+- * accessibility or notification-listener privileges in List-Note.
++ * accessibility or notification-listener privileges in To-Do.
+  */
+ class FloatWindowService : Service() {
+ 
+     companion object {
+         const val CHANNEL_ID = "listnote_reminder_keeper_v3"
+         const val ALERT_CHANNEL_ID = "todo_reminder_alerts_v2"
+-        const val CHANNEL_NAME = "List-Note 提醒守护"
++        const val CHANNEL_NAME = "To-Do 提醒守护"
+         const val ALERT_CHANNEL_NAME = "To-Do 重要提醒"
+         const val NOTIFICATION_ID = 1001
+ 
+@@ -45,6 +46,7 @@
+         const val ACTION_REFRESH = "com.listnote.app.action.REFRESH_REMINDER_RUNTIME"
+         const val ACTION_ALARM_DAILY = "com.listnote.app.action.ALARM_DAILY"
+         const val ACTION_ALARM_TODO = "com.listnote.app.action.ALARM_TODO"
++        const val ACTION_ALARM_DAILY_TASK = "com.todolist.app.action.ALARM_DAILY_TASK"
+         const val ACTION_ARM_TEST_FALLBACK = "com.listnote.app.action.ARM_TEST_FALLBACK"
+         const val ACTION_SHOW = "com.listnote.app.action.SHOW_BANNER"
+         const val ACTION_SHOW_TODO_REMINDER = "com.listnote.app.action.SHOW_TODO_REMINDER"
+@@ -58,6 +60,7 @@
+         const val EXTRA_TODO = "todo"
+         const val EXTRA_COMPLETED_ITEMS = "completed_items"
+         const val EXTRA_TODO_ID = "todo_id"
++        const val EXTRA_DAILY_TASK_ID = "daily_task_id"
+         const val EXTRA_TODO_TEXT = "todo_text"
+         const val EXTRA_TODO_STATUS = "todo_status"
+         const val EXTRA_REMINDER_AT = "reminder_at"
+@@ -98,6 +101,13 @@
+             })
+         }
+ 
++        fun dispatchDailyTaskAlarm(context: Context, id: Long) {
++            startCompat(context.applicationContext, Intent(context.applicationContext, FloatWindowService::class.java).apply {
++                action = ACTION_ALARM_DAILY_TASK
++                putExtra(EXTRA_DAILY_TASK_ID, id)
++            })
++        }
++
+         private fun startCompat(context: Context, intent: Intent) {
+             try {
+                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) context.startForegroundService(intent)
+@@ -110,6 +120,7 @@
+ 
+     private val mainHandler = Handler(Looper.getMainLooper())
+     private val todoFallbacks = linkedMapOf<Long, Runnable>()
++    private val dailyTaskFallbacks = linkedMapOf<Long, Runnable>()
+     private var dailyFallback: Runnable? = null
+     private var testFallback: Runnable? = null
+     private var lastDailyDispatchAt = 0L
+@@ -143,6 +154,10 @@
+                 handleTodoReminder(intent?.getLongExtra(EXTRA_TODO_ID, -1L) ?: -1L, "alarm")
+                 armInProcessFallbacks()
+             }
++            ACTION_ALARM_DAILY_TASK -> {
++                handleDailyTaskReminder(intent?.getLongExtra(EXTRA_DAILY_TASK_ID, -1L) ?: -1L, "alarm")
++                armInProcessFallbacks()
++            }
+             // Backward-compatible entry points kept for existing notification/actions and old alarms.
+             ACTION_SHOW -> intent?.let { showDailySummaryFromIntent(it) }
+             ACTION_SHOW_TODO_REMINDER -> handleTodoReminder(intent?.getLongExtra(EXTRA_TODO_ID, -1L) ?: -1L, "legacy")
+@@ -282,6 +297,60 @@
+         }
+     }
+ 
++    private fun handleDailyTaskReminder(id: Long, source: String) {
++        if (id <= 0L) return
++        val record = DailyTaskStore.get(this, id) ?: return
++        val today = java.time.LocalDate.now().toString()
++        if (record.isCompleted(today) || record.isDismissed(today)) {
++            ReminderScheduler.scheduleDailyTask(this, record)
++            return
++        }
++        if (record.lastFiredDate != today) DailyTaskStore.markFired(this, id, today)
++        val current = DailyTaskStore.get(this, id) ?: record
++        ReminderDiagnostics.record(this, "daily_task_render", "$id:$source")
++        ReminderScheduler.scheduleDailyTask(this, current)
++
++        if (!Settings.canDrawOverlays(this)) {
++            ReminderNotifier.postDailyTask(this, id, current.text, current.hour, current.minute, alert = source != "fallback")
++            return
++        }
++
++        runCatching {
++            FloatWindowManager.showDailyTask(
++                context = this,
++                id = id,
++                text = current.text,
++                hour = current.hour,
++                minute = current.minute,
++                onComplete = {
++                    DailyTaskStore.markCompletedToday(this, id, enqueue = true)
++                    ReminderNotifier.cancelDailyTask(this, id)
++                    DailyTaskStore.get(this, id)?.let { ReminderScheduler.scheduleDailyTask(this, it) }
++                    broadcastNativeMutation(-1L, "daily", null)
++                    refreshFallbacksAndLifecycle()
++                },
++                onDismiss = {
++                    DailyTaskStore.markDismissed(this, id)
++                    ReminderNotifier.cancelDailyTask(this, id)
++                    DailyTaskStore.get(this, id)?.let { ReminderScheduler.scheduleDailyTask(this, it) }
++                    refreshFallbacksAndLifecycle()
++                },
++                onOpenApp = {
++                    DailyTaskStore.markDismissed(this, id)
++                    ReminderNotifier.cancelDailyTask(this, id)
++                    DailyTaskStore.get(this, id)?.let { ReminderScheduler.scheduleDailyTask(this, it) }
++                    openDaily(id)
++                    refreshFallbacksAndLifecycle()
++                }
++            )
++            ReminderNotifier.cancelDailyTask(this, id)
++            ReminderDiagnostics.record(this, "daily_task_overlay_attached", id.toString())
++        }.onFailure {
++            ReminderDiagnostics.record(this, "daily_task_overlay_failed", "$id:${it.javaClass.simpleName}")
++            ReminderNotifier.postDailyTask(this, id, current.text, current.hour, current.minute, alert = false)
++        }
++    }
++
+     private fun cycleTodoStatus(id: Long) {
+         if (id <= 0L) return
+         val record = ReminderStore.get(this, id) ?: return
+@@ -311,6 +380,10 @@
+         ReminderStore.getAll(this).filter { it.fired }.forEach { record ->
+             handleTodoReminder(record.id, "restore")
+         }
++        val today = java.time.LocalDate.now().toString()
++        DailyTaskStore.getAll(this).filter { it.isVisibleAfterFire(today) }.forEach { record ->
++            handleDailyTaskReminder(record.id, "restore")
++        }
+     }
+ 
+     private fun armInProcessFallbacks() {
+@@ -318,6 +391,8 @@
+         dailyFallback = null
+         todoFallbacks.values.forEach { mainHandler.removeCallbacks(it) }
+         todoFallbacks.clear()
++        dailyTaskFallbacks.values.forEach { mainHandler.removeCallbacks(it) }
++        dailyTaskFallbacks.clear()
+ 
+         val prefs = getSharedPreferences("banner_time", Context.MODE_PRIVATE)
+         if (prefs.getBoolean("enabled", false) || prefs.contains("hour") || prefs.contains("minute")) {
+@@ -348,6 +423,25 @@
+             todoFallbacks[record.id] = task
+             mainHandler.postDelayed(task, (record.reminderAt - nowMs).coerceAtLeast(1_000L))
+         }
++
++        val today = java.time.LocalDate.now().toString()
++        DailyTaskStore.getAll(this).forEach { record ->
++            val now = Calendar.getInstance()
++            val target = Calendar.getInstance().apply {
++                set(Calendar.HOUR_OF_DAY, record.hour)
++                set(Calendar.MINUTE, record.minute)
++                set(Calendar.SECOND, 0)
++                set(Calendar.MILLISECOND, 0)
++                if (record.isCompleted(today) || record.isDismissed(today) || !after(now)) add(Calendar.DAY_OF_MONTH, 1)
++            }.timeInMillis
++            val task = Runnable {
++                handleDailyTaskReminder(record.id, "fallback")
++                dailyTaskFallbacks.remove(record.id)
++                armInProcessFallbacks()
++            }
++            dailyTaskFallbacks[record.id] = task
++            mainHandler.postDelayed(task, (target - System.currentTimeMillis()).coerceAtLeast(1_000L))
++        }
+     }
+ 
+     private fun armTestFallback(triggerAt: Long) {
+@@ -364,9 +458,11 @@
+         dailyFallback?.let { mainHandler.removeCallbacks(it) }
+         testFallback?.let { mainHandler.removeCallbacks(it) }
+         todoFallbacks.values.forEach { mainHandler.removeCallbacks(it) }
++        dailyTaskFallbacks.values.forEach { mainHandler.removeCallbacks(it) }
+         dailyFallback = null
+         testFallback = null
+         todoFallbacks.clear()
++        dailyTaskFallbacks.clear()
+     }
+ 
+     private fun refreshFallbacksAndLifecycle() {
+@@ -384,6 +480,14 @@
+     private fun splitList(raw: String?): ArrayList<String> =
+         ArrayList(raw.orEmpty().split("|||").filter { it.isNotEmpty() })
+ 
++    private fun openDaily(id: Long) {
++        val launchIntent = Intent(this, MainActivity::class.java).apply {
++            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
++            putExtra(MainActivity.EXTRA_FOCUS_DAILY_TASK_ID, id)
++        }
++        runCatching { startActivity(launchIntent) }
++    }
++
+     private fun openApp(todoId: Long? = null) {
+         val launchIntent = Intent(this, MainActivity::class.java).apply {
+             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+@@ -406,7 +510,7 @@
+         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+         nm.createNotificationChannel(
+             NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW).apply {
+-                description = "保持用户已设置的 List-Note 定时提醒可靠运行"
++                description = "保持用户已设置的 To-Do 定时提醒可靠运行"
+                 setShowBadge(false)
+                 enableVibration(false)
+                 setSound(null, null)
+@@ -425,7 +529,7 @@
+         )
+         return NotificationCompat.Builder(this, CHANNEL_ID)
+             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+-            .setContentTitle("List-Note")
++            .setContentTitle("To-Do")
+             .setContentText(text)
+             .setContentIntent(openIntent)
+             .setOngoing(true)
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.10.txt' '--exclude=SELF_TEST_V1.10.txt' /mnt/data/todo_v19_base_compare/To-Do/android/app/src/main/java/com/todolist/app/ui/DailyTaskBannerView.kt /mnt/data/todo_v110_work/To-Do/android/app/src/main/java/com/todolist/app/ui/DailyTaskBannerView.kt
+--- /mnt/data/todo_v19_base_compare/To-Do/android/app/src/main/java/com/todolist/app/ui/DailyTaskBannerView.kt	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/todo_v110_work/To-Do/android/app/src/main/java/com/todolist/app/ui/DailyTaskBannerView.kt	2026-08-11 17:18:18.362828185 +0000
+@@ -0,0 +1,87 @@
++package com.todolist.app.ui
++
++import android.content.Context
++import android.graphics.Color
++import android.graphics.Typeface
++import android.graphics.drawable.GradientDrawable
++import android.text.TextUtils
++import android.view.Gravity
++import android.widget.FrameLayout
++import android.widget.LinearLayout
++import android.widget.TextView
++
++/** One-line recurring Daily banner: checkbox + title + "Daily · HH:mm" + close. */
++class DailyTaskBannerView(
++    context: Context,
++    val dailyTaskId: Long,
++    text: String,
++    hour: Int,
++    minute: Int
++) : FrameLayout(context) {
++
++    private val density = context.resources.displayMetrics.density
++    var onComplete: (() -> Unit)? = null
++    var onDismiss: (() -> Unit)? = null
++    var onOpenApp: (() -> Unit)? = null
++
++    private fun dp(v: Float) = (v * density).toInt()
++    private fun dpf(v: Float) = v * density
++
++    init {
++        background = GradientDrawable().apply {
++            setColor(Color.parseColor("#FFFEFB"))
++            cornerRadius = dpf(18f)
++            setStroke(dp(1f), Color.parseColor("#EEE7DE"))
++        }
++        elevation = dpf(11f)
++        setPadding(dp(11f), dp(8f), dp(6f), dp(8f))
++
++        val row = LinearLayout(context).apply {
++            orientation = LinearLayout.HORIZONTAL
++            gravity = Gravity.CENTER_VERTICAL
++        }
++
++        val checkbox = TextView(context).apply {
++            gravity = Gravity.CENTER
++            background = GradientDrawable().apply {
++                setColor(Color.TRANSPARENT)
++                cornerRadius = dpf(7f)
++                setStroke(dp(2f), Color.parseColor("#D3D8E0"))
++            }
++            setOnClickListener { onComplete?.invoke() }
++        }
++        row.addView(checkbox, LinearLayout.LayoutParams(dp(28f), dp(28f)).apply { marginEnd = dp(9f) })
++
++        val title = TextView(context).apply {
++            this.text = text.ifBlank { "每日事项" }
++            textSize = 15f
++            typeface = Typeface.DEFAULT_BOLD
++            setTextColor(Color.parseColor("#2E2925"))
++            maxLines = 1
++            ellipsize = TextUtils.TruncateAt.END
++            setOnClickListener { onOpenApp?.invoke() }
++        }
++        row.addView(title, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
++
++        val meta = TextView(context).apply {
++            this.text = "Daily · %02d:%02d".format(hour, minute)
++            textSize = 11.5f
++            setTextColor(Color.parseColor("#8D8278"))
++            setPadding(dp(8f), 0, dp(3f), 0)
++            setOnClickListener { onOpenApp?.invoke() }
++        }
++        row.addView(meta)
++
++        val close = TextView(context).apply {
++            text = "✕"
++            textSize = 17f
++            gravity = Gravity.CENTER
++            setTextColor(Color.parseColor("#A0958B"))
++            setOnClickListener { onDismiss?.invoke() }
++        }
++        row.addView(close, LinearLayout.LayoutParams(dp(38f), dp(38f)))
++
++        addView(row, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
++        setOnClickListener { onOpenApp?.invoke() }
++    }
++}
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.10.txt' '--exclude=SELF_TEST_V1.10.txt' /mnt/data/todo_v19_base_compare/To-Do/build-apk.bat /mnt/data/todo_v110_work/To-Do/build-apk.bat
+--- /mnt/data/todo_v19_base_compare/To-Do/build-apk.bat	2026-08-11 15:53:50.000000000 +0000
++++ /mnt/data/todo_v110_work/To-Do/build-apk.bat	2026-08-11 17:32:12.809995275 +0000
+@@ -10,9 +10,9 @@
+ )
+ if not exist "dist" mkdir "dist"
+ for %%F in ("android\app\build\outputs\apk\debug\*.apk") do (
+-  copy /Y "%%~fF" "dist\To-Do-v1.9.apk" >nul
++  copy /Y "%%~fF" "dist\To-Do-v1.10.apk" >nul
+   echo.
+-  echo APK: %CD%\dist\To-Do-v1.9.apk
++  echo APK: %CD%\dist\To-Do-v1.10.apk
+   exit /b 0
+ )
+ echo Build finished but no APK was found under android\app\build\outputs\apk\debug
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.10.txt' '--exclude=SELF_TEST_V1.10.txt' /mnt/data/todo_v19_base_compare/To-Do/dev-logs/2026-08-12.md /mnt/data/todo_v110_work/To-Do/dev-logs/2026-08-12.md
+--- /mnt/data/todo_v19_base_compare/To-Do/dev-logs/2026-08-12.md	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/todo_v110_work/To-Do/dev-logs/2026-08-12.md	2026-08-11 17:33:32.420794190 +0000
+@@ -0,0 +1,10 @@
++# 2026-08-12 — V1.10
++
++- Base: To-Do V1.9 Full。
++- 按用户最终确认方案，将 To-Do ↔ Note 复杂 Motion 重做为纯 translate3d 的抽屉式跟手切换，可半滑回弹/越阈值吸附。
++- 新增独立 Daily 半高大圆角抽屉；Daily 不进入普通 To-Do 统计，每日仅未完成/已完成两态。
++- Daily 行：复选框 + 标题 + 时间 + 日历；编辑/删除藏在左滑两个独立按钮。
++- 新增 Daily 月历统计，✓/×/● 均位于日期数字正下方，并显示月完成率。
++- 新增 Daily 原生每日调度、Native mirror、Receiver、系统通知兜底、单行悬浮 Banner 与双向完成同步。
++- Daily Banner：完成 / 忽略 / 点击正文进入 Daily 三种操作均立即关闭；正文打开对应 Daily 并高亮。
++- 继续保留 V1.9 的 `com.todolist.app` 应用身份与既有 To-Do/Note localStorage key。
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.10.txt' '--exclude=SELF_TEST_V1.10.txt' /mnt/data/todo_v19_base_compare/To-Do/docs/requirements.md /mnt/data/todo_v110_work/To-Do/docs/requirements.md
+--- /mnt/data/todo_v19_base_compare/To-Do/docs/requirements.md	2026-08-11 15:55:24.000000000 +0000
++++ /mnt/data/todo_v110_work/To-Do/docs/requirements.md	2026-08-11 17:33:32.420596897 +0000
+@@ -1,4 +1,4 @@
+-# To-Do / Note — 当前需求与验收基线（V1.9）
++# To-Do / Note — 当前需求与验收基线（V1.10）
+ 
+ ## 已有能力（必须保留）
+ 
+@@ -53,3 +53,14 @@
+ - Android `applicationId` 恢复为旧稳定版 `com.todolist.app`，Launcher 名称恢复 `To-Do`；namespace 不迁移。
+ - 不迁移、不重命名、不清空 To-Do / Note localStorage key。
+ - 原位覆盖保留数据的前提是新 APK 与已安装稳定版使用同一签名证书；如果签名不一致，禁止通过卸载旧版来“解决”安装冲突。
++
++
++## V1.10 Daily / Drawer 验收
++- To-Do ↔ Note 只允许简单抽屉式横向跟手位移：拖多少走多少；不足阈值回弹；超过约 30% 或快速甩动完成切换。禁止重新引入 View Transition、3D 翻页、明显淡入淡出或缩放。
++- Daily 是独立浮动抽屉，不是第三个主模式，不计入普通 To-Do 的全部/未完成/进行中/已完成统计。抽屉高度约屏幕 2/3，大圆角，可右滑跟手关闭。
++- Daily 每项每天固定 HH:mm 重复；每日只有未完成/已完成两态，第二天自动按日期自然恢复未完成。
++- Daily 行默认只显示复选框、标题、低干扰时间、日历统计入口；编辑和删除通过左滑露出两个独立按钮。
++- Daily Banner 必须单行：复选框 + 标题 + `Daily · HH:mm` + ✕。勾选=今日完成并立刻消失；✕=忽略本次并立刻消失但今日仍未完成；点击正文=进入 Daily 并高亮对应项，同时 Banner 消失。
++- 已在提醒时间之前完成的 Daily，当天不得再弹；当天已经忽略的 Daily 不重复骚扰，次日重新可提醒。
++- Daily 历史月历：日期数字在上，状态标记 `✓ / × / ●` 必须位于该日期正下方；未来及创建前留空；底部显示本月完成天数/有效天数/百分比。
++- UI 延续现有暖白毛玻璃、柔和青绿强调色和大圆角，不做系统原生感的大色块。
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.10.txt' '--exclude=SELF_TEST_V1.10.txt' /mnt/data/todo_v19_base_compare/To-Do/docs/tech-spec.md /mnt/data/todo_v110_work/To-Do/docs/tech-spec.md
+--- /mnt/data/todo_v19_base_compare/To-Do/docs/tech-spec.md	2026-08-11 15:55:24.000000000 +0000
++++ /mnt/data/todo_v110_work/To-Do/docs/tech-spec.md	2026-08-11 17:33:32.420665849 +0000
+@@ -1,4 +1,4 @@
+-# To-Do / Note Android 应用 — 技术规格（V1.9）
++# To-Do / Note Android 应用 — 技术规格（V1.10）
+ 
+ ## 架构
+ 
+@@ -78,3 +78,25 @@
+ - 顶部手势 `touchmove` 使用 requestAnimationFrame 更新小幅 compositor transform；达到 40px 阈值后把当前拖动态作为旧 snapshot 继续切换，未达到则 spring-like 回位。
+ - fallback：没有 View Transition API 时使用 Web Animations API；减少动态效果时即时切换。
+ - Native Reminder / local data schema 均不参与本轮 Motion 改动。
++
++
++## V1.10 Daily 架构
++
++```text
++WebView Daily localStorage (`todo_glass_daily_tasks_v1`)
++  ├─ id / text / hour / minute / createdAt
++  └─ completedDates[]
++        ↓ AndroidBridge.syncDailyTasks
++DailyTaskStore (Native reminder mirror + completion mutation queue)
++        ↓
++ReminderScheduler.scheduleDailyTask
++        ↓
++DailyTaskReminderReceiver + FloatWindowService Keeper fallback
++        ↓
++DailyTaskBannerView / ReminderNotifier fallback
++```
++
++- Daily 任务内容与完成历史仍以 WebView localStorage 为产品数据真源；Native 只镜像后台调度所需字段，并保留 `lastDismissedDate / lastFiredDate` 作为当日提醒生命周期状态。
++- 调度采用每天一次的下一触发时间计算，而不是 Android repeating alarm：若今天已完成/忽略，或当天时间已过，则排下一天；否则排今天。开机/时间变化/APP 恢复时由现有 `rescheduleAll()` 一并恢复。
++- Banner 勾选从 Native 写 `completedDates` mutation，再广播给打开中的 WebView；WebView 下次启动也会拉 mutation。正文/✕只写 Native `lastDismissedDate`，不伪造完成历史。
++- To-Do ↔ Note 动效只对外层 `.app` 做 `translate3d`，顶部 gesture 直接跟手；不依赖 View Transition API，不增加第三方前端运行时。
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.10.txt' '--exclude=SELF_TEST_V1.10.txt' /mnt/data/todo_v19_base_compare/To-Do/ui/todo.html /mnt/data/todo_v110_work/To-Do/ui/todo.html
+--- /mnt/data/todo_v19_base_compare/To-Do/ui/todo.html	2026-08-11 15:53:50.000000000 +0000
++++ /mnt/data/todo_v110_work/To-Do/ui/todo.html	2026-08-11 17:32:12.809712615 +0000
+@@ -966,6 +966,91 @@
+ .reminder-picker__cancel-reminder.visible { display: block; }
+ .reminder-picker__confirm { flex: 1; border: none; border-radius: 12px; padding: 12px; background: linear-gradient(135deg, #21c8b1, #13a4d6); color: #fff; font-size: 14px; font-weight: 750; cursor: pointer; }
+ 
++/* ===== Daily recurring tasks: floating drawer ===== */
++.daily-drawer-overlay {
++  position: fixed; inset: 0; z-index: 10040;
++  display: flex; align-items: flex-start; justify-content: center;
++  padding-top: max(14vh, 78px);
++  background: rgba(63,54,45,0.24);
++  backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
++  opacity:0; visibility:hidden; pointer-events:none;
++  transition: opacity 180ms ease-out, visibility 0s linear 280ms;
++}
++.daily-drawer-overlay.active { opacity:1; visibility:visible; pointer-events:auto; transition-delay:0s; }
++.daily-drawer {
++  width: min(92vw, 392px); height: min(66vh, 570px);
++  display: flex; flex-direction: column; overflow: hidden;
++  border-radius: 30px;
++  background: linear-gradient(180deg, rgba(255,255,252,0.98), rgba(255,250,244,0.98));
++  border: 1px solid rgba(255,255,255,0.78);
++  box-shadow: 0 24px 72px rgba(76,60,46,0.22), 0 4px 16px rgba(76,60,46,0.08);
++  transform: translateX(108%);
++  transition: transform 270ms cubic-bezier(0.22,0.82,0.28,1);
++}
++.daily-drawer-overlay.active .daily-drawer { transform: translateX(0); }
++.daily-drawer__grab { width: 44px; height: 4px; border-radius: 99px; background: rgba(133,118,102,0.18); margin: 9px auto 2px; }
++.daily-drawer__header { display:flex; align-items:center; gap:10px; padding: 14px 18px 12px; }
++.daily-drawer__title { font-size: 21px; font-weight: 850; color:#4d4339; letter-spacing:-0.4px; }
++.daily-drawer__subtitle { font-size: 11px; color:#a09285; margin-top:2px; }
++.daily-drawer__progress { margin-left:auto; padding:6px 10px; border-radius:999px; background:rgba(37,185,154,0.09); color:#299d86; font-size:11px; font-weight:750; }
++.daily-drawer__close { width:34px; height:34px; border:0; border-radius:50%; background:#f5f0ea; color:#94887d; font-size:16px; }
++.daily-list { flex:1; overflow-y:auto; padding: 2px 12px 14px; -webkit-overflow-scrolling:touch; }
++.daily-empty { text-align:center; color:#a99b8f; font-size:13px; line-height:1.7; padding:58px 18px; }
++.daily-empty__icon { font-size:34px; opacity:.58; margin-bottom:8px; }
++.daily-item { position:relative; overflow:hidden; margin: 7px 0; border-radius:17px; background:#fffefa; border:1px solid #eee7de; box-shadow:0 3px 12px rgba(139,119,101,.07); }
++.daily-item.highlight-flash { animation: dailyFocusFlash 1.4s ease-out; }
++@keyframes dailyFocusFlash { 0%{box-shadow:0 0 0 0 rgba(37,185,154,.55),0 3px 12px rgba(139,119,101,.07)} 45%{box-shadow:0 0 0 7px rgba(37,185,154,0),0 8px 25px rgba(37,185,154,.18)} 100%{box-shadow:0 3px 12px rgba(139,119,101,.07)} }
++.daily-item__actions { position:absolute; right:0; top:0; bottom:0; width:116px; display:flex; align-items:center; justify-content:flex-end; gap:7px; padding-right:7px; background:transparent; }
++.daily-item__action { width:49px; height:37px; border:0; border-radius:11px; color:#fff; font-size:11px; font-weight:750; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; box-shadow:0 3px 10px rgba(70,60,52,.11); }
++.daily-item__edit { background:#7d9dcb; } .daily-item__delete { background:#ef6f6c; }
++.daily-item__inner { position:relative; z-index:2; min-height:62px; display:flex; align-items:center; gap:10px; padding:10px 11px; background:#fffefa; transition:transform 200ms ease-out; }
++.daily-check { width:23px; height:23px; flex:0 0 23px; border:2px solid #d0d6d7; border-radius:7px; display:flex; align-items:center; justify-content:center; transition:all 180ms ease; }
++.daily-check.checked { background:linear-gradient(135deg,#34cfaa,#1cae8f); border-color:transparent; box-shadow:0 3px 10px rgba(37,185,154,.22); }
++.daily-check.checked::after { content:'✓'; color:#fff; font-size:13px; font-weight:850; }
++.daily-item__text { flex:1; min-width:0; color:#302a25; font-size:15px; font-weight:650; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
++.daily-item.completed .daily-item__text { color:#8d9992; text-decoration:line-through; text-decoration-thickness:1.3px; }
++.daily-item__time { font-size:11px; font-weight:700; color:rgba(92,77,60,.42); font-variant-numeric:tabular-nums; }
++.daily-item__calendar { width:34px; height:34px; border:1px solid rgba(37,185,154,.12); border-radius:11px; background:rgba(37,185,154,.06); color:#46a58f; display:flex; align-items:center; justify-content:center; font-size:15px; }
++.daily-drawer__footer { padding: 10px 16px max(14px, env(safe-area-inset-bottom)); border-top:1px solid rgba(220,207,195,.45); background:rgba(255,254,250,.92); }
++.daily-add-btn { width:100%; border:0; border-radius:15px; padding:12px 14px; background:linear-gradient(135deg,#2bc9ac,#27b7d6); color:#fff; font-size:14px; font-weight:800; box-shadow:0 7px 18px rgba(39,183,214,.16); }
++
++/* Daily editor */
++.daily-editor-overlay, .daily-calendar-overlay { position:fixed; inset:0; z-index:10060; display:none; align-items:center; justify-content:center; padding:18px; background:rgba(54,48,42,.30); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
++.daily-editor-overlay.active, .daily-calendar-overlay.active { display:flex; }
++.daily-editor { width:min(90vw,350px); border-radius:24px; background:#fffefa; border:1px solid rgba(230,220,210,.72); box-shadow:0 22px 66px rgba(76,60,46,.22); padding:19px; }
++.daily-editor__head { display:flex; align-items:center; justify-content:space-between; margin-bottom:15px; }
++.daily-editor__title { font-size:18px; font-weight:820; color:#493f36; }
++.daily-editor__close { width:34px;height:34px;border:0;border-radius:50%;background:#f4efe9;color:#95887d;font-size:16px; }
++.daily-editor__label { font-size:11px; color:#9e9083; font-weight:700; margin:10px 2px 6px; }
++.daily-editor__name { width:100%; border:1px solid #ece4dc; border-radius:13px; padding:12px 13px; background:#faf7f3; outline:none; color:#3d352f; font-size:15px; font-family:inherit; }
++.daily-editor__time { display:grid; grid-template-columns:1fr 12px 1fr; align-items:center; gap:8px; }
++.daily-editor__time input { width:100%; border:1px solid #e8e0d8; border-radius:14px; padding:12px 8px; text-align:center; background:#f8f5f1; color:#3c3530; font-size:22px; font-weight:800; font-variant-numeric:tabular-nums; outline:none; }
++.daily-editor__colon { text-align:center; color:#9a8c80; font-size:22px; }
++.daily-editor__save { width:100%; margin-top:17px; border:0; border-radius:14px; padding:12px; background:linear-gradient(135deg,#2bc9ac,#27b7d6); color:#fff; font-size:14px; font-weight:800; }
++
++/* Daily completion calendar */
++.daily-calendar { width:min(94vw,390px); max-height:82vh; overflow:hidden; border-radius:28px; background:#fffefa; border:1px solid rgba(230,220,210,.72); box-shadow:0 24px 75px rgba(76,60,46,.24); }
++.daily-calendar__top { padding:20px 20px 16px; background:linear-gradient(135deg,rgba(227,249,241,.96),rgba(236,250,246,.96)); border-bottom:1px solid rgba(37,185,154,.10); }
++.daily-calendar__task { font-size:12px; font-weight:750; color:#3ba18a; margin-bottom:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
++.daily-calendar__row { display:flex; align-items:center; }
++.daily-calendar__month { font-size:21px; font-weight:850; color:#51463b; }
++.daily-calendar__nav { margin-left:auto; display:flex; gap:8px; }
++.daily-calendar__nav button, .daily-calendar__close { width:38px; height:38px; border:0; border-radius:12px; background:rgba(255,255,255,.78); color:#655b51; font-size:21px; box-shadow:0 2px 8px rgba(80,66,54,.05); }
++.daily-calendar__close { font-size:15px; margin-left:8px; }
++.daily-calendar__body { padding:16px 14px 10px; }
++.daily-calendar__grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px 2px; }
++.daily-cal-week { text-align:center; color:#a09285; font-size:11px; font-weight:750; padding:3px 0 8px; }
++.daily-cal-day { min-height:52px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; border-radius:12px; padding-top:5px; }
++.daily-cal-day.today { background:rgba(37,185,154,.07); }
++.daily-cal-day__num { font-size:14px; line-height:20px; font-weight:650; color:#554b41; }
++.daily-cal-day.future .daily-cal-day__num { color:#c9c0b7; }
++.daily-cal-day.before-created .daily-cal-day__num { color:#d4ccc4; }
++.daily-cal-day__mark { display:block; width:100%; height:18px; line-height:18px; margin-top:2px; text-align:center; font-size:13px; font-weight:900; }
++.daily-cal-day__mark.done { color:#22b792; }
++.daily-cal-day__mark.miss { color:#e57f79; }
++.daily-cal-day__mark.today-dot { color:#e3a43b; font-size:16px; }
++.daily-calendar__stats { margin:5px 16px 17px; padding:11px 13px; border-radius:14px; background:#f8f5f1; color:#75695f; font-size:12px; font-weight:650; text-align:center; }
++
+ /* ===== Category Picker ===== */
+ .category-picker {
+   display: none;
+@@ -1487,96 +1572,30 @@
+   border-color: rgba(164, 119, 222, 0.5);
+ }
+ 
+-/* ===== To-Do / Note mode transition: native-like layered spring slide ===== */
+-/*
+- * V1.9 motion design:
+- * - same-document View Transition API where Chromium/WebView supports it;
+- * - simultaneous old/new snapshots, so there is no blank "fade-out then fade-in" frame;
+- * - transform + opacity only on the main shell for compositor-friendly motion;
+- * - slightly different old/new distances create a restrained parallax/depth feel;
+- * - WAAPI fallback remains for older WebView builds.
+- */
+-.app { view-transition-name: mode-shell; }
+-#categoryBar { view-transition-name: mode-category; }
+-#fabRecycle { view-transition-name: mode-recycle; }
+-#fabAi { view-transition-name: mode-ai; }
+-#fab { view-transition-name: mode-fab; }
+-
+-::view-transition-group(mode-shell) {
+-  animation-duration: 380ms;
+-  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+-}
+-::view-transition-image-pair(mode-shell) { isolation: isolate; }
+-::view-transition-old(mode-shell),
+-::view-transition-new(mode-shell) {
+-  mix-blend-mode: normal;
+-  backface-visibility: hidden;
+-  transform-origin: 50% 14%;
+-}
+-
+-/* A rightward user gesture reveals the incoming mode from the left. */
+-html.mode-vt-right::view-transition-old(mode-shell) {
+-  animation: modeShellOldRight 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
+-}
+-html.mode-vt-right::view-transition-new(mode-shell) {
+-  animation: modeShellNewRight 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+-}
+-html.mode-vt-left::view-transition-old(mode-shell) {
+-  animation: modeShellOldLeft 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
+-}
+-html.mode-vt-left::view-transition-new(mode-shell) {
+-  animation: modeShellNewLeft 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+-}
+-
+-@keyframes modeShellOldRight {
+-  from { opacity: 1; transform: translate3d(0,0,0) scale(1); }
+-  to   { opacity: 0.30; transform: translate3d(18px,0,0) scale(0.992); }
+-}
+-@keyframes modeShellNewRight {
+-  from { opacity: 0.42; transform: translate3d(-24px,0,0) scale(0.988); }
+-  72%  { opacity: 1; transform: translate3d(1.5px,0,0) scale(1.001); }
+-  to   { opacity: 1; transform: translate3d(0,0,0) scale(1); }
+-}
+-@keyframes modeShellOldLeft {
+-  from { opacity: 1; transform: translate3d(0,0,0) scale(1); }
+-  to   { opacity: 0.30; transform: translate3d(-18px,0,0) scale(0.992); }
+-}
+-@keyframes modeShellNewLeft {
+-  from { opacity: 0.42; transform: translate3d(24px,0,0) scale(0.988); }
+-  72%  { opacity: 1; transform: translate3d(-1.5px,0,0) scale(1.001); }
+-  to   { opacity: 1; transform: translate3d(0,0,0) scale(1); }
+-}
+-
+-/* Mode-only controls enter/exit with a shorter shared fade, while the paper background stays calm. */
+-::view-transition-group(mode-category),
+-::view-transition-group(mode-recycle),
+-::view-transition-group(mode-ai),
+-::view-transition-group(mode-fab) {
+-  animation-duration: 300ms;
+-  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+-}
+-::view-transition-old(mode-category),
+-::view-transition-old(mode-recycle),
+-::view-transition-old(mode-ai),
+-::view-transition-old(mode-fab),
+-::view-transition-new(mode-category),
+-::view-transition-new(mode-recycle),
+-::view-transition-new(mode-ai),
+-::view-transition-new(mode-fab) {
+-  mix-blend-mode: normal;
+-}
+-
+-/* During a real header swipe the current page follows the finger a little, then the transition carries that momentum. */
+-.app.mode-swipe-preview {
+-  will-change: transform, opacity;
+-}
+-
++/* ===== To-Do / Note mode transition: simple interactive drawer slide ===== */
++.mode-drawer-underlay {
++  position: fixed; inset: 0; z-index: 0;
++  max-width: 430px; margin: 0 auto;
++  pointer-events: none; opacity: 0;
++  display: flex; align-items: center;
++  background: linear-gradient(180deg, rgba(255,254,250,0.94), rgba(245,236,216,0.88));
++  transition: opacity 120ms ease-out;
++}
++.mode-drawer-underlay.active { opacity: 1; }
++.mode-drawer-underlay__label {
++  margin: 0 26px; padding: 12px 16px;
++  border-radius: 18px;
++  background: rgba(255,255,255,0.62);
++  border: 1px solid rgba(255,255,255,0.72);
++  box-shadow: 0 8px 28px rgba(139,119,101,0.10);
++  color: rgba(92,77,60,0.72); font-size: 17px; font-weight: 800;
++  letter-spacing: -0.2px;
++}
++.mode-drawer-underlay.from-right { justify-content: flex-start; }
++.mode-drawer-underlay.from-left { justify-content: flex-end; }
++.app.mode-drawer-moving { will-change: transform; }
+ @media (prefers-reduced-motion: reduce) {
+-  ::view-transition-group(mode-shell),
+-  ::view-transition-group(mode-category),
+-  ::view-transition-group(mode-recycle),
+-  ::view-transition-group(mode-ai),
+-  ::view-transition-group(mode-fab) { animation-duration: 0.01ms; }
++  .app.mode-drawer-moving { transition-duration: 0.01ms !important; }
+ }
+ 
+ /* ===== Note Container ===== */
+@@ -2056,6 +2075,9 @@
+   <div class="bg-layer__orb bg-layer__orb--5"></div>
+ </div>
+ 
++<!-- Simple drawer underlay used by the interactive To-Do / Note swipe -->
++<div class="mode-drawer-underlay" id="modeDrawerUnderlay"><div class="mode-drawer-underlay__label" id="modeDrawerLabel">Note</div></div>
++
+ <!-- App -->
+ <div class="app">
+   <div class="sticky-header">
+@@ -2066,7 +2088,8 @@
+         <div class="header__stats">
+           <span id="completed-count">0</span><span id="stats-sep">/</span><span id="total-count">0</span>
+           <button class="test-banner-btn" id="calendarBtn" title="日历">🗓️</button>
+-          <button class="test-banner-btn" id="timePickerBtn" title="设置提醒时间">🕐</button>
++          <button class="test-banner-btn" id="timePickerBtn" title="设置每天总结提醒">🕐</button>
++          <button class="test-banner-btn" id="dailyBtn" title="每日事项">↻</button>
+         </div>
+       </div>
+       <div class="search-wrap">
+@@ -2254,6 +2277,55 @@
+     <button class="time-picker__test" id="timePickerTest">10 秒测试提醒</button>
+   </div>
+ </div>
++<!-- Daily recurring tasks drawer -->
++<div class="daily-drawer-overlay" id="dailyDrawerOverlay">
++  <section class="daily-drawer" id="dailyDrawer" aria-label="每日事项">
++    <div class="daily-drawer__grab"></div>
++    <div class="daily-drawer__header">
++      <div>
++        <div class="daily-drawer__title">Daily</div>
++        <div class="daily-drawer__subtitle">每天重新开始的小事</div>
++      </div>
++      <div class="daily-drawer__progress" id="dailyProgress">今天 0/0</div>
++      <button class="daily-drawer__close" id="dailyDrawerClose" aria-label="关闭">✕</button>
++    </div>
++    <div class="daily-list" id="dailyList"></div>
++    <div class="daily-drawer__footer"><button class="daily-add-btn" id="dailyAddBtn">＋ 新增每日事项</button></div>
++  </section>
++</div>
++
++<!-- Daily add/edit -->
++<div class="daily-editor-overlay" id="dailyEditorOverlay">
++  <div class="daily-editor">
++    <div class="daily-editor__head"><span class="daily-editor__title" id="dailyEditorTitle">新增每日事项</span><button class="daily-editor__close" id="dailyEditorClose">✕</button></div>
++    <div class="daily-editor__label">每天要做的事情</div>
++    <input class="daily-editor__name" id="dailyEditorName" maxlength="60" placeholder="例如：喝水、吃药、洗衣服">
++    <div class="daily-editor__label">每天提醒时间</div>
++    <div class="daily-editor__time">
++      <input id="dailyEditorHour" type="number" inputmode="numeric" min="0" max="23" aria-label="小时">
++      <div class="daily-editor__colon">:</div>
++      <input id="dailyEditorMinute" type="number" inputmode="numeric" min="0" max="59" aria-label="分钟">
++    </div>
++    <button class="daily-editor__save" id="dailyEditorSave">保存 · 每天重复</button>
++  </div>
++</div>
++
++<!-- Daily completion calendar -->
++<div class="daily-calendar-overlay" id="dailyCalendarOverlay">
++  <div class="daily-calendar">
++    <div class="daily-calendar__top">
++      <div class="daily-calendar__task" id="dailyCalendarTask"></div>
++      <div class="daily-calendar__row">
++        <div class="daily-calendar__month" id="dailyCalendarMonth"></div>
++        <div class="daily-calendar__nav"><button id="dailyCalendarPrev">‹</button><button id="dailyCalendarNext">›</button></div>
++        <button class="daily-calendar__close" id="dailyCalendarClose">✕</button>
++      </div>
++    </div>
++    <div class="daily-calendar__body"><div class="daily-calendar__grid" id="dailyCalendarGrid"></div></div>
++    <div class="daily-calendar__stats" id="dailyCalendarStats">本月完成 0 / 0 天</div>
++  </div>
++</div>
++
+ <div class="reminder-picker-overlay" id="reminderPickerOverlay">
+   <div class="reminder-picker">
+     <div class="reminder-picker__header">
+@@ -2330,6 +2402,13 @@
+ let currentNoteId = null; // currently editing note id (null = list view)
+ let notesFolderFilter = ''; // '' = all notes, otherwise folder name
+ 
++// ===== Daily recurring tasks state =====
++const DAILY_TASKS_KEY = 'todo_glass_daily_tasks_v1';
++let dailyTasks = [];
++let dailyEditingId = null;
++let dailyCalendarTaskId = null;
++let dailyCalendarCursor = new Date();
++
+ // ===== DOM refs =====
+ const todoListEl = document.getElementById('todo-list');
+ const searchInput = document.getElementById('search-input');
+@@ -2690,7 +2769,6 @@
+ }
+ 
+ let modeSwitchAnimating = false;
+-let modeSwitchTimer = null;
+ let modeSwipePreviewActive = false;
+ 
+ function applyMode(mode) {
+@@ -2699,82 +2777,66 @@
+   renderModeUI();
+ }
+ 
+-function clearModeSwipePreview() {
+-  var appEl = document.querySelector('.app');
+-  if (!appEl) return;
+-  appEl.classList.remove('mode-swipe-preview');
+-  appEl.style.removeProperty('transform');
+-  appEl.style.removeProperty('opacity');
+-  appEl.style.removeProperty('transition');
++function prepareModeDrawer(targetMode, direction) {
++  const underlay = document.getElementById('modeDrawerUnderlay');
++  const label = document.getElementById('modeDrawerLabel');
++  if (!underlay) return;
++  if (label) label.textContent = targetMode === 'notes' ? 'Note' : 'To-Do';
++  underlay.classList.remove('from-left', 'from-right');
++  underlay.classList.add(direction > 0 ? 'from-right' : 'from-left', 'active');
++}
++
++function clearModeDrawerPreview() {
++  const appEl = document.querySelector('.app');
++  const underlay = document.getElementById('modeDrawerUnderlay');
++  if (appEl) {
++    appEl.classList.remove('mode-drawer-moving');
++    appEl.style.removeProperty('transform');
++    appEl.style.removeProperty('transition');
++  }
++  if (underlay) underlay.classList.remove('active', 'from-left', 'from-right');
+   modeSwipePreviewActive = false;
+ }
+ 
+-function finishModeSwitch() {
+-  clearTimeout(modeSwitchTimer);
+-  document.documentElement.classList.remove('mode-vt-left', 'mode-vt-right');
+-  clearModeSwipePreview();
+-  modeSwitchAnimating = false;
++function springBackModeDrawer() {
++  const appEl = document.querySelector('.app');
++  if (!appEl) return clearModeDrawerPreview();
++  appEl.classList.add('mode-drawer-moving');
++  appEl.style.transition = 'transform 205ms cubic-bezier(0.22,0.82,0.28,1)';
++  appEl.style.transform = 'translate3d(0,0,0)';
++  setTimeout(clearModeDrawerPreview, 210);
+ }
+ 
+ function switchMode(mode, motion) {
+   if (mode === currentMode || modeSwitchAnimating) return;
+   const appEl = document.querySelector('.app');
++  if (!appEl) { applyMode(mode); return; }
+   const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+-  if (!appEl || reduceMotion) {
+-    clearModeSwipePreview();
+-    applyMode(mode);
+-    return;
+-  }
++  if (reduceMotion) { clearModeDrawerPreview(); applyMode(mode); return; }
+ 
+-  const direction = motion === 'left' || motion === 'right' ? motion : (mode === 'notes' ? 'right' : 'left');
++  const direction = motion === 'left' ? -1 : motion === 'right' ? 1 : (mode === 'notes' ? 1 : -1);
++  const width = appEl.getBoundingClientRect().width || window.innerWidth;
+   modeSwitchAnimating = true;
+-  const root = document.documentElement;
+-  root.classList.remove('mode-vt-left', 'mode-vt-right');
+-  root.classList.add('mode-vt-' + direction);
+-
+-  /*
+-   * Modern Android WebView is Chromium-based and supports same-document view transitions.
+-   * This snapshots old/new UI states and lets them animate at the same time, avoiding the
+-   * V1.8 sequential blank-ish frame. Fallback below uses Web Animations API only.
+-   */
+-  if (typeof document.startViewTransition === 'function') {
+-    try {
+-      const transition = document.startViewTransition(function() {
+-        clearModeSwipePreview();
+-        applyMode(mode);
+-      });
+-      transition.finished.then(finishModeSwitch, finishModeSwitch);
+-      modeSwitchTimer = setTimeout(finishModeSwitch, 520);
+-      return;
+-    } catch (e) {
+-      // Older/vendor WebView edge case: fall through to compositor-friendly WAAPI fallback.
+-    }
+-  }
+-
+-  const outX = direction === 'right' ? 16 : -16;
+-  const inX = -outX * 1.35;
+-  clearModeSwipePreview();
+-  let outAnim;
+-  try {
+-    outAnim = appEl.animate([
+-      { opacity: 1, transform: 'translate3d(0,0,0) scale(1)' },
+-      { opacity: 0.34, transform: 'translate3d(' + outX + 'px,0,0) scale(0.992)' }
+-    ], { duration: 125, easing: 'cubic-bezier(0.4,0,0.6,1)', fill: 'forwards' });
+-  } catch (e) {
+-    applyMode(mode);
+-    finishModeSwitch();
+-    return;
+-  }
++  prepareModeDrawer(mode, direction);
++  appEl.classList.add('mode-drawer-moving');
++  appEl.style.transition = 'transform 165ms cubic-bezier(0.22,0.78,0.25,1)';
++  appEl.style.transform = `translate3d(${direction * (width + 8)}px,0,0)`;
+ 
+-  outAnim.finished.catch(function() {}).then(function() {
++  setTimeout(() => {
+     applyMode(mode);
+-    appEl.animate([
+-      { opacity: 0.42, transform: 'translate3d(' + inX + 'px,0,0) scale(0.988)' },
+-      { opacity: 1, transform: 'translate3d(0,0,0) scale(1)' }
+-    ], { duration: 285, easing: 'cubic-bezier(0.16,1,0.3,1)', fill: 'both' })
+-      .finished.catch(function() {}).then(finishModeSwitch);
+-  });
+-  modeSwitchTimer = setTimeout(finishModeSwitch, 520);
++    appEl.style.transition = 'none';
++    appEl.style.transform = `translate3d(${-direction * 28}px,0,0)`;
++    requestAnimationFrame(() => requestAnimationFrame(() => {
++      appEl.style.transition = 'transform 135ms cubic-bezier(0.22,0.82,0.28,1)';
++      appEl.style.transform = 'translate3d(0,0,0)';
++      const underlay = document.getElementById('modeDrawerUnderlay');
++      if (underlay) underlay.classList.remove('active');
++      setTimeout(() => {
++        clearModeDrawerPreview();
++        modeSwitchAnimating = false;
++      }, 140);
++    }));
++  }, 170);
+ }
+ 
+ function renderModeUI() {
+@@ -2793,25 +2855,28 @@
+     }
+   }
+ 
+-  // Header title — the V1.9 shared page transition handles the visual interpolation.
++  // Header title updates only after the drawer-like switch commits.
+   var titleEl = document.querySelector('.header__title');
+   if (titleEl) titleEl.textContent = isNotes ? 'Note' : 'To-Do';
+ 
+   // Header stats (calendar, alarm — todo only)
+   var calendarBtn = document.getElementById('calendarBtn');
+   var timePickerBtn = document.getElementById('timePickerBtn');
++  var dailyBtn = document.getElementById('dailyBtn');
+   var completedSpan = document.getElementById('completed-count');
+   var totalSpan = document.getElementById('total-count');
+   var statsSep = document.getElementById('stats-sep');
+   if (isNotes) {
+     if (calendarBtn) calendarBtn.style.display = 'none';
+     if (timePickerBtn) timePickerBtn.style.display = 'none';
++    if (dailyBtn) dailyBtn.style.display = 'none';
+     if (completedSpan) completedSpan.style.display = 'none';
+     if (totalSpan) totalSpan.style.display = 'none';
+     if (statsSep) statsSep.style.display = 'none';
+   } else {
+     if (calendarBtn) calendarBtn.style.display = '';
+     if (timePickerBtn) timePickerBtn.style.display = '';
++    if (dailyBtn) dailyBtn.style.display = '';
+     if (completedSpan) completedSpan.style.display = '';
+     if (totalSpan) totalSpan.style.display = '';
+     if (statsSep) statsSep.style.display = '';
+@@ -2829,6 +2894,7 @@
+ 
+   if (isNotes) {
+     todoListEl.style.display = 'none';
++    noteContainer.style.display = '';
+     noteContainer.classList.add('note-container--open');
+     tabsWrap.style.display = 'none';
+     categoryBar.style.display = 'none';
+@@ -2839,6 +2905,7 @@
+     renderNoteList();
+   } else {
+     noteContainer.classList.remove('note-container--open');
++    noteContainer.style.display = 'none';
+     todoListEl.style.display = '';
+     tabsWrap.style.display = '';
+     categoryBar.style.display = '';
+@@ -3825,6 +3892,276 @@
+ });
+ 
+ 
++// ===== Daily recurring tasks =====
++function dailyDateKey(date) {
++  date = date || new Date();
++  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
++}
++function dailyTimeLabel(task) {
++  return `${String(task.hour).padStart(2,'0')}:${String(task.minute).padStart(2,'0')}`;
++}
++function isDailyCompleted(task, key) {
++  return Array.isArray(task.completedDates) && task.completedDates.includes(key || dailyDateKey());
++}
++function loadDailyTasks() {
++  try {
++    const raw = localStorage.getItem(DAILY_TASKS_KEY);
++    dailyTasks = raw ? JSON.parse(raw) : [];
++    if (!Array.isArray(dailyTasks)) dailyTasks = [];
++  } catch(e) { dailyTasks = []; }
++  dailyTasks = dailyTasks.filter(t => t && Number(t.id) > 0).map(t => ({
++    id: Number(t.id),
++    text: String(t.text || '每日事项'),
++    hour: Math.max(0, Math.min(23, Number.isFinite(Number(t.hour)) ? Number(t.hour) : 9)),
++    minute: Math.max(0, Math.min(59, Number.isFinite(Number(t.minute)) ? Number(t.minute) : 0)),
++    createdAt: Number(t.createdAt) > 0 ? Number(t.createdAt) : Date.now(),
++    completedDates: Array.from(new Set(Array.isArray(t.completedDates) ? t.completedDates.filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)) : [])).sort()
++  }));
++}
++function syncDailyTasksToAndroid() {
++  if (typeof AndroidBridge === 'undefined' || !AndroidBridge.syncDailyTasks) return;
++  try {
++    AndroidBridge.syncDailyTasks(JSON.stringify(dailyTasks.map(t => ({
++      id:t.id, text:t.text, hour:t.hour, minute:t.minute, createdAt:t.createdAt,
++      completedDates:t.completedDates || []
++    }))));
++  } catch(e) {}
++}
++function saveDailyTasks() {
++  localStorage.setItem(DAILY_TASKS_KEY, JSON.stringify(dailyTasks));
++  syncDailyTasksToAndroid();
++  if (document.getElementById('dailyDrawerOverlay')?.classList.contains('active')) renderDailyDrawer();
++  if (document.getElementById('dailyCalendarOverlay')?.classList.contains('active')) renderDailyCalendar();
++}
++function getDailyTask(id) { return dailyTasks.find(t => t.id === Number(id)); }
++function toggleDailyToday(id) {
++  const task = getDailyTask(id); if (!task) return;
++  const today = dailyDateKey();
++  task.completedDates = Array.isArray(task.completedDates) ? task.completedDates : [];
++  const idx = task.completedDates.indexOf(today);
++  if (idx >= 0) {
++    task.completedDates.splice(idx,1);
++    showToast('已恢复为今日未完成');
++  } else {
++    task.completedDates.push(today); task.completedDates.sort();
++    showToast('今日已完成 ✓');
++  }
++  saveDailyTasks();
++}
++function renderDailyDrawer() {
++  const list = document.getElementById('dailyList');
++  const progress = document.getElementById('dailyProgress');
++  if (!list) return;
++  const today = dailyDateKey();
++  const sorted = dailyTasks.slice().sort((a,b) => (a.hour*60+a.minute) - (b.hour*60+b.minute) || a.createdAt-b.createdAt);
++  const done = sorted.filter(t => isDailyCompleted(t,today)).length;
++  if (progress) progress.textContent = `今天 ${done}/${sorted.length}`;
++  if (!sorted.length) {
++    list.innerHTML = '<div class="daily-empty"><div class="daily-empty__icon">↻</div>还没有每日事项<br><small>每天固定时间提醒，第二天自动重新开始</small></div>';
++    return;
++  }
++  list.innerHTML = sorted.map(task => {
++    const completed = isDailyCompleted(task,today);
++    return `<div class="daily-item${completed?' completed':''}" data-daily-id="${task.id}">
++      <div class="daily-item__actions">
++        <button class="daily-item__action daily-item__edit" data-daily-edit="${task.id}"><span>✎</span><span>编辑</span></button>
++        <button class="daily-item__action daily-item__delete" data-daily-delete="${task.id}"><span>⌫</span><span>删除</span></button>
++      </div>
++      <div class="daily-item__inner">
++        <div class="daily-check${completed?' checked':''}" data-daily-check="${task.id}" aria-label="切换今日完成状态"></div>
++        <div class="daily-item__text">${escapeHtml(task.text)}</div>
++        <div class="daily-item__time">${dailyTimeLabel(task)}</div>
++        <button class="daily-item__calendar" data-daily-calendar="${task.id}" title="完成统计">🗓️</button>
++      </div>
++    </div>`;
++  }).join('');
++}
++function openDailyDrawer(focusId) {
++  if (currentMode !== 'todo') applyMode('todo');
++  renderDailyDrawer();
++  const overlay = document.getElementById('dailyDrawerOverlay');
++  overlay.classList.add('active');
++  if (focusId) {
++    setTimeout(() => {
++      const el = document.querySelector(`.daily-item[data-daily-id="${Number(focusId)}"]`);
++      if (el) {
++        el.scrollIntoView({behavior:'smooth', block:'center'});
++        el.classList.add('highlight-flash');
++        setTimeout(() => el.classList.remove('highlight-flash'), 1500);
++      }
++    }, 300);
++  }
++}
++function closeDailyDrawer() {
++  const overlay = document.getElementById('dailyDrawerOverlay');
++  const drawer = document.getElementById('dailyDrawer');
++  if (drawer) { drawer.style.removeProperty('transform'); drawer.style.removeProperty('transition'); }
++  overlay.classList.remove('active');
++}
++function openDailyEditor(id) {
++  dailyEditingId = id ? Number(id) : null;
++  const task = dailyEditingId ? getDailyTask(dailyEditingId) : null;
++  const now = new Date();
++  document.getElementById('dailyEditorTitle').textContent = task ? '编辑每日事项' : '新增每日事项';
++  document.getElementById('dailyEditorName').value = task ? task.text : '';
++  document.getElementById('dailyEditorHour').value = String(task ? task.hour : now.getHours()).padStart(2,'0');
++  document.getElementById('dailyEditorMinute').value = String(task ? task.minute : now.getMinutes()).padStart(2,'0');
++  document.getElementById('dailyEditorOverlay').classList.add('active');
++  setTimeout(() => document.getElementById('dailyEditorName').focus(), 80);
++}
++function closeDailyEditor() { document.getElementById('dailyEditorOverlay').classList.remove('active'); dailyEditingId = null; }
++function saveDailyEditor() {
++  const text = document.getElementById('dailyEditorName').value.trim();
++  const hour = parseInt(document.getElementById('dailyEditorHour').value,10);
++  const minute = parseInt(document.getElementById('dailyEditorMinute').value,10);
++  if (!text) return showToast('写一下每天要做的事情');
++  if (!Number.isFinite(hour) || hour<0 || hour>23 || !Number.isFinite(minute) || minute<0 || minute>59) return showToast('提醒时间不正确');
++  if (dailyEditingId) {
++    const task = getDailyTask(dailyEditingId); if (!task) return closeDailyEditor();
++    task.text = text; task.hour = hour; task.minute = minute;
++  } else {
++    const id = Date.now();
++    dailyTasks.push({id, text, hour, minute, createdAt:Date.now(), completedDates:[]});
++  }
++  saveDailyTasks(); closeDailyEditor(); renderDailyDrawer();
++  if (typeof AndroidBridge !== 'undefined' && AndroidBridge.requestReminderPermissions) { try { AndroidBridge.requestReminderPermissions(); } catch(e) {} }
++  showToast(`已保存 · 每天 ${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}`);
++}
++function deleteDailyTask(id) {
++  const task = getDailyTask(id); if (!task) return;
++  showConfirm(`删除每日事项“${task.text}”？`, function() {
++    dailyTasks = dailyTasks.filter(t => t.id !== Number(id));
++    saveDailyTasks(); renderDailyDrawer(); showToast('已删除每日事项');
++  });
++}
++
++function openDailyCalendar(id) {
++  dailyCalendarTaskId = Number(id);
++  dailyCalendarCursor = new Date();
++  dailyCalendarCursor.setDate(1); dailyCalendarCursor.setHours(12,0,0,0);
++  renderDailyCalendar();
++  document.getElementById('dailyCalendarOverlay').classList.add('active');
++}
++function closeDailyCalendar() { document.getElementById('dailyCalendarOverlay').classList.remove('active'); dailyCalendarTaskId = null; }
++function renderDailyCalendar() {
++  const task = getDailyTask(dailyCalendarTaskId); if (!task) return;
++  const y = dailyCalendarCursor.getFullYear(), m = dailyCalendarCursor.getMonth();
++  const first = new Date(y,m,1,12), last = new Date(y,m+1,0,12);
++  const todayKey = dailyDateKey();
++  const createdKey = dailyDateKey(new Date(task.createdAt));
++  document.getElementById('dailyCalendarTask').textContent = `${task.text} · Daily ${dailyTimeLabel(task)}`;
++  document.getElementById('dailyCalendarMonth').textContent = `${y}年${m+1}月`;
++  const grid = document.getElementById('dailyCalendarGrid');
++  const weeks = ['日','一','二','三','四','五','六'];
++  let html = weeks.map(w => `<div class="daily-cal-week">${w}</div>`).join('');
++  for (let i=0;i<first.getDay();i++) html += '<div class="daily-cal-day"></div>';
++  let eligible = 0, done = 0;
++  for (let d=1; d<=last.getDate(); d++) {
++    const date = new Date(y,m,d,12); const key = dailyDateKey(date);
++    const completed = isDailyCompleted(task,key);
++    let cls = '', mark = '', markCls = '';
++    if (key < createdKey) cls = ' before-created';
++    else if (key > todayKey) cls = ' future';
++    else {
++      eligible++;
++      if (key === todayKey) cls += ' today';
++      if (completed) { done++; mark='✓'; markCls=' done'; }
++      else if (key === todayKey) { mark='●'; markCls=' today-dot'; }
++      else { mark='×'; markCls=' miss'; }
++    }
++    html += `<div class="daily-cal-day${cls}"><div class="daily-cal-day__num">${d}</div><div class="daily-cal-day__mark${markCls}">${mark}</div></div>`;
++  }
++  grid.innerHTML = html;
++  const pct = eligible ? Math.round(done/eligible*100) : 0;
++  document.getElementById('dailyCalendarStats').textContent = `本月完成 ${done} / ${eligible} 天 · ${pct}%`;
++}
++
++// Drawer interactions
++const dailyListEl = document.getElementById('dailyList');
++document.getElementById('dailyBtn').addEventListener('click', () => openDailyDrawer());
++document.getElementById('dailyDrawerClose').addEventListener('click', closeDailyDrawer);
++document.getElementById('dailyDrawerOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeDailyDrawer(); });
++document.getElementById('dailyAddBtn').addEventListener('click', () => openDailyEditor());
++document.getElementById('dailyEditorClose').addEventListener('click', closeDailyEditor);
++document.getElementById('dailyEditorOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeDailyEditor(); });
++document.getElementById('dailyEditorSave').addEventListener('click', saveDailyEditor);
++document.getElementById('dailyCalendarClose').addEventListener('click', closeDailyCalendar);
++document.getElementById('dailyCalendarOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeDailyCalendar(); });
++document.getElementById('dailyCalendarPrev').addEventListener('click', () => { dailyCalendarCursor.setMonth(dailyCalendarCursor.getMonth()-1); renderDailyCalendar(); });
++document.getElementById('dailyCalendarNext').addEventListener('click', () => { dailyCalendarCursor.setMonth(dailyCalendarCursor.getMonth()+1); renderDailyCalendar(); });
++
++dailyListEl.addEventListener('click', e => {
++  const check = e.target.closest('[data-daily-check]');
++  const cal = e.target.closest('[data-daily-calendar]');
++  const edit = e.target.closest('[data-daily-edit]');
++  const del = e.target.closest('[data-daily-delete]');
++  if (check) { e.stopPropagation(); toggleDailyToday(Number(check.dataset.dailyCheck)); return; }
++  if (cal) { e.stopPropagation(); openDailyCalendar(Number(cal.dataset.dailyCalendar)); return; }
++  if (edit) { e.stopPropagation(); openDailyEditor(Number(edit.dataset.dailyEdit)); return; }
++  if (del) { e.stopPropagation(); deleteDailyTask(Number(del.dataset.dailyDelete)); return; }
++});
++
++let dailySwipeItem = null, dailySwipeStartX = 0, dailySwipeStartY = 0, dailySwipeOpen = false;
++const DAILY_SWIPE_WIDTH = 116;
++dailyListEl.addEventListener('touchstart', e => {
++  const item = e.target.closest('.daily-item');
++  if (!item || e.target.closest('.daily-check') || e.target.closest('.daily-item__calendar') || e.target.closest('.daily-item__actions')) { dailySwipeItem=null; return; }
++  dailySwipeItem=item; dailySwipeStartX=e.touches[0].clientX; dailySwipeStartY=e.touches[0].clientY; dailySwipeOpen=false;
++  const inner=item.querySelector('.daily-item__inner'); if(inner) inner.style.transition='none';
++},{passive:true});
++dailyListEl.addEventListener('touchmove', e => {
++  if(!dailySwipeItem) return;
++  const dx=e.touches[0].clientX-dailySwipeStartX, dy=e.touches[0].clientY-dailySwipeStartY;
++  if(Math.abs(dy)>Math.abs(dx)) return;
++  e.preventDefault();
++  const inner=dailySwipeItem.querySelector('.daily-item__inner'); if(!inner) return;
++  const x=Math.max(-DAILY_SWIPE_WIDTH, Math.min(0, dx)); inner.style.transform=`translateX(${x}px)`; dailySwipeOpen=x<-44;
++},{passive:false});
++dailyListEl.addEventListener('touchend', () => {
++  if(!dailySwipeItem) return; const inner=dailySwipeItem.querySelector('.daily-item__inner');
++  if(inner){ inner.style.transition='transform 200ms ease-out'; inner.style.transform=dailySwipeOpen?`translateX(-${DAILY_SWIPE_WIDTH}px)`:''; }
++  dailySwipeItem=null; dailySwipeOpen=false;
++},{passive:true});
++
++// Right swipe on empty/header area closes the floating Daily drawer, with the same half-drag/rebound feel.
++(function(){
++  const drawer=document.getElementById('dailyDrawer'); if(!drawer) return;
++  let sx=0, sy=0, active=false, horizontal=false;
++  drawer.addEventListener('touchstart', e => {
++    if(e.target.closest('.daily-item') || e.target.closest('button') || e.target.closest('input')) return;
++    sx=e.touches[0].clientX; sy=e.touches[0].clientY; active=true; horizontal=false; drawer.style.transition='none';
++  },{passive:true});
++  drawer.addEventListener('touchmove', e => {
++    if(!active) return; const dx=e.touches[0].clientX-sx, dy=e.touches[0].clientY-sy;
++    if(!horizontal && (Math.abs(dx)>6||Math.abs(dy)>6)) horizontal=Math.abs(dx)>Math.abs(dy)*1.15;
++    if(!horizontal) return; e.preventDefault();
++    const x=Math.max(0,dx); drawer.style.transform=`translateX(${x}px)`;
++  },{passive:false});
++  drawer.addEventListener('touchend', e => {
++    if(!active) return; active=false; const dx=e.changedTouches[0].clientX-sx; const width=drawer.getBoundingClientRect().width;
++    drawer.style.transition='transform 220ms cubic-bezier(0.22,0.82,0.28,1)';
++    if(horizontal && dx>width*.26){ drawer.style.transform='translateX(108%)'; setTimeout(closeDailyDrawer,220); }
++    else { drawer.style.transform='translateX(0)'; setTimeout(()=>{drawer.style.removeProperty('transition');drawer.style.removeProperty('transform');},225); }
++  },{passive:true});
++})();
++
++window.__pullNativeDailyTaskMutations = function() {
++  if (typeof AndroidBridge === 'undefined' || !AndroidBridge.getDailyTaskMutations) return;
++  let mutations=[]; try { mutations=JSON.parse(AndroidBridge.getDailyTaskMutations() || '[]'); } catch(e){ return; }
++  if(!Array.isArray(mutations) || !mutations.length) return;
++  let changed=false;
++  mutations.forEach(m => {
++    if(m.type !== 'dailyCompleted') return;
++    const task=getDailyTask(Number(m.id)); if(!task) return;
++    const date=String(m.date||''); if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
++    task.completedDates=Array.isArray(task.completedDates)?task.completedDates:[];
++    if(!task.completedDates.includes(date)){ task.completedDates.push(date); task.completedDates.sort(); changed=true; }
++  });
++  try { if(AndroidBridge.ackDailyTaskMutations) AndroidBridge.ackDailyTaskMutations(); } catch(e){}
++  if(changed){ localStorage.setItem(DAILY_TASKS_KEY, JSON.stringify(dailyTasks)); renderDailyDrawer(); if(document.getElementById('dailyCalendarOverlay').classList.contains('active')) renderDailyCalendar(); }
++};
++window.__focusDailyFromNative = function(id) { openDailyDrawer(Number(id)); };
++
+ // ===== Per-item reminders + native two-way sync =====
+ let reminderEditingTodoId = null;
+ function setReminderFields(date) {
+@@ -4946,8 +5283,11 @@
+ loadTodos();
+ loadRecycleBin();
+ loadSearchHistory();
++loadDailyTasks();
+ if (window.__pullNativeTodoMutations) window.__pullNativeTodoMutations();
++if (window.__pullNativeDailyTaskMutations) window.__pullNativeDailyTaskMutations();
+ syncToAndroid();
++syncDailyTasksToAndroid();
+ render();
+ updateCounts();
+ renderCategoryBar();
+@@ -5742,80 +6082,71 @@
+   return 'none';
+ }
+ 
+-// ===== Header horizontal swipe → interactive To-Do / Note mode switch =====
++// ===== Header horizontal swipe → drawer-like To-Do / Note mode switch =====
+ (function() {
+-  var headerEl = document.querySelector('.header__top');
++  const headerEl = document.querySelector('.header__top');
+   if (!headerEl) return;
+-  var swipeX = 0, swipeY = 0, swiping = false, horizontalIntent = false;
+-  var rafId = 0;
++  let startX = 0, startY = 0, lastX = 0, startAt = 0, swiping = false, horizontal = false;
+ 
+-  function renderSwipePreview(dx) {
+-    var appEl = document.querySelector('.app');
++  function preview(dx) {
++    const appEl = document.querySelector('.app');
+     if (!appEl || modeSwitchAnimating) return;
+-    var allowed = (dx > 0 && currentMode === 'todo') || (dx < 0 && currentMode === 'notes');
+-    var resisted = allowed ? dx * 0.18 : dx * 0.055;
+-    var offset = Math.max(-22, Math.min(22, resisted));
+-    var dim = Math.min(0.045, Math.abs(offset) / 520);
+-    appEl.classList.add('mode-swipe-preview');
++    const targetMode = currentMode === 'todo' ? 'notes' : 'todo';
++    const expectedDirection = currentMode === 'todo' ? 1 : -1;
++    const width = appEl.getBoundingClientRect().width || window.innerWidth;
++    const sameDirection = dx * expectedDirection > 0;
++    const offset = sameDirection
++      ? Math.max(-width * 0.88, Math.min(width * 0.88, dx))
++      : Math.max(-24, Math.min(24, dx * 0.12));
++    if (sameDirection) prepareModeDrawer(targetMode, expectedDirection);
++    appEl.classList.add('mode-drawer-moving');
+     appEl.style.transition = 'none';
+-    appEl.style.transform = 'translate3d(' + offset.toFixed(2) + 'px,0,0) scale(0.998)';
+-    appEl.style.opacity = String(1 - dim);
++    appEl.style.transform = `translate3d(${offset}px,0,0)`;
+     modeSwipePreviewActive = true;
+   }
+ 
+-  function springBackSwipePreview() {
+-    var appEl = document.querySelector('.app');
+-    if (!appEl || !modeSwipePreviewActive) { clearModeSwipePreview(); return; }
+-    appEl.style.transition = 'transform 220ms cubic-bezier(0.16,1,0.3,1), opacity 180ms ease-out';
+-    appEl.style.transform = 'translate3d(0,0,0) scale(1)';
+-    appEl.style.opacity = '1';
+-    setTimeout(clearModeSwipePreview, 230);
+-  }
+-
+-  headerEl.addEventListener('touchstart', function(e) {
++  headerEl.addEventListener('touchstart', e => {
+     if (modeSwitchAnimating || !e.touches.length) return;
+-    swipeX = e.touches[0].clientX;
+-    swipeY = e.touches[0].clientY;
++    startX = lastX = e.touches[0].clientX;
++    startY = e.touches[0].clientY;
++    startAt = performance.now();
+     swiping = true;
+-    horizontalIntent = false;
+-  }, { passive: true });
++    horizontal = false;
++  }, { passive:true });
+ 
+-  headerEl.addEventListener('touchmove', function(e) {
++  headerEl.addEventListener('touchmove', e => {
+     if (!swiping || modeSwitchAnimating || !e.touches.length) return;
+-    var dx = e.touches[0].clientX - swipeX;
+-    var dy = e.touches[0].clientY - swipeY;
+-    if (!horizontalIntent && (Math.abs(dx) > 7 || Math.abs(dy) > 7)) {
+-      horizontalIntent = Math.abs(dx) > Math.abs(dy) * 1.15;
+-    }
+-    if (!horizontalIntent) return;
++    const x = e.touches[0].clientX;
++    const dx = x - startX;
++    const dy = e.touches[0].clientY - startY;
++    lastX = x;
++    if (!horizontal && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) horizontal = Math.abs(dx) > Math.abs(dy) * 1.12;
++    if (!horizontal) return;
+     e.preventDefault();
+-    cancelAnimationFrame(rafId);
+-    rafId = requestAnimationFrame(function() { renderSwipePreview(dx); });
+-  }, { passive: false });
++    preview(dx);
++  }, { passive:false });
+ 
+-  headerEl.addEventListener('touchend', function(e) {
++  headerEl.addEventListener('touchend', e => {
+     if (!swiping) return;
+     swiping = false;
+-    cancelAnimationFrame(rafId);
+-    if (!e.changedTouches.length) { springBackSwipePreview(); return; }
+-    var dx = e.changedTouches[0].clientX - swipeX;
+-    var dy = Math.abs(e.changedTouches[0].clientY - swipeY);
+-    if (horizontalIntent && dx > 40 && dx > dy && currentMode === 'todo') {
+-      switchMode('notes', 'right');
+-      return;
+-    }
+-    if (horizontalIntent && dx < -40 && Math.abs(dx) > dy && currentMode === 'notes') {
+-      switchMode('todo', 'left');
+-      return;
++    if (!horizontal || !e.changedTouches.length) return springBackModeDrawer();
++    const dx = e.changedTouches[0].clientX - startX;
++    const dy = Math.abs(e.changedTouches[0].clientY - startY);
++    const elapsed = Math.max(1, performance.now() - startAt);
++    const velocity = Math.abs(dx) / elapsed;
++    const appEl = document.querySelector('.app');
++    const width = appEl ? (appEl.getBoundingClientRect().width || window.innerWidth) : window.innerWidth;
++    const expectedDirection = currentMode === 'todo' ? 1 : -1;
++    const validDirection = dx * expectedDirection > 0;
++    const commit = validDirection && Math.abs(dx) > dy && (Math.abs(dx) >= width * 0.30 || (Math.abs(dx) > 48 && velocity > 0.55));
++    if (commit) {
++      switchMode(currentMode === 'todo' ? 'notes' : 'todo', expectedDirection > 0 ? 'right' : 'left');
++    } else {
++      springBackModeDrawer();
+     }
+-    springBackSwipePreview();
+-  }, { passive: true });
++  }, { passive:true });
+ 
+-  headerEl.addEventListener('touchcancel', function() {
+-    swiping = false;
+-    cancelAnimationFrame(rafId);
+-    springBackSwipePreview();
+-  }, { passive: true });
++  headerEl.addEventListener('touchcancel', () => { swiping = false; springBackModeDrawer(); }, { passive:true });
+ })();
+ 
+ // Toolbar button active state feedback
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.10.txt' '--exclude=SELF_TEST_V1.10.txt' /mnt/data/todo_v19_base_compare/To-Do/verify-overwrite-safety.bat /mnt/data/todo_v110_work/To-Do/verify-overwrite-safety.bat
+--- /mnt/data/todo_v19_base_compare/To-Do/verify-overwrite-safety.bat	2026-08-11 15:55:24.000000000 +0000
++++ /mnt/data/todo_v110_work/To-Do/verify-overwrite-safety.bat	2026-08-11 17:35:47.035623627 +0000
+@@ -4,7 +4,7 @@
+ set "PACKAGE=com.todolist.app"
+ 
+ echo ============================================================
+-echo To-Do V1.9 in-place update safety check
++echo To-Do V1.10 in-place update safety check
+ echo Package: %PACKAGE%
+ echo ============================================================
+ 
+@@ -39,7 +39,7 @@
+ set "NEW_APK="
+ for %%F in ("android\app\build\outputs\apk\debug\*.apk") do set "NEW_APK=%%~fF"
+ if not defined NEW_APK (
+-  echo [ERROR] No debug APK found. Build V1.9 once in Android Studio first.
++  echo [ERROR] No debug APK found. Build V1.10 once in Android Studio first.
+   exit /b 5
+ )
+ 
+@@ -96,6 +96,6 @@
+   echo [BLOCK] Signing certificate mismatch.
+   echo         Android will NOT allow this APK to overwrite the installed To-Do app.
+   echo         DO NOT uninstall the stable app if its local records/notes are important.
+-  echo         Rebuild/sign V1.9 with the SAME key that signed the currently installed app.
++  echo         Rebuild/sign V1.10 with the SAME key that signed the currently installed app.
+   exit /b 20
+ )

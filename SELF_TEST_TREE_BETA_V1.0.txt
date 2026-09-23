@@ -1,0 +1,99 @@
+To-Do Tree Beta V1.0 — Final Self Test
+=======================================
+Baseline
+- Exact Golden source: To-Do-v1.22.12-NoteAttachmentDeleteGuard-Full.zip
+- Baseline SHA-256: 193f2cb35f77f47a827cd4950ff67ce483c86c80d73a4cec0db07de39619b2e6
+- Stable applicationId remains com.todolist.app; Stable source package was not modified.
+- Beta applicationId: com.todolist.app.beta
+- Beta versionCode: 1000
+- Beta versionName: 1.0.0-beta1
+
+A. Schema V2 / Migration — PASS
+- noteSchemaVersion writes 2.
+- Exact raw legacy Notes JSON is backed up before migration.
+- Legacy folder + same-name shell collapses to one Topic.
+- Empty legacy leaf becomes Topic, avoiding meaningless blank leaf Notes.
+- Parent/child hierarchy remains ordered under Topic nodes.
+- Content leaf becomes Note under the correct Topic.
+- Complex parent body preserves rich HTML/attachment markup losslessly in deterministic `· 原内容` Note.
+- Legacy folder names inferred from old records become deterministic Topics.
+- Orphan records remain reachable at root.
+- Re-running migration is deterministic/idempotent and does not append duplicates.
+
+B. Recent / Tree / Workspace / Breadcrumb / Drawer / Navigation — PASS
+- Recent shows leaf Notes and sorts by actual updatedAt.
+- Knowledge Tree mixes Topic + Note and supports independent expand/collapse.
+- Arrow expand/collapse does not enter navigation stack.
+- Topic body enters Topic Workspace.
+- Right-swipe Drawer renders the same Topic/Note entities and interaction semantics.
+- Workspace shows breadcrumb, optional Summary, child Topics and Notes.
+- Contextual + creates Note or Topic inside current Topic.
+- Breadcrumb upward jump trims deeper navigation history.
+- Recent -> Note -> Back returns Recent origin.
+- Tree -> Note -> Back restores Tree origin and collapsed/expanded state.
+- Workspace nesting -> Note -> Back returns exact Workspace origin, then stack pops upward normally.
+
+C. Read/Edit Shell / IME / caret — PASS
+- Existing Note opens in Read Mode with body/title non-editing and bottom format bar hidden.
+- Ordinary body tap enters Edit Mode; interaction islands do not.
+- A headless regression caught and fixed the initial root-contenteditable misclassification that blocked Read->Edit.
+- Header title now has min-width:0 so Undo / Redo / ✓ / menu fit a 432 px mobile viewport.
+- ✓ saves, ends edit/focus and returns to Read Mode without leaving Note.
+- System Back from Edit saves and returns directly to the recorded Origin after higher-priority overlays are dismissed.
+- Existing native WindowInsets, single Scroll Owner and one-shot caret reveal functions remain byte-identical.
+- Existing composition/beforeinput path remains uncancelled, protecting Chinese IME, emoji, paste and undo.
+
+D. Editor additions — PASS
+- Undo / Redo moved to Header while reusing Chromium execCommand undo/redo; implementation is not replaced.
+- Timestamp inserts a static `◷ YYYY.MM.DD · HH:mm:ss` token with epoch-millisecond metadata.
+- Timestamp is atomic contenteditable=false and Backspace/Delete removes it as one token.
+- Inline images use compact, uncropped object-fit:contain presentation.
+- Full-screen image preview / pinch-pan remains unchanged.
+- Search highlight <mark class=search-hit> wrappers are stripped before persistence.
+
+E. Mature Note-editor regression suite — PASS
+- Attachment Backspace protection: PASS.
+- Attachment forward Delete protection: PASS.
+- Selection crossing attachment protection: PASS.
+- Ordinary text deletion remains native: PASS.
+- Explicit file-menu/JS removal path remains possible: PASS.
+- B/S manual future-typing state is not armed by selection formatting: PASS.
+- H/B/S core state functions remain unchanged: PASS.
+- Explicit http:// / https:// autolink remains conservative; fuzzy www/email text does not auto-link: PASS.
+- Image pointerdown focus-safe path remains active: PASS.
+- File import/card/annotation functions remain unchanged: PASS by source/hash audit.
+- PDF/Image native viewer source remains unchanged: PASS by SHA-256.
+
+F. Locked Core / Golden protection — PASS
+- 20/20 locked native files match the V1.22.12 SHA-256 baseline.
+- MainActivity.kt unchanged: 14ed8680...c37890c
+- NoteFileViewerActivity.kt unchanged: 77179dc3...db74a
+- ImportReceiverActivity.kt unchanged: 2f5f9e6a...adf05
+- res/xml/file_paths.xml unchanged: b889ed85...34ba7
+- Reminder / Daily / Banner / Snooze native core: 20/20 byte-identical.
+- 283 common named JS functions compared against baseline: 251 byte-identical; changes/removals/additions are confined to the new Note information-architecture/navigation/read-edit shell as documented.
+
+G. Static / mirror / package checks — PASS
+- ui/todo.html == android/app/src/main/assets/todo.html: byte-identical.
+- Inline main runtime script == script_0.js: PASS.
+- `node --check script_0.js`: PASS.
+- Android XML parse: PASS.
+- applicationId exact `com.todolist.app.beta`: PASS.
+- versionCode/versionName/APK output name: PASS.
+- Cloud ZIP workflow safety regex accepts this Beta and would reject Stable applicationId: PASS.
+- Legacy Notes storage key is retained; Schema V2 adds isolated Topic/Note/version/backup keys.
+
+H. Gradle compilation attempt — ENVIRONMENT BLOCKED, NOT REPORTED AS PASS
+- Command attempted: ./gradlew --no-daemon :app:assembleDebug
+- Gradle Wrapper attempted to download gradle-8.11.1-bin.zip.
+- This sandbox cannot resolve services.gradle.org and stopped with java.net.UnknownHostException.
+- Therefore this local environment cannot honestly claim a compiler-success result.
+- Full log: tree_beta_v1_gradle_build.log
+- The user has already proven the repository's GitHub Actions cloud Android toolchain can build the baseline. The supplied Full ZIP is designed for the private Draft `Beta Source Inbox` -> `Build Beta ZIP to APK & Release` workflow, which performs the real cloud Gradle build before an APK Release is created.
+
+Security note
+- The V1.22.12 Golden baseline already contains an sk-like hard-coded AI API credential in multiple source/test copies. Tree Beta V1.0 intentionally did not rewrite the mature AI path in this architecture-only branch, so the inherited behavior remains. Because the GitHub repository is public, rotate that credential and move future AI credentials to user-provided/secure local configuration before publishing future source revisions. The credential value is intentionally not printed in this report.
+
+Delivery verdict
+- Internal architecture, migration, navigation, editor-regression, locked-core, static and packaging gates: PASS.
+- Local Gradle build: blocked only by unavailable external Gradle distribution DNS/network; real compiler validation is delegated to the already-configured GitHub Actions cloud build and must be green before installing the Beta APK.

@@ -1,0 +1,12 @@
+To-Do Tree Beta V1.2 self-test
+
+PENDING FINAL PACKAGE CHECKS
+- Topic swipe actions
+- Safe Topic promotion delete
+- Virtual unclassified folder
+- Directional Drawer arbitration
+- Existing Note swipe physics/move/mask/density regression
+- Locked Native / IME regression
+- HTML/Asset mirror
+- JS/XML syntax
+- ZIP integrity

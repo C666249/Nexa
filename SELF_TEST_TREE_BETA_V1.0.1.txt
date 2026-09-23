@@ -1,0 +1,97 @@
+To-Do Tree Beta V1.0.1 — Final Self Test
+=========================================
+
+Baseline
+- Exact development baseline: To-Do-Tree-Beta-V1.0-Full.zip
+- Stable Golden remains: To-Do-v1.22.12-NoteAttachmentDeleteGuard-Full.zip
+- Stable applicationId remains com.todolist.app and is untouched.
+- Beta applicationId: com.todolist.app.beta
+- Beta versionCode: 1001
+- Beta versionName: 1.0.1-beta1
+- APK output: To-Do-Tree-Beta-V1.0.1.apk
+
+A. User-reported overflow menu — PASS / NO CHANGE REQUIRED
+- The top-right Note `⋮` contains exactly two actions:
+  1) 📁 移到主题…
+  2) 🗑 删除笔记
+- No hidden third action exists in this menu and V1.0.1 adds none.
+
+B. True-device IME / toolbar regression fix — PASS (logic/static)
+Observed on Beta V1.0 true device:
+- Read -> Edit successfully opened the Honor keyboard, but the bottom format bar could remain at physical screen bottom behind the IME.
+
+Fix implemented:
+- Existing WindowInsets listener behavior is preserved but dispatch is centralized in MainActivity.dispatchImeInsetsToWeb().
+- New read-only JS bridge requestNoteImeInsets() queries ViewCompat.getRootWindowInsets(webView) on demand.
+- Entering Edit Mode probes native IME geometry at 0 / 70 / 160 / 300 / 480 ms across the keyboard opening animation.
+- Positive native WindowInsets remains authoritative.
+- When the last native value is stale zero, a genuine >=80 CSS px visualViewport shrink may temporarily drive the same --note-ime-space layout until a positive native value arrives.
+- Probe timers are cancelled on Read Mode, suspend and close.
+- No fixed/sticky toolbar rewrite was introduced; the existing V1.22.3 flex + single Scroll Owner layout is preserved.
+
+Exact-function Node regression:
+- physical native inset 600 px at devicePixelRatio=3 -> --note-ime-space=200px: PASS.
+- note-ime-visible class toggles on positive inset: PASS.
+- stale native 0 + visual 190 -> visual fallback 190: PASS.
+- positive native 240 overrides visual fallback: PASS.
+- scheduled native probe count = 5: PASS.
+Log: dev-logs/TREE_BETA_V1.0.1_REGRESSION.txt
+
+C. Mature Note editor regression protection — PASS
+The following protected functions are source-identical to Beta V1.0:
+- syncNoteImeLayout
+- syncResolvedNoteImeSpace
+- scheduleNoteCaretReveal
+- syncNoteViewportOffset
+- syncCollapsedNoteTypingFormat
+- toggleManualInlineCommand / toggleHighlight / selectionBackColorIsActive
+- open/close/reset/apply Note image preview transform
+- createNoteFileCard / insertPickedFileItems / openNoteFileActions
+- cleanup/open/move Note file annotation helpers
+- applyNoteAutoLinkCandidate / openNoteHttpUrl
+- attachment protected-node/range/caret/delete guard helpers
+
+Only resolveNoteImeSpace() is intentionally adjusted inside the existing IME core, and only to permit a stale-zero visual fallback. The caret reveal algorithm, scroll ownership and viewport-offset algorithm themselves remain unchanged.
+
+D. Tree Beta V1.0 product behavior protection — PASS by source-diff scope
+- Topic / Note Schema V2 unchanged.
+- Legacy migration unchanged.
+- Recent / Knowledge Tree unchanged.
+- Right-swipe Tree Drawer unchanged.
+- Topic Workspace / Summary / Breadcrumb unchanged.
+- Contextual + unchanged.
+- Origin navigation unchanged.
+- Read/Edit semantics and ✓ behavior unchanged except for IME geometry re-query after focus.
+- Timestamp unchanged.
+- Compact inline image rendering unchanged.
+- Header Undo/Redo unchanged.
+
+E. Native Locked Core — PASS
+- Reminder / Daily / Banner / Snooze locked native core: 20/20 SHA-256 exact vs V1.22.12.
+- NoteFileViewerActivity.kt unchanged vs Beta V1.0.
+- ImportReceiverActivity.kt unchanged vs Beta V1.0.
+- AndroidManifest.xml unchanged vs Beta V1.0.
+- res/xml/file_paths.xml unchanged vs Beta V1.0.
+- MainActivity.kt is intentionally changed only for the read-only IME inset re-query bridge; no reminder/file/import/URL/permission/back-stack logic is changed.
+
+F. Static / mirror / package gates — PASS
+- ui/todo.html == android/app/src/main/assets/todo.html: byte-identical.
+- inline runtime script == script_0.js: PASS.
+- node --check script_0.js: PASS.
+- Android XML parse: PASS.
+- applicationId exact com.todolist.app.beta: PASS.
+- versionCode=1001 / versionName=1.0.1-beta1: PASS.
+- APK output name V1.0.1: PASS.
+
+G. Gradle compiler attempt — LOCAL ENVIRONMENT BLOCKED
+- Attempted: ./gradlew --no-daemon :app:assembleDebug
+- Wrapper again attempted to download gradle-8.11.1-bin.zip.
+- Current sandbox cannot resolve services.gradle.org and fails with java.net.UnknownHostException.
+- Full local log: tree_beta_v101_gradle_build.log
+- This is NOT reported as a compiler PASS.
+- Beta V1.0 already passed the user's GitHub Actions real Gradle compiler gate. V1.0.1 must be uploaded to Beta Source Inbox and receive another green cloud build before installation.
+
+Delivery verdict
+- Requested fix implemented as a narrow V1.0 -> V1.0.1 delta.
+- Internal source/logic/static/locked-core checks: PASS.
+- Real Android compile: must be confirmed by the already-configured GitHub Actions workflow before installing V1.0.1.

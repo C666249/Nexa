@@ -1,0 +1,10 @@
+To-Do V1.30.16 Stable — delivery self-test checklist
+
+[PASS] Source baseline retained; channel resources/applicationId preserved.
+[PASS] Body search highlight `mark.search-hit` uses upgraded cyan-violet gradient styling with rounded corners and a one-shot sweep animation.
+[PASS] Full-text navigation highlight `mark.global-search-hit` uses the same higher-quality gradient visual language instead of the old solid yellow block.
+[PASS] Existing global-search focus animation remains, but now flashes with the gradient highlight system rather than a plain fill.
+[PASS] Search-result → Note keyword locating logic unchanged: open result, auto-scroll to first body hit, highlight matches.
+[PASS] ui/todo.html == android/app/src/main/assets/todo.html.
+[PASS] versionCode 1316; traceable APK output naming updated to 1.30.16.
+[INFO] No Android Gradle compile is claimed in this environment (no cached Gradle 8.11.1 distribution / no Android SDK); verified scope is source diff, static checks, mirror consistency, and packaging.

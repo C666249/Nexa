@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Two pillars joined by a rising ribbon. Entire mark stays in adaptive safe zone. -->
+    <path android:fillColor="#FFFDF8" android:pathData="M33,76 L33,32 L42,32 L42,76 Z M66,76 L66,32 L75,32 L75,76 Z" />
+    <path android:fillColor="#D8C5AA" android:pathData="M42,32 L66,60 L66,76 L42,48 Z" />
+</vector>

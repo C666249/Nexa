@@ -1,0 +1,165 @@
+diff -ruN '--exclude=V1.22-to-V1.22.1.patch' '--exclude=PROJECT_FILE_MANIFEST_V1.22.1.txt' '--exclude=SHA256SUMS.txt' '--exclude=v1221_gradle_build.log' /mnt/data/todo_v122_baseline/README.md /mnt/data/todo_v1221_fix/README.md
+--- /mnt/data/todo_v122_baseline/README.md	2026-08-13 15:32:14.000000000 +0000
++++ /mnt/data/todo_v1221_fix/README.md	2026-08-13 16:09:47.227452414 +0000
+@@ -1,4 +1,4 @@
+-# To-Do V1.22
++# To-Do V1.22.1
+ 
+ 本地优先的 To-Do + Note Android 应用。UI 使用 HTML/CSS/Vanilla JS，Android 原生层使用 Kotlin WebView，并负责精确定时、后台提醒守护与悬浮 Banner。
+ 
+@@ -176,7 +176,7 @@
+ 成功后 APK 会复制到：
+ 
+ ```text
+-dist/To-Do-v1.22.apk
++dist/To-Do-v1.22.1.apk
+ ```
+ 
+ ## 技术栈
+diff -ruN '--exclude=V1.22-to-V1.22.1.patch' '--exclude=PROJECT_FILE_MANIFEST_V1.22.1.txt' '--exclude=SHA256SUMS.txt' '--exclude=v1221_gradle_build.log' /mnt/data/todo_v122_baseline/SELF_TEST_V1.22.1.txt /mnt/data/todo_v1221_fix/SELF_TEST_V1.22.1.txt
+--- /mnt/data/todo_v122_baseline/SELF_TEST_V1.22.1.txt	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/todo_v1221_fix/SELF_TEST_V1.22.1.txt	2026-08-13 16:11:15.740615619 +0000
+@@ -0,0 +1,41 @@
++To-Do V1.22.1 CompileFix Self Test
++==================================
++
++Base: To-Do-v1.22-Full.zip
++Target: To-Do-v1.22.1-CompileFix-Full.zip
++applicationId / namespace: com.todolist.app
++versionCode / versionName: 34 / 1.22.1
++
++User-reported build failure
++---------------------------
++PASS  Android Studio error was located at NoteFileViewerActivity.kt:362:
++      Unresolved reference 'LayoutParams'.
++PASS  Removed the invalid ScrollView.LayoutParams reference.
++PASS  The ScrollView direct child's parameters now use FrameLayout.LayoutParams.
++
++Minimal-diff review
++-------------------
++PASS  Existing files changed versus V1.22 before release metadata: exactly 4:
++      README.md
++      android/app/build.gradle.kts
++      android/app/src/main/java/com/todolist/app/NoteFileViewerActivity.kt
++      build-apk.bat
++PASS  Functional source diff is one line in NoteFileViewerActivity.kt.
++PASS  No Reminder/Daily/Banner/Snooze locked-core source changed.
++PASS  No Web business code/data key changed.
++
++Static checks
++-------------
++PASS  `rg ScrollView.LayoutParams android/app/src/main/java` returns no matches.
++PASS  `node --check script_0.js`.
++PASS  AndroidManifest.xml / file_paths.xml / strings.xml / styles.xml XML parse.
++PASS  Standalone kotlinc diagnostic contains no syntax error / Unexpected tokens / expecting /
++      cannot be reassigned / unclosed / missing-quote diagnostics and no unresolved `LayoutParams`.
++NOTE  Standalone kotlinc still reports expected unresolved Android/AndroidX symbols because it does
++      not have the Android SDK classpath; this is not a full Android compile.
++
++Full Android build attempt
++--------------------------
++ATTEMPTED  ./gradlew :app:assembleDebug --no-daemon
++BLOCKED    Sandbox cannot resolve services.gradle.org to download Gradle 8.11.1.
++NOT CLAIMED  Full Android build / APK runtime / real-device test.
+diff -ruN '--exclude=V1.22-to-V1.22.1.patch' '--exclude=PROJECT_FILE_MANIFEST_V1.22.1.txt' '--exclude=SHA256SUMS.txt' '--exclude=v1221_gradle_build.log' /mnt/data/todo_v122_baseline/android/app/build.gradle.kts /mnt/data/todo_v1221_fix/android/app/build.gradle.kts
+--- /mnt/data/todo_v122_baseline/android/app/build.gradle.kts	2026-08-13 15:18:12.000000000 +0000
++++ /mnt/data/todo_v1221_fix/android/app/build.gradle.kts	2026-08-13 16:09:47.226974637 +0000
+@@ -11,8 +11,8 @@
+         applicationId = "com.todolist.app"
+         minSdk = 26
+         targetSdk = 35
+-        versionCode = 33
+-        versionName = "1.22"
++        versionCode = 34
++        versionName = "1.22.1"
+     }
+ 
+     buildTypes {
+diff -ruN '--exclude=V1.22-to-V1.22.1.patch' '--exclude=PROJECT_FILE_MANIFEST_V1.22.1.txt' '--exclude=SHA256SUMS.txt' '--exclude=v1221_gradle_build.log' /mnt/data/todo_v122_baseline/android/app/src/main/java/com/todolist/app/NoteFileViewerActivity.kt /mnt/data/todo_v1221_fix/android/app/src/main/java/com/todolist/app/NoteFileViewerActivity.kt
+--- /mnt/data/todo_v122_baseline/android/app/src/main/java/com/todolist/app/NoteFileViewerActivity.kt	2026-08-13 15:27:07.000000000 +0000
++++ /mnt/data/todo_v1221_fix/android/app/src/main/java/com/todolist/app/NoteFileViewerActivity.kt	2026-08-13 16:09:47.226688028 +0000
+@@ -359,7 +359,7 @@
+             orientation = LinearLayout.VERTICAL
+             gravity = Gravity.CENTER_HORIZONTAL
+         }
+-        scroll.addView(column, ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
++        scroll.addView(column, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+         contentHost.addView(scroll, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+         pdfScroll = scroll
+ 
+diff -ruN '--exclude=V1.22-to-V1.22.1.patch' '--exclude=PROJECT_FILE_MANIFEST_V1.22.1.txt' '--exclude=SHA256SUMS.txt' '--exclude=v1221_gradle_build.log' /mnt/data/todo_v122_baseline/build-apk.bat /mnt/data/todo_v1221_fix/build-apk.bat
+--- /mnt/data/todo_v122_baseline/build-apk.bat	2026-08-13 15:18:12.000000000 +0000
++++ /mnt/data/todo_v1221_fix/build-apk.bat	2026-08-13 16:09:47.227147446 +0000
+@@ -10,9 +10,9 @@
+ )
+ if not exist "dist" mkdir "dist"
+ for %%F in ("android\app\build\outputs\apk\debug\*.apk") do (
+-  copy /Y "%%~fF" "dist\To-Do-v1.22.apk" >nul
++  copy /Y "%%~fF" "dist\To-Do-v1.22.1.apk" >nul
+   echo.
+-  echo APK: %CD%\dist\To-Do-v1.22.apk
++  echo APK: %CD%\dist\To-Do-v1.22.1.apk
+   exit /b 0
+ )
+ echo Build finished but no APK was found under android\app\build\outputs\apk\debug
+diff -ruN '--exclude=V1.22-to-V1.22.1.patch' '--exclude=PROJECT_FILE_MANIFEST_V1.22.1.txt' '--exclude=SHA256SUMS.txt' '--exclude=v1221_gradle_build.log' /mnt/data/todo_v122_baseline/changes/CHANGELOG_V1.22.1.md /mnt/data/todo_v1221_fix/changes/CHANGELOG_V1.22.1.md
+--- /mnt/data/todo_v122_baseline/changes/CHANGELOG_V1.22.1.md	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/todo_v1221_fix/changes/CHANGELOG_V1.22.1.md	2026-08-13 16:11:15.732615619 +0000
+@@ -0,0 +1,18 @@
++# To-Do V1.22.1 CompileFix Changelog
++
++**Base:** To-Do-v1.22-Full.zip  
++**Target:** To-Do-v1.22.1-CompileFix-Full.zip
++
++## Fix
++- 修复 Android Studio 真编译在 `NoteFileViewerActivity.kt:362` 报错：`Unresolved reference 'LayoutParams'`。
++- 原代码错误使用 `ScrollView.LayoutParams(...)`；改为 `FrameLayout.LayoutParams(...)`。`ScrollView` 继承自 `FrameLayout`，其直接子 View 的 LayoutParams 使用 `FrameLayout.LayoutParams`。
++
++## Scope
++- 仅修改上述 PDF 纵向容器的一行 LayoutParams 类型，以及版本/构建输出元数据。
++- 不修改 V1.22 的 Note 编辑器、附件导入、ImportReceiver、PDF 懒加载逻辑本身。
++- Reminder / Daily / Banner / Snooze / To-Do 数据 / Note 数据结构全部保持 V1.22。
++
++## Version
++- versionCode: 34
++- versionName: 1.22.1
++- applicationId / namespace: `com.todolist.app`
+diff -ruN '--exclude=V1.22-to-V1.22.1.patch' '--exclude=PROJECT_FILE_MANIFEST_V1.22.1.txt' '--exclude=SHA256SUMS.txt' '--exclude=v1221_gradle_build.log' /mnt/data/todo_v122_baseline/changes/LOCKED_CORE_GUARD_V1.22.1.txt /mnt/data/todo_v1221_fix/changes/LOCKED_CORE_GUARD_V1.22.1.txt
+--- /mnt/data/todo_v122_baseline/changes/LOCKED_CORE_GUARD_V1.22.1.txt	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/todo_v1221_fix/changes/LOCKED_CORE_GUARD_V1.22.1.txt	2026-08-13 16:11:17.383969979 +0000
+@@ -0,0 +1,35 @@
++Locked Core Guard — V1.22 -> V1.22.1 CompileFix
++
++Authorized diff this round:
++- NoteFileViewerActivity.kt: one-line compile fix (`ScrollView.LayoutParams` -> `FrameLayout.LayoutParams`).
++- android/app/build.gradle.kts / build-apk.bat / README.md: release metadata only.
++
++Reminder/Daily/Banner/Snooze stable core is NOT authorized.
++
++- PASS  android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt  49dbbad17f11d7109eb4d82a55857e01b219e22b2d68c91289e801f2f6d9468f
++- PASS  android/app/src/main/java/com/todolist/app/receiver/BootReceiver.kt  5c749c6186e9ba2e9226e29e93856753879c898e8b2dcbe5d7a9922c4d27ca7d
++- PASS  android/app/src/main/java/com/todolist/app/receiver/DailyTaskActionReceiver.kt  9bd9bb60566ee86da41ce282cf3b1b845f4f4caa05b34567cc5612ac33c092de
++- PASS  android/app/src/main/java/com/todolist/app/receiver/DailyTaskReminderReceiver.kt  26928a47fd1f97f7ab9b51500f5c58f20333e2c1d1cc72edd4cc6a3ed9907292
++- PASS  android/app/src/main/java/com/todolist/app/receiver/MidnightReceiver.kt  49ebf2634854cd20c6d03656d4c1da7de3a6c0a30f542cdf23e7b0c9b9f1219e
++- PASS  android/app/src/main/java/com/todolist/app/receiver/ReminderActionReceiver.kt  ba2b57ee965759555fe4913827b2aa4fdeb1499854fb40c298efeb2bcfc3e361
++- PASS  android/app/src/main/java/com/todolist/app/receiver/TodoReminderReceiver.kt  36b242a80eaa2a9d4f4cd1aad3d8ff7105027e68ce0f166efd1b8aea495cb207
++- PASS  android/app/src/main/java/com/todolist/app/reminder/DailyTaskStore.kt  5770232c61f413fa8e88dadd07182f1a3a81d04a8758d9e3b4e37d43d417162e
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderDiagnostics.kt  445283809d9ecbafd08e80e8cd882444372127ef7aebea8d38c30a9857be4898
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderNotifier.kt  2b99868689598268ac27e07ed55385d5e2786ab6c1b9027b80dff2459b5642fc
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderScheduler.kt  4d58be9846178a49e45ca62d69368be10190512599c19e5aeac5431e9bd79a1e
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderStore.kt  f2e941bc491f4d743697136e135888e98c14324236abb8814b9632669a183df6
++- PASS  android/app/src/main/java/com/todolist/app/reminder/SnoozeStore.kt  87f3a0ee2af0af3bf1d43453a24b2d4429de4b653b9faf4482f616a9da574b6d
++- PASS  android/app/src/main/java/com/todolist/app/reminder/TodoSnapshotStore.kt  74ea806ecddc1680c3e7cb5f7e0abb9db8ba1a69ab9a4b3ac2e90a7cd5e9c1b3
++- PASS  android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt  be35d5eff3dd8067f0596d13055b9dda7f8d77204fe4ff1015c7f57499a58ca4
++- PASS  android/app/src/main/java/com/todolist/app/ui/BannerView.kt  f5e3fb07f5700e148e26cb4c9091f17e5ed06d2f82ad22bf15b9af24c328d68a
++- PASS  android/app/src/main/java/com/todolist/app/ui/DailyTaskBannerView.kt  41aa1e68973d2b77462484c22be00b9b712349c452a4db3c819e534854ea2bb5
++- PASS  android/app/src/main/java/com/todolist/app/ui/SnoozeSwipeBannerView.kt  4b99f2224df38ca6d90b749290174f69291e5f24589af35a58af12720bc829f4
++- PASS  android/app/src/main/java/com/todolist/app/ui/TodoReminderBannerView.kt  c53e279feafaa0b46f470c4e0ee0ab3d0cd48420171ac006079a6988f867c408
++- PASS  android/app/src/main/java/com/todolist/app/util/Dp.kt  4076197dac4258610e66978ffa4d4347ba1c1eb75ec364ddca9344c99ee617e8
++
++Locked reminder/banner core: 20/20 PASS.
++
++ui/todo.html == android/app/src/main/assets/todo.html: PASS
++applicationId / namespace remain com.todolist.app.
++
++Result: PASS

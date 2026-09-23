@@ -1,0 +1,63 @@
+LOCKED CORE / GOLDEN BASELINE — V1.6
+Base: V1.5 Full
+Target: V1.6 Full
+
+User-authorized scope: fix reminder delivery reliability only.
+Authorized files/regions: Android alarm permission strategy, reminder scheduler/receivers/service, new notifier/action receiver, and the reminder picker test button.
+All unrelated To-Do / Note behavior must remain unchanged.
+
+UNCHANGED WHOLE-FILE LOCKS — 9/9 PASS
+PASS  android/app/src/main/java/com/todolist/app/MainActivity.kt
+  V1.5 81a0380f171f96bbba18d730227d9f657b25739e83a71321873d2eb08b60264a
+  V1.6 81a0380f171f96bbba18d730227d9f657b25739e83a71321873d2eb08b60264a
+PASS  android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt
+  V1.5 9d8d8b39e978cf5093ee1cf8a37f78dc91ca30253732898a4d00476817be42de
+  V1.6 9d8d8b39e978cf5093ee1cf8a37f78dc91ca30253732898a4d00476817be42de
+PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderStore.kt
+  V1.5 58bba25e3e30dd08dc849ee4d98b215e01641d152ddc8eaaa6b826cf2781a70d
+  V1.6 58bba25e3e30dd08dc849ee4d98b215e01641d152ddc8eaaa6b826cf2781a70d
+PASS  android/app/src/main/java/com/todolist/app/reminder/TodoSnapshotStore.kt
+  V1.5 74ea806ecddc1680c3e7cb5f7e0abb9db8ba1a69ab9a4b3ac2e90a7cd5e9c1b3
+  V1.6 74ea806ecddc1680c3e7cb5f7e0abb9db8ba1a69ab9a4b3ac2e90a7cd5e9c1b3
+PASS  android/app/src/main/java/com/todolist/app/ui/BannerView.kt
+  V1.5 5d6a1a7bd5b1731c21b3a611244448d87657540b0e2abda19a0bf71517abbe49
+  V1.6 5d6a1a7bd5b1731c21b3a611244448d87657540b0e2abda19a0bf71517abbe49
+PASS  android/app/src/main/java/com/todolist/app/ui/TodoReminderBannerView.kt
+  V1.5 cf00985b9e122cb81594e2b7178b2807205ca5ee792d226e56395f1097e94d69
+  V1.6 cf00985b9e122cb81594e2b7178b2807205ca5ee792d226e56395f1097e94d69
+PASS  android/app/src/main/res/values/styles.xml
+  V1.5 aa1b5e31d2cb19b6b4f53b693f4592a148b04100c57144ff909831cbcd28693f
+  V1.6 aa1b5e31d2cb19b6b4f53b693f4592a148b04100c57144ff909831cbcd28693f
+PASS  android/app/src/main/res/values/strings.xml
+  V1.5 85b69c9919b8bc9b9ef39f6d57beb7d592e2048ed30f6a9e2fde4f10b693507f
+  V1.6 85b69c9919b8bc9b9ef39f6d57beb7d592e2048ed30f6a9e2fde4f10b693507f
+PASS  android/app/src/main/assets/background.png
+  V1.5 de5c1b4aa8ec994e40461e5aab154b93cc085a019b43b831cd0637657e0b54a6
+  V1.6 de5c1b4aa8ec994e40461e5aab154b93cc085a019b43b831cd0637657e0b54a6
+
+NOTE MODE SECTION LOCKS — 4/4 PASS
+PASS  Note+Folder CSS
+  V1.5 53900b33019fea58cca9c7ea881d33e88cf9043203d8ce447e9af2f6973436c0
+  V1.6 53900b33019fea58cca9c7ea881d33e88cf9043203d8ce447e9af2f6973436c0
+PASS  Notes Data Layer
+  V1.5 5e88af8636af0270a8c108399a5c8a2c4d9a801137459a842932de5aa19787f4
+  V1.6 5e88af8636af0270a8c108399a5c8a2c4d9a801137459a842932de5aa19787f4
+PASS  Notes Event Handlers
+  V1.5 18fe660b9a319c46ac26bf9a2b0bb22cbb0bbcadb40e5f0b71d6973875a4244d
+  V1.6 18fe660b9a319c46ac26bf9a2b0bb22cbb0bbcadb40e5f0b71d6973875a4244d
+PASS  Notes HTML
+  V1.5 ea985b0ea48cc1561075e7ce5e7faf5f5d8e214af35b89a85fe227ab30bfb3a3
+  V1.6 ea985b0ea48cc1561075e7ce5e7faf5f5d8e214af35b89a85fe227ab30bfb3a3
+
+AUTHORIZED REMINDER CHANGES
+- android/app/src/main/AndroidManifest.xml
+- android/app/src/main/java/com/todolist/app/reminder/ReminderScheduler.kt
+- android/app/src/main/java/com/todolist/app/receiver/MidnightReceiver.kt
+- android/app/src/main/java/com/todolist/app/receiver/TodoReminderReceiver.kt
+- android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt
+- android/app/src/main/java/com/todolist/app/reminder/ReminderNotifier.kt (new)
+- android/app/src/main/java/com/todolist/app/receiver/ReminderActionReceiver.kt (new)
+- ui/todo.html reminder-only region + mirrored android asset
+
+Overall Locked Core: PASS
+New Golden Baseline: V1.6

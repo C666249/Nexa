@@ -1,0 +1,15 @@
+To-Do V1.25.0 — final self-test
+
+PASS: applicationId com.todolist.app / versionCode 48 / versionName 1.25.0
+PASS: runtime feature source is the same Tree Beta V1.2 feature set, differing only Stable identity strings
+PASS: Topic swipe Rename/Delete + safe promotion delete
+PASS: virtual 未分类 folder/workspace without Schema/localStorage changes
+PASS: directional Drawer arbitration
+PASS: existing Note swipe/IME/Read-Edit/attachments/links/Timestamp regressions protected
+PASS: 23/23 Native Kotlin/Java files byte-identical to V1.24.0 / V1.22.12 locked runtime core
+PASS: Stable launcher icons restored from V1.24.0
+PASS: no Beta keystore or Beta signingConfig in Stable package
+PASS: ui/todo.html == android/app/src/main/assets/todo.html
+PASS: runtime JS syntax (node --check)
+PASS: Android XML parse 5/5
+NOTE: local Gradle compiler gate attempted; environment cannot resolve services.gradle.org / Gradle 8.11.1 distribution. Build on original Android Studio machine; normal debug signing will use that machine's existing debug.keystore.

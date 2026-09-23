@@ -1,0 +1,1082 @@
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.8.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.9.txt' '--exclude=SELF_TEST_V1.8.txt' '--exclude=SELF_TEST_V1.9.txt' /mnt/data/listnote_v18_baseline/README.md ./README.md
+--- /mnt/data/listnote_v18_baseline/README.md	2026-08-11 15:09:05.000000000 +0000
++++ ./README.md	2026-08-11 15:55:24.941985126 +0000
+@@ -1,14 +1,16 @@
+-# List-Note V1.8
++# To-Do V1.9
+ 
+ 本地优先的 To-Do + Note Android 应用。UI 使用 HTML/CSS/Vanilla JS，Android 原生层使用 Kotlin WebView，并负责精确定时、后台提醒守护与悬浮 Banner。
+ 
+-## 独立测试版身份
++## V1.9 恢复稳定版安装身份
+ 
+-- Launcher 名称：`List-Note`
+-- applicationId：`com.listnote.app`
++- Launcher 名称：`To-Do`
++- applicationId：`com.todolist.app`
+ - Kotlin/Java namespace：`com.todolist.app`
+-- 与手机上的稳定版独立安装、独立数据、独立权限。
+-- 内部提醒 action 前缀：`com.listnote.app.action.*`。
++- V1.9 不再作为 `com.listnote.app` 测试分支安装，而是重新指向旧稳定版的 Android 身份，用于原位升级并继续读取原稳定版 app sandbox / WebView localStorage。
++- **能否无损覆盖还取决于签名证书是否与手机上已安装稳定版一致。** 同 applicationId + 同签名时可原位更新并保留本地数据；签名不同 Android 会拒绝覆盖。
++- 为避免误操作，根目录新增 `verify-overwrite-safety.bat`，可在构建后连接手机检查“已安装 APK vs 新 APK”的签名证书是否一致。
++- V1.7 已验证稳定的提醒 Native Core 不重构；其内部 action 字符串暂时保持 `com.listnote.app.action.*`，这些 Intent/Receiver 均为本应用显式或 non-exported 使用，不影响 Android 安装身份。
+ 
+ ## V1.7 提醒链重构
+ 
+@@ -36,6 +38,15 @@
+ - 条目提醒时间窗口没有已存在提醒时，默认打开到当前本地时间，不再自动加 30 分钟。
+ - To-Do / Note 的按钮切换与顶部左右滑切换加入轻微淡入淡出 + 纸张翻页感动画；Note 数据、编辑器与文件夹逻辑不改。
+ 
++## V1.9 模式切换 Motion 重设计
++
++- 参考 21st.dev / Motion 的 spring tab、gesture 和 shared-layout 思路，去掉 V1.8 “先淡出 → 切 DOM → 再淡入”的串行动画。
++- 新主路径使用 Chromium 的 same-document View Transition API：旧视图与新视图同时存在于 compositor snapshot 中交叠运动，避免中间空白帧。
++- 动效改成克制的层级滑动：旧页面短距离退场 + 新页面更柔和的 spring-like 入场，背景不做夸张 3D 翻转。
++- 顶部手势增加轻量 finger-follow preview：横向拖动时页面仅跟随少量距离，松手达到阈值后自然接入正式切换；未达到阈值会弹性回位。
++- 老 WebView 没有 `document.startViewTransition` 时自动使用 Web Animations API fallback；`prefers-reduced-motion` 继续直接切换。
++
++
+ ## 当前功能
+ 
+ - **To-Do 模式**：全部 / 未完成 / 进行中 / 已完成、分类、搜索、日历、回收站、AI 助手等。
+@@ -47,7 +58,7 @@
+ 
+ ## Android Studio 打开方式
+ 
+-**直接打开解压后的最外层 `To-Do List` / `List-Note` 项目目录，不要进入 `android/`。**
++**直接打开解压后的最外层 `To-Do` 项目目录，不要进入 `android/`。**
+ 
+ 根目录包含：
+ 
+@@ -73,7 +84,7 @@
+ 成功后 APK 会复制到：
+ 
+ ```text
+-dist/List-Note-v1.8.apk
++dist/To-Do-v1.9.apk
+ ```
+ 
+ ## 技术栈
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.8.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.9.txt' '--exclude=SELF_TEST_V1.8.txt' '--exclude=SELF_TEST_V1.9.txt' /mnt/data/listnote_v18_baseline/android/app/build.gradle.kts ./android/app/build.gradle.kts
+--- /mnt/data/listnote_v18_baseline/android/app/build.gradle.kts	2026-08-11 15:07:45.000000000 +0000
++++ ./android/app/build.gradle.kts	2026-08-11 15:53:50.805198714 +0000
+@@ -8,11 +8,11 @@
+     compileSdk = 35
+ 
+     defaultConfig {
+-        applicationId = "com.listnote.app"
++        applicationId = "com.todolist.app"
+         minSdk = 26
+         targetSdk = 35
+-        versionCode = 18
+-        versionName = "1.8"
++        versionCode = 19
++        versionName = "1.9"
+     }
+ 
+     buildTypes {
+@@ -37,7 +37,7 @@
+     applicationVariants.all {
+         outputs.all {
+             (this as com.android.build.gradle.internal.api.ApkVariantOutputImpl).outputFileName =
+-                "List-Note-v${versionName}.apk"
++                "To-Do-v${versionName}.apk"
+         }
+     }
+ }
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.8.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.9.txt' '--exclude=SELF_TEST_V1.8.txt' '--exclude=SELF_TEST_V1.9.txt' /mnt/data/listnote_v18_baseline/android/app/src/main/assets/todo.html ./android/app/src/main/assets/todo.html
+--- /mnt/data/listnote_v18_baseline/android/app/src/main/assets/todo.html	2026-08-11 15:08:23.000000000 +0000
++++ ./android/app/src/main/assets/todo.html	2026-08-11 15:53:50.335099339 +0000
+@@ -1487,46 +1487,96 @@
+   border-color: rgba(164, 119, 222, 0.5);
+ }
+ 
+-/* ===== To-Do / Note mode transition: soft paper-turn + fade ===== */
+-.app.mode-page-exit-right {
+-  transform-origin: 100% 42%;
+-  animation: modePageExitRight 0.13s ease-in forwards;
+-  pointer-events: none;
+-}
+-.app.mode-page-enter-right {
+-  transform-origin: 0% 42%;
+-  animation: modePageEnterRight 0.23s cubic-bezier(0.22, 0.72, 0.2, 1) both;
+-  pointer-events: none;
+-}
+-.app.mode-page-exit-left {
+-  transform-origin: 0% 42%;
+-  animation: modePageExitLeft 0.13s ease-in forwards;
+-  pointer-events: none;
+-}
+-.app.mode-page-enter-left {
+-  transform-origin: 100% 42%;
+-  animation: modePageEnterLeft 0.23s cubic-bezier(0.22, 0.72, 0.2, 1) both;
+-  pointer-events: none;
+-}
+-@keyframes modePageExitRight {
+-  from { opacity: 1; transform: perspective(900px) translateX(0) rotateY(0deg) scale(1); }
+-  to { opacity: 0.16; transform: perspective(900px) translateX(16px) rotateY(-3deg) scale(0.995); }
+-}
+-@keyframes modePageEnterRight {
+-  from { opacity: 0.12; transform: perspective(900px) translateX(-16px) rotateY(3deg) scale(0.995); }
+-  to { opacity: 1; transform: perspective(900px) translateX(0) rotateY(0deg) scale(1); }
+-}
+-@keyframes modePageExitLeft {
+-  from { opacity: 1; transform: perspective(900px) translateX(0) rotateY(0deg) scale(1); }
+-  to { opacity: 0.16; transform: perspective(900px) translateX(-16px) rotateY(3deg) scale(0.995); }
+-}
+-@keyframes modePageEnterLeft {
+-  from { opacity: 0.12; transform: perspective(900px) translateX(16px) rotateY(-3deg) scale(0.995); }
+-  to { opacity: 1; transform: perspective(900px) translateX(0) rotateY(0deg) scale(1); }
++/* ===== To-Do / Note mode transition: native-like layered spring slide ===== */
++/*
++ * V1.9 motion design:
++ * - same-document View Transition API where Chromium/WebView supports it;
++ * - simultaneous old/new snapshots, so there is no blank "fade-out then fade-in" frame;
++ * - transform + opacity only on the main shell for compositor-friendly motion;
++ * - slightly different old/new distances create a restrained parallax/depth feel;
++ * - WAAPI fallback remains for older WebView builds.
++ */
++.app { view-transition-name: mode-shell; }
++#categoryBar { view-transition-name: mode-category; }
++#fabRecycle { view-transition-name: mode-recycle; }
++#fabAi { view-transition-name: mode-ai; }
++#fab { view-transition-name: mode-fab; }
++
++::view-transition-group(mode-shell) {
++  animation-duration: 380ms;
++  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
++}
++::view-transition-image-pair(mode-shell) { isolation: isolate; }
++::view-transition-old(mode-shell),
++::view-transition-new(mode-shell) {
++  mix-blend-mode: normal;
++  backface-visibility: hidden;
++  transform-origin: 50% 14%;
++}
++
++/* A rightward user gesture reveals the incoming mode from the left. */
++html.mode-vt-right::view-transition-old(mode-shell) {
++  animation: modeShellOldRight 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
++}
++html.mode-vt-right::view-transition-new(mode-shell) {
++  animation: modeShellNewRight 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
++}
++html.mode-vt-left::view-transition-old(mode-shell) {
++  animation: modeShellOldLeft 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
++}
++html.mode-vt-left::view-transition-new(mode-shell) {
++  animation: modeShellNewLeft 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
++}
++
++@keyframes modeShellOldRight {
++  from { opacity: 1; transform: translate3d(0,0,0) scale(1); }
++  to   { opacity: 0.30; transform: translate3d(18px,0,0) scale(0.992); }
++}
++@keyframes modeShellNewRight {
++  from { opacity: 0.42; transform: translate3d(-24px,0,0) scale(0.988); }
++  72%  { opacity: 1; transform: translate3d(1.5px,0,0) scale(1.001); }
++  to   { opacity: 1; transform: translate3d(0,0,0) scale(1); }
++}
++@keyframes modeShellOldLeft {
++  from { opacity: 1; transform: translate3d(0,0,0) scale(1); }
++  to   { opacity: 0.30; transform: translate3d(-18px,0,0) scale(0.992); }
++}
++@keyframes modeShellNewLeft {
++  from { opacity: 0.42; transform: translate3d(24px,0,0) scale(0.988); }
++  72%  { opacity: 1; transform: translate3d(-1.5px,0,0) scale(1.001); }
++  to   { opacity: 1; transform: translate3d(0,0,0) scale(1); }
++}
++
++/* Mode-only controls enter/exit with a shorter shared fade, while the paper background stays calm. */
++::view-transition-group(mode-category),
++::view-transition-group(mode-recycle),
++::view-transition-group(mode-ai),
++::view-transition-group(mode-fab) {
++  animation-duration: 300ms;
++  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
++}
++::view-transition-old(mode-category),
++::view-transition-old(mode-recycle),
++::view-transition-old(mode-ai),
++::view-transition-old(mode-fab),
++::view-transition-new(mode-category),
++::view-transition-new(mode-recycle),
++::view-transition-new(mode-ai),
++::view-transition-new(mode-fab) {
++  mix-blend-mode: normal;
++}
++
++/* During a real header swipe the current page follows the finger a little, then the transition carries that momentum. */
++.app.mode-swipe-preview {
++  will-change: transform, opacity;
+ }
++
+ @media (prefers-reduced-motion: reduce) {
+-  .app.mode-page-exit-right, .app.mode-page-enter-right,
+-  .app.mode-page-exit-left, .app.mode-page-enter-left { animation-duration: 0.01ms; }
++  ::view-transition-group(mode-shell),
++  ::view-transition-group(mode-category),
++  ::view-transition-group(mode-recycle),
++  ::view-transition-group(mode-ai),
++  ::view-transition-group(mode-fab) { animation-duration: 0.01ms; }
+ }
+ 
+ /* ===== Note Container ===== */
+@@ -2641,34 +2691,90 @@
+ 
+ let modeSwitchAnimating = false;
+ let modeSwitchTimer = null;
++let modeSwipePreviewActive = false;
++
+ function applyMode(mode) {
+   currentMode = mode;
+   if (mode === 'notes') loadNotes();
+   renderModeUI();
+ }
++
++function clearModeSwipePreview() {
++  var appEl = document.querySelector('.app');
++  if (!appEl) return;
++  appEl.classList.remove('mode-swipe-preview');
++  appEl.style.removeProperty('transform');
++  appEl.style.removeProperty('opacity');
++  appEl.style.removeProperty('transition');
++  modeSwipePreviewActive = false;
++}
++
++function finishModeSwitch() {
++  clearTimeout(modeSwitchTimer);
++  document.documentElement.classList.remove('mode-vt-left', 'mode-vt-right');
++  clearModeSwipePreview();
++  modeSwitchAnimating = false;
++}
++
+ function switchMode(mode, motion) {
+   if (mode === currentMode || modeSwitchAnimating) return;
+   const appEl = document.querySelector('.app');
+   const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+-  if (!appEl || reduceMotion) { applyMode(mode); return; }
++  if (!appEl || reduceMotion) {
++    clearModeSwipePreview();
++    applyMode(mode);
++    return;
++  }
+ 
+   const direction = motion === 'left' || motion === 'right' ? motion : (mode === 'notes' ? 'right' : 'left');
+   modeSwitchAnimating = true;
+-  appEl.classList.remove('mode-page-exit-left','mode-page-exit-right','mode-page-enter-left','mode-page-enter-right');
+-  appEl.classList.add('mode-page-exit-' + direction);
++  const root = document.documentElement;
++  root.classList.remove('mode-vt-left', 'mode-vt-right');
++  root.classList.add('mode-vt-' + direction);
++
++  /*
++   * Modern Android WebView is Chromium-based and supports same-document view transitions.
++   * This snapshots old/new UI states and lets them animate at the same time, avoiding the
++   * V1.8 sequential blank-ish frame. Fallback below uses Web Animations API only.
++   */
++  if (typeof document.startViewTransition === 'function') {
++    try {
++      const transition = document.startViewTransition(function() {
++        clearModeSwipePreview();
++        applyMode(mode);
++      });
++      transition.finished.then(finishModeSwitch, finishModeSwitch);
++      modeSwitchTimer = setTimeout(finishModeSwitch, 520);
++      return;
++    } catch (e) {
++      // Older/vendor WebView edge case: fall through to compositor-friendly WAAPI fallback.
++    }
++  }
+ 
+-  clearTimeout(modeSwitchTimer);
+-  modeSwitchTimer = setTimeout(function() {
+-    appEl.classList.remove('mode-page-exit-' + direction);
++  const outX = direction === 'right' ? 16 : -16;
++  const inX = -outX * 1.35;
++  clearModeSwipePreview();
++  let outAnim;
++  try {
++    outAnim = appEl.animate([
++      { opacity: 1, transform: 'translate3d(0,0,0) scale(1)' },
++      { opacity: 0.34, transform: 'translate3d(' + outX + 'px,0,0) scale(0.992)' }
++    ], { duration: 125, easing: 'cubic-bezier(0.4,0,0.6,1)', fill: 'forwards' });
++  } catch (e) {
++    applyMode(mode);
++    finishModeSwitch();
++    return;
++  }
++
++  outAnim.finished.catch(function() {}).then(function() {
+     applyMode(mode);
+-    // Force a frame so the incoming page always starts from its entry pose.
+-    void appEl.offsetWidth;
+-    appEl.classList.add('mode-page-enter-' + direction);
+-    modeSwitchTimer = setTimeout(function() {
+-      appEl.classList.remove('mode-page-enter-' + direction);
+-      modeSwitchAnimating = false;
+-    }, 235);
+-  }, 130);
++    appEl.animate([
++      { opacity: 0.42, transform: 'translate3d(' + inX + 'px,0,0) scale(0.988)' },
++      { opacity: 1, transform: 'translate3d(0,0,0) scale(1)' }
++    ], { duration: 285, easing: 'cubic-bezier(0.16,1,0.3,1)', fill: 'both' })
++      .finished.catch(function() {}).then(finishModeSwitch);
++  });
++  modeSwitchTimer = setTimeout(finishModeSwitch, 520);
+ }
+ 
+ function renderModeUI() {
+@@ -2687,13 +2793,9 @@
+     }
+   }
+ 
+-  // Header title
++  // Header title — the V1.9 shared page transition handles the visual interpolation.
+   var titleEl = document.querySelector('.header__title');
+-  if (titleEl) {
+-    titleEl.classList.add('header__title--switching');
+-    titleEl.textContent = isNotes ? 'Note' : 'To-Do';
+-    setTimeout(function() { titleEl.classList.remove('header__title--switching'); }, 200);
+-  }
++  if (titleEl) titleEl.textContent = isNotes ? 'Note' : 'To-Do';
+ 
+   // Header stats (calendar, alarm — todo only)
+   var calendarBtn = document.getElementById('calendarBtn');
+@@ -5640,24 +5742,80 @@
+   return 'none';
+ }
+ 
+-// ===== Right-swipe on header area → switch between To-Do / Note =====
++// ===== Header horizontal swipe → interactive To-Do / Note mode switch =====
+ (function() {
+   var headerEl = document.querySelector('.header__top');
+   if (!headerEl) return;
+-  var swipeX = 0, swipeY = 0, swiping = false;
++  var swipeX = 0, swipeY = 0, swiping = false, horizontalIntent = false;
++  var rafId = 0;
++
++  function renderSwipePreview(dx) {
++    var appEl = document.querySelector('.app');
++    if (!appEl || modeSwitchAnimating) return;
++    var allowed = (dx > 0 && currentMode === 'todo') || (dx < 0 && currentMode === 'notes');
++    var resisted = allowed ? dx * 0.18 : dx * 0.055;
++    var offset = Math.max(-22, Math.min(22, resisted));
++    var dim = Math.min(0.045, Math.abs(offset) / 520);
++    appEl.classList.add('mode-swipe-preview');
++    appEl.style.transition = 'none';
++    appEl.style.transform = 'translate3d(' + offset.toFixed(2) + 'px,0,0) scale(0.998)';
++    appEl.style.opacity = String(1 - dim);
++    modeSwipePreviewActive = true;
++  }
++
++  function springBackSwipePreview() {
++    var appEl = document.querySelector('.app');
++    if (!appEl || !modeSwipePreviewActive) { clearModeSwipePreview(); return; }
++    appEl.style.transition = 'transform 220ms cubic-bezier(0.16,1,0.3,1), opacity 180ms ease-out';
++    appEl.style.transform = 'translate3d(0,0,0) scale(1)';
++    appEl.style.opacity = '1';
++    setTimeout(clearModeSwipePreview, 230);
++  }
++
+   headerEl.addEventListener('touchstart', function(e) {
++    if (modeSwitchAnimating || !e.touches.length) return;
+     swipeX = e.touches[0].clientX;
+     swipeY = e.touches[0].clientY;
+     swiping = true;
++    horizontalIntent = false;
+   }, { passive: true });
++
++  headerEl.addEventListener('touchmove', function(e) {
++    if (!swiping || modeSwitchAnimating || !e.touches.length) return;
++    var dx = e.touches[0].clientX - swipeX;
++    var dy = e.touches[0].clientY - swipeY;
++    if (!horizontalIntent && (Math.abs(dx) > 7 || Math.abs(dy) > 7)) {
++      horizontalIntent = Math.abs(dx) > Math.abs(dy) * 1.15;
++    }
++    if (!horizontalIntent) return;
++    e.preventDefault();
++    cancelAnimationFrame(rafId);
++    rafId = requestAnimationFrame(function() { renderSwipePreview(dx); });
++  }, { passive: false });
++
+   headerEl.addEventListener('touchend', function(e) {
+     if (!swiping) return;
+     swiping = false;
++    cancelAnimationFrame(rafId);
++    if (!e.changedTouches.length) { springBackSwipePreview(); return; }
+     var dx = e.changedTouches[0].clientX - swipeX;
+     var dy = Math.abs(e.changedTouches[0].clientY - swipeY);
+-    if (dx > 40 && dx > dy && currentMode === 'todo') switchMode('notes', 'right');
+-    if (dx < -40 && Math.abs(dx) > dy && currentMode === 'notes') switchMode('todo', 'left');
+-  });
++    if (horizontalIntent && dx > 40 && dx > dy && currentMode === 'todo') {
++      switchMode('notes', 'right');
++      return;
++    }
++    if (horizontalIntent && dx < -40 && Math.abs(dx) > dy && currentMode === 'notes') {
++      switchMode('todo', 'left');
++      return;
++    }
++    springBackSwipePreview();
++  }, { passive: true });
++
++  headerEl.addEventListener('touchcancel', function() {
++    swiping = false;
++    cancelAnimationFrame(rafId);
++    springBackSwipePreview();
++  }, { passive: true });
+ })();
+ 
+ // Toolbar button active state feedback
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.8.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.9.txt' '--exclude=SELF_TEST_V1.8.txt' '--exclude=SELF_TEST_V1.9.txt' /mnt/data/listnote_v18_baseline/android/app/src/main/res/values/strings.xml ./android/app/src/main/res/values/strings.xml
+--- /mnt/data/listnote_v18_baseline/android/app/src/main/res/values/strings.xml	2026-08-11 10:41:05.000000000 +0000
++++ ./android/app/src/main/res/values/strings.xml	2026-08-11 15:53:50.805350179 +0000
+@@ -1,4 +1,4 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
+-    <string name="app_name">List-Note</string>
++    <string name="app_name">To-Do</string>
+ </resources>
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.8.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.9.txt' '--exclude=SELF_TEST_V1.8.txt' '--exclude=SELF_TEST_V1.9.txt' /mnt/data/listnote_v18_baseline/build-apk.bat ./build-apk.bat
+--- /mnt/data/listnote_v18_baseline/build-apk.bat	2026-08-11 15:07:45.000000000 +0000
++++ ./build-apk.bat	2026-08-11 15:53:50.805439201 +0000
+@@ -1,7 +1,7 @@
+ @echo off
+ setlocal
+ cd /d "%~dp0"
+-echo [List-Note] Building debug APK from project root...
++echo [To-Do] Building debug APK from project root...
+ call gradlew.bat :app:assembleDebug
+ if errorlevel 1 (
+   echo.
+@@ -10,9 +10,9 @@
+ )
+ if not exist "dist" mkdir "dist"
+ for %%F in ("android\app\build\outputs\apk\debug\*.apk") do (
+-  copy /Y "%%~fF" "dist\List-Note-v1.8.apk" >nul
++  copy /Y "%%~fF" "dist\To-Do-v1.9.apk" >nul
+   echo.
+-  echo APK: %CD%\dist\List-Note-v1.8.apk
++  echo APK: %CD%\dist\To-Do-v1.9.apk
+   exit /b 0
+ )
+ echo Build finished but no APK was found under android\app\build\outputs\apk\debug
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.8.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.9.txt' '--exclude=SELF_TEST_V1.8.txt' '--exclude=SELF_TEST_V1.9.txt' /mnt/data/listnote_v18_baseline/dev-logs/2026-08-11.md ./dev-logs/2026-08-11.md
+--- /mnt/data/listnote_v18_baseline/dev-logs/2026-08-11.md	2026-08-11 15:09:05.000000000 +0000
++++ ./dev-logs/2026-08-11.md	2026-08-11 15:55:24.942389978 +0000
+@@ -31,3 +31,12 @@
+ - 待办卡片最右侧加入低对比度 `M/D HH:mm` 条目提醒时间提示。
+ - 条目提醒弹窗无既有提醒时默认当前本地时间，不再默认 +30 分钟。
+ - To-Do / Note 模式切换加入轻量纸张翻页 + 淡入淡出动画，顶部左右滑与按钮切换共用；Banner 原生跳转保持即时切 To-Do 以保证定位。
++
++
++# 2026-08-11 — V1.9
++- 用户确认 V1.7/V1.8 提醒功能真机可行，继续锁定 Native Reminder Core。
++- 研究 21st.dev Animated Tabs / Motion spring、gesture、layout animation，以及 Chrome same-document View Transition API；未引入 React/Motion 依赖，而是将其“同时进出场 + spring + 跟手”的交互原则移植到现有 Vanilla WebView。
++- To-Do ↔ Note 切换从串行纸张淡出/淡入重做为 View Transition snapshot 同时交叠滑动；老 WebView 使用 WAAPI fallback。
++- 顶部横向手势加入 requestAnimationFrame 跟手 preview 与未达阈值回弹。
++- Android applicationId 从测试身份 `com.listnote.app` 恢复旧稳定版 `com.todolist.app`；app_name 恢复 `To-Do`；versionCode/versionName 更新为 19/1.9。
++- localStorage schema/key 不变；能否无损覆盖取决于手机已安装稳定版与新 APK 的签名证书是否一致。新增 `verify-overwrite-safety.bat` 防止用户误卸载造成数据丢失。
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.8.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.9.txt' '--exclude=SELF_TEST_V1.8.txt' '--exclude=SELF_TEST_V1.9.txt' /mnt/data/listnote_v18_baseline/docs/UPDATE_SAFETY_V1.9.md ./docs/UPDATE_SAFETY_V1.9.md
+--- /mnt/data/listnote_v18_baseline/docs/UPDATE_SAFETY_V1.9.md	1970-01-01 00:00:00.000000000 +0000
++++ ./docs/UPDATE_SAFETY_V1.9.md	2026-08-11 15:55:25.082446093 +0000
+@@ -0,0 +1,32 @@
++# To-Do V1.9 原位升级 / 本地数据保护
++
++## 目标
++V1.9 把 Android 安装身份从测试分支 `com.listnote.app` 恢复为稳定版的 `com.todolist.app`，目的是让 Android 将 V1.9 视为旧 To-Do 的“更新”，而不是第三个独立 App，从而继续使用旧稳定版已有的 app sandbox / WebView localStorage。
++
++## Android 真正要求
++要覆盖已安装旧版，至少必须同时满足：
++1. `applicationId` 与已安装 App 完全一致；
++2. 新 APK 的签名证书与已安装 App 一致（或符合 Android 支持的签名轮换证明）；
++3. versionCode 不低于系统允许更新的条件。
++
++本工程 V1.9：
++- applicationId：`com.todolist.app`
++- versionCode：`19`
++- versionName：`1.9`
++- app_name：`To-Do`
++
++## 数据保护结论
++- **同 package + 同签名，直接覆盖安装：旧 To-Do / Note 本地数据通常继续保留。** 本轮没有修改或清空 localStorage key，也没有做数据库 schema 迁移。
++- **签名不同：Android 会直接拒绝覆盖。不要卸载旧稳定版。** 卸载会删除普通 app sandbox，本地记录/笔记可能随之丢失。
++- V1.5–V1.8 的 `com.listnote.app` 测试版仍是另一个 App，它的数据不会因为 V1.9 改回 `com.todolist.app` 自动合并到稳定版。
++
++## 推荐步骤
++1. 先保留手机上的旧稳定版，不要卸载。
++2. 在 Android Studio 构建 V1.9 Debug APK。
++3. USB 连接手机并允许 ADB。
++4. 双击根目录 `verify-overwrite-safety.bat`。
++5. 只有脚本输出 `[PASS]` 时再把 V1.9 APK直接覆盖安装到旧稳定版。
++6. 如果脚本输出 `[BLOCK]`，应找到/使用签署旧稳定版的同一 keystore 重签 V1.9，而不是卸载旧版。
++
++## 原始源码包核验
++用户本轮纠正基线所上传的旧 `To-Do List(1).zip` 中，原 Gradle 配置的 applicationId 本身就是 `com.todolist.app`。其内附 `dist/To-Do.apk` 使用 Android Debug 证书签名；但手机当前实际安装版本是否就是该 APK、以及当前电脑的 debug.keystore 是否相同，仍必须以设备实际证书为准，所以不能只凭“包名改回去”承诺 100% 可覆盖。
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.8.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.9.txt' '--exclude=SELF_TEST_V1.8.txt' '--exclude=SELF_TEST_V1.9.txt' /mnt/data/listnote_v18_baseline/docs/execution-steps.md ./docs/execution-steps.md
+--- /mnt/data/listnote_v18_baseline/docs/execution-steps.md	2026-08-11 10:42:40.000000000 +0000
++++ ./docs/execution-steps.md	2026-08-11 15:59:06.666223988 +0000
+@@ -15,13 +15,13 @@
+ ### 步骤
+ 1. **复制模板** → `cp -r D:/Claude/android-template D:/Claude/projects/To-Do List/android`
+ 2. **修改配置**
+-   - `app/build.gradle.kts` → `namespace = "com.todolist.app"`, `applicationId = "com.listnote.app"`
+-   - `strings.xml` → `<string name="app_name">List-Note</string>`
++   - `app/build.gradle.kts` → `namespace = "com.todolist.app"`, `applicationId = "com.todolist.app"`
++   - `strings.xml` → `<string name="app_name">To-Do</string>`
+    - `AndroidManifest.xml` → 更新 label 引用
+ 3. **集成 HTML** → 复制 `ui/todo.html` → `app/src/main/assets/todo.html`
+ 4. **更新 MainActivity** → `loadUrl("file:///android_asset/todo.html")`
+ 5. **构建调试 APK** → `./gradlew :app:assembleDebug`
+-6. **安装到设备** → `adb install android/app/build/outputs/apk/debug/List-Note-v1.5.apk`
++6. **安装到设备** → `adb install -r android/app/build/outputs/apk/debug/To-Do-v1.9.apk`
+ 
+ ### 验收标准
+ - [ ] `./gradlew :app:assembleDebug` 成功
+@@ -58,7 +58,7 @@
+ 
+ ### 中国 ROM 兼容
+ - 本版本包含悬浮提醒、前台服务、通知、精确闹钟与开机恢复能力。
+-- `List-Note` 与稳定版 applicationId 不同，通知/悬浮窗/精确闹钟等特殊权限需要单独授权。
++- V1.9 与旧稳定版使用相同 applicationId；只有签名一致时才能作为更新覆盖并保留旧 app sandbox。构建后建议先运行根目录 `verify-overwrite-safety.bat`。
+ - 中国 ROM 还可能需要用户在系统后台管理中允许相关后台运行能力；以真机行为为准。
+ 
+ ## Phase 3 跳过说明
+@@ -67,3 +67,10 @@
+ - 用户已在 Phase 2 后直接确认 UI 满意
+ - 毛玻璃风格是用户明确选择的方向
+ - 无需生成设计变体
++
++## V1.9 覆盖稳定版前的安全检查
++1. 保留手机旧 `com.todolist.app`，不要卸载。
++2. Android Studio 构建 V1.9 Debug APK。
++3. USB/ADB 连接手机。
++4. 双击项目根目录 `verify-overwrite-safety.bat`。
++5. 只有 `[PASS]` 时才执行覆盖安装；`[BLOCK]` 表示签名不同，应改用旧版相同 keystore 重新签名。
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.8.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.9.txt' '--exclude=SELF_TEST_V1.8.txt' '--exclude=SELF_TEST_V1.9.txt' /mnt/data/listnote_v18_baseline/docs/requirements.md ./docs/requirements.md
+--- /mnt/data/listnote_v18_baseline/docs/requirements.md	2026-08-11 15:09:05.000000000 +0000
++++ ./docs/requirements.md	2026-08-11 15:55:24.942121569 +0000
+@@ -1,4 +1,4 @@
+-# To-Do / Note — 当前需求与验收基线（V1.8）
++# To-Do / Note — 当前需求与验收基线（V1.9）
+ 
+ ## 已有能力（必须保留）
+ 
+@@ -43,3 +43,13 @@
+ - 条目提醒：设定后在未左滑的普通待办卡片最右侧，以低对比度 `M/D HH:mm` 格式显示。
+ - 条目提醒弹窗：无既有提醒时默认值为打开弹窗当下的本地年月日与时分，不再 +30 分钟。
+ - To-Do / Note：顶部手势和模式按钮均采用轻量淡入淡出 + 翻页感切换；不得改动 Note CRUD、正文编辑、文件夹/子笔记数据行为。
++
++
++## V1.9 Motion / 原位升级验收
++- To-Do ↔ Note 切换不得再使用 V1.8 的串行 fade-out / DOM swap / fade-in；支持 View Transition 的 WebView 应采用同文档 snapshot 同时进出场，避免视觉空档。
++- 动画以 transform + opacity 为主，使用 spring-like easing；不得引入 React/Motion 运行时或新的网络依赖。
++- 顶部横向手势应有轻量跟手反馈，未达到切换阈值时平滑回弹；按钮切换与手势切换使用一致方向语义。
++- 必须保留老 WebView fallback 和 reduced-motion fallback。
++- Android `applicationId` 恢复为旧稳定版 `com.todolist.app`，Launcher 名称恢复 `To-Do`；namespace 不迁移。
++- 不迁移、不重命名、不清空 To-Do / Note localStorage key。
++- 原位覆盖保留数据的前提是新 APK 与已安装稳定版使用同一签名证书；如果签名不一致，禁止通过卸载旧版来“解决”安装冲突。
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.8.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.9.txt' '--exclude=SELF_TEST_V1.8.txt' '--exclude=SELF_TEST_V1.9.txt' /mnt/data/listnote_v18_baseline/docs/tech-spec.md ./docs/tech-spec.md
+--- /mnt/data/listnote_v18_baseline/docs/tech-spec.md	2026-08-11 15:09:05.000000000 +0000
++++ ./docs/tech-spec.md	2026-08-11 15:55:24.942186435 +0000
+@@ -1,4 +1,4 @@
+-# To-Do / Note Android 应用 — 技术规格（V1.8）
++# To-Do / Note Android 应用 — 技术规格（V1.9）
+ 
+ ## 架构
+ 
+@@ -55,11 +55,13 @@
+ ```
+ 
+ 
+-## V1.5 App Identity
+-- `applicationId = "com.listnote.app"`：Android 安装身份，和稳定版隔离。
+-- `namespace = "com.todolist.app"`：保持 V1.4 源码 namespace，不做包目录迁移。
+-- `app_name = "List-Note"`：Launcher/系统显示名称。
+-- Internal action namespace：`com.listnote.app.action.*`，避免与稳定版广播串扰。
++## App Identity
++- V1.5–V1.8 测试分支曾使用 `applicationId = "com.listnote.app"` 与稳定版隔离。
++- V1.9 恢复 `applicationId = "com.todolist.app"`，与 7 月稳定版身份一致，用于原位升级读取原 app sandbox。
++- `namespace = "com.todolist.app"` 始终未迁移。
++- V1.9 `app_name = "To-Do"`。
++- 现有提醒内部 action 字符串仍保持 `com.listnote.app.action.*` 以锁定 V1.7 真机验证过的 reminder core；Receiver 为 non-exported / Intent 为显式组件，不作为安装身份依据。
++- Android 更新兼容仍要求签名证书匹配；applicationId 相同但签名不同会被系统拒绝覆盖。
+ 
+ 
+ ## V1.8 UI / 调度说明
+@@ -67,3 +69,12 @@
+ - WebView 的 `banner_reminder_time` 仅保存用户选中的 HH:mm；时钟弹窗用它展示“当前：每天 HH:mm”。关闭弹窗不确认时会重新读取已保存值，避免临时滚动误改配置。
+ - 条目提醒显示标签只属于 WebView 表现层：从 `reminderAt` 本地时间格式化为 `M/D HH:mm`，不改变 ReminderStore schema。
+ - 模式切换动画只作用于 `.app` 容器的短时 CSS transform/opacity，并在 130ms 中点切换既有 `renderModeUI()`；`prefers-reduced-motion` 时直接切换。Native Banner 点击聚焦 To-Do 使用即时 `applyMode('todo')`，不等待动画，避免定位竞态。
++
++
++## V1.9 Motion 实现
++- 主路径：`document.startViewTransition()`（same-document），在 `applyMode()` 的 DOM 状态切换前后由 Chromium 捕获旧/新 snapshot。
++- `.app` 使用 `view-transition-name: mode-shell`；Todo-only category / FAB 分别使用独立 transition name，以避免和主壳层硬切。
++- 方向动画仅使用 `translate3d + scale + opacity`，避免大角度 `rotateY` 和重 filter 造成 WebView 合成抖动。
++- 顶部手势 `touchmove` 使用 requestAnimationFrame 更新小幅 compositor transform；达到 40px 阈值后把当前拖动态作为旧 snapshot 继续切换，未达到则 spring-like 回位。
++- fallback：没有 View Transition API 时使用 Web Animations API；减少动态效果时即时切换。
++- Native Reminder / local data schema 均不参与本轮 Motion 改动。
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.8.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.9.txt' '--exclude=SELF_TEST_V1.8.txt' '--exclude=SELF_TEST_V1.9.txt' /mnt/data/listnote_v18_baseline/settings.gradle.kts ./settings.gradle.kts
+--- /mnt/data/listnote_v18_baseline/settings.gradle.kts	2026-08-11 10:41:05.000000000 +0000
++++ ./settings.gradle.kts	2026-08-11 15:53:50.805398040 +0000
+@@ -14,6 +14,6 @@
+     }
+ }
+ 
+-rootProject.name = "List-Note"
++rootProject.name = "To-Do"
+ include(":app")
+ project(":app").projectDir = file("android/app")
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.8.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.9.txt' '--exclude=SELF_TEST_V1.8.txt' '--exclude=SELF_TEST_V1.9.txt' /mnt/data/listnote_v18_baseline/ui/todo.html ./ui/todo.html
+--- /mnt/data/listnote_v18_baseline/ui/todo.html	2026-08-11 15:08:23.000000000 +0000
++++ ./ui/todo.html	2026-08-11 15:53:50.178170694 +0000
+@@ -1487,46 +1487,96 @@
+   border-color: rgba(164, 119, 222, 0.5);
+ }
+ 
+-/* ===== To-Do / Note mode transition: soft paper-turn + fade ===== */
+-.app.mode-page-exit-right {
+-  transform-origin: 100% 42%;
+-  animation: modePageExitRight 0.13s ease-in forwards;
+-  pointer-events: none;
+-}
+-.app.mode-page-enter-right {
+-  transform-origin: 0% 42%;
+-  animation: modePageEnterRight 0.23s cubic-bezier(0.22, 0.72, 0.2, 1) both;
+-  pointer-events: none;
+-}
+-.app.mode-page-exit-left {
+-  transform-origin: 0% 42%;
+-  animation: modePageExitLeft 0.13s ease-in forwards;
+-  pointer-events: none;
+-}
+-.app.mode-page-enter-left {
+-  transform-origin: 100% 42%;
+-  animation: modePageEnterLeft 0.23s cubic-bezier(0.22, 0.72, 0.2, 1) both;
+-  pointer-events: none;
+-}
+-@keyframes modePageExitRight {
+-  from { opacity: 1; transform: perspective(900px) translateX(0) rotateY(0deg) scale(1); }
+-  to { opacity: 0.16; transform: perspective(900px) translateX(16px) rotateY(-3deg) scale(0.995); }
+-}
+-@keyframes modePageEnterRight {
+-  from { opacity: 0.12; transform: perspective(900px) translateX(-16px) rotateY(3deg) scale(0.995); }
+-  to { opacity: 1; transform: perspective(900px) translateX(0) rotateY(0deg) scale(1); }
+-}
+-@keyframes modePageExitLeft {
+-  from { opacity: 1; transform: perspective(900px) translateX(0) rotateY(0deg) scale(1); }
+-  to { opacity: 0.16; transform: perspective(900px) translateX(-16px) rotateY(3deg) scale(0.995); }
+-}
+-@keyframes modePageEnterLeft {
+-  from { opacity: 0.12; transform: perspective(900px) translateX(16px) rotateY(-3deg) scale(0.995); }
+-  to { opacity: 1; transform: perspective(900px) translateX(0) rotateY(0deg) scale(1); }
++/* ===== To-Do / Note mode transition: native-like layered spring slide ===== */
++/*
++ * V1.9 motion design:
++ * - same-document View Transition API where Chromium/WebView supports it;
++ * - simultaneous old/new snapshots, so there is no blank "fade-out then fade-in" frame;
++ * - transform + opacity only on the main shell for compositor-friendly motion;
++ * - slightly different old/new distances create a restrained parallax/depth feel;
++ * - WAAPI fallback remains for older WebView builds.
++ */
++.app { view-transition-name: mode-shell; }
++#categoryBar { view-transition-name: mode-category; }
++#fabRecycle { view-transition-name: mode-recycle; }
++#fabAi { view-transition-name: mode-ai; }
++#fab { view-transition-name: mode-fab; }
++
++::view-transition-group(mode-shell) {
++  animation-duration: 380ms;
++  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
++}
++::view-transition-image-pair(mode-shell) { isolation: isolate; }
++::view-transition-old(mode-shell),
++::view-transition-new(mode-shell) {
++  mix-blend-mode: normal;
++  backface-visibility: hidden;
++  transform-origin: 50% 14%;
++}
++
++/* A rightward user gesture reveals the incoming mode from the left. */
++html.mode-vt-right::view-transition-old(mode-shell) {
++  animation: modeShellOldRight 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
++}
++html.mode-vt-right::view-transition-new(mode-shell) {
++  animation: modeShellNewRight 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
++}
++html.mode-vt-left::view-transition-old(mode-shell) {
++  animation: modeShellOldLeft 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
++}
++html.mode-vt-left::view-transition-new(mode-shell) {
++  animation: modeShellNewLeft 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
++}
++
++@keyframes modeShellOldRight {
++  from { opacity: 1; transform: translate3d(0,0,0) scale(1); }
++  to   { opacity: 0.30; transform: translate3d(18px,0,0) scale(0.992); }
++}
++@keyframes modeShellNewRight {
++  from { opacity: 0.42; transform: translate3d(-24px,0,0) scale(0.988); }
++  72%  { opacity: 1; transform: translate3d(1.5px,0,0) scale(1.001); }
++  to   { opacity: 1; transform: translate3d(0,0,0) scale(1); }
++}
++@keyframes modeShellOldLeft {
++  from { opacity: 1; transform: translate3d(0,0,0) scale(1); }
++  to   { opacity: 0.30; transform: translate3d(-18px,0,0) scale(0.992); }
++}
++@keyframes modeShellNewLeft {
++  from { opacity: 0.42; transform: translate3d(24px,0,0) scale(0.988); }
++  72%  { opacity: 1; transform: translate3d(-1.5px,0,0) scale(1.001); }
++  to   { opacity: 1; transform: translate3d(0,0,0) scale(1); }
++}
++
++/* Mode-only controls enter/exit with a shorter shared fade, while the paper background stays calm. */
++::view-transition-group(mode-category),
++::view-transition-group(mode-recycle),
++::view-transition-group(mode-ai),
++::view-transition-group(mode-fab) {
++  animation-duration: 300ms;
++  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
++}
++::view-transition-old(mode-category),
++::view-transition-old(mode-recycle),
++::view-transition-old(mode-ai),
++::view-transition-old(mode-fab),
++::view-transition-new(mode-category),
++::view-transition-new(mode-recycle),
++::view-transition-new(mode-ai),
++::view-transition-new(mode-fab) {
++  mix-blend-mode: normal;
++}
++
++/* During a real header swipe the current page follows the finger a little, then the transition carries that momentum. */
++.app.mode-swipe-preview {
++  will-change: transform, opacity;
+ }
++
+ @media (prefers-reduced-motion: reduce) {
+-  .app.mode-page-exit-right, .app.mode-page-enter-right,
+-  .app.mode-page-exit-left, .app.mode-page-enter-left { animation-duration: 0.01ms; }
++  ::view-transition-group(mode-shell),
++  ::view-transition-group(mode-category),
++  ::view-transition-group(mode-recycle),
++  ::view-transition-group(mode-ai),
++  ::view-transition-group(mode-fab) { animation-duration: 0.01ms; }
+ }
+ 
+ /* ===== Note Container ===== */
+@@ -2641,34 +2691,90 @@
+ 
+ let modeSwitchAnimating = false;
+ let modeSwitchTimer = null;
++let modeSwipePreviewActive = false;
++
+ function applyMode(mode) {
+   currentMode = mode;
+   if (mode === 'notes') loadNotes();
+   renderModeUI();
+ }
++
++function clearModeSwipePreview() {
++  var appEl = document.querySelector('.app');
++  if (!appEl) return;
++  appEl.classList.remove('mode-swipe-preview');
++  appEl.style.removeProperty('transform');
++  appEl.style.removeProperty('opacity');
++  appEl.style.removeProperty('transition');
++  modeSwipePreviewActive = false;
++}
++
++function finishModeSwitch() {
++  clearTimeout(modeSwitchTimer);
++  document.documentElement.classList.remove('mode-vt-left', 'mode-vt-right');
++  clearModeSwipePreview();
++  modeSwitchAnimating = false;
++}
++
+ function switchMode(mode, motion) {
+   if (mode === currentMode || modeSwitchAnimating) return;
+   const appEl = document.querySelector('.app');
+   const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+-  if (!appEl || reduceMotion) { applyMode(mode); return; }
++  if (!appEl || reduceMotion) {
++    clearModeSwipePreview();
++    applyMode(mode);
++    return;
++  }
+ 
+   const direction = motion === 'left' || motion === 'right' ? motion : (mode === 'notes' ? 'right' : 'left');
+   modeSwitchAnimating = true;
+-  appEl.classList.remove('mode-page-exit-left','mode-page-exit-right','mode-page-enter-left','mode-page-enter-right');
+-  appEl.classList.add('mode-page-exit-' + direction);
++  const root = document.documentElement;
++  root.classList.remove('mode-vt-left', 'mode-vt-right');
++  root.classList.add('mode-vt-' + direction);
++
++  /*
++   * Modern Android WebView is Chromium-based and supports same-document view transitions.
++   * This snapshots old/new UI states and lets them animate at the same time, avoiding the
++   * V1.8 sequential blank-ish frame. Fallback below uses Web Animations API only.
++   */
++  if (typeof document.startViewTransition === 'function') {
++    try {
++      const transition = document.startViewTransition(function() {
++        clearModeSwipePreview();
++        applyMode(mode);
++      });
++      transition.finished.then(finishModeSwitch, finishModeSwitch);
++      modeSwitchTimer = setTimeout(finishModeSwitch, 520);
++      return;
++    } catch (e) {
++      // Older/vendor WebView edge case: fall through to compositor-friendly WAAPI fallback.
++    }
++  }
+ 
+-  clearTimeout(modeSwitchTimer);
+-  modeSwitchTimer = setTimeout(function() {
+-    appEl.classList.remove('mode-page-exit-' + direction);
++  const outX = direction === 'right' ? 16 : -16;
++  const inX = -outX * 1.35;
++  clearModeSwipePreview();
++  let outAnim;
++  try {
++    outAnim = appEl.animate([
++      { opacity: 1, transform: 'translate3d(0,0,0) scale(1)' },
++      { opacity: 0.34, transform: 'translate3d(' + outX + 'px,0,0) scale(0.992)' }
++    ], { duration: 125, easing: 'cubic-bezier(0.4,0,0.6,1)', fill: 'forwards' });
++  } catch (e) {
++    applyMode(mode);
++    finishModeSwitch();
++    return;
++  }
++
++  outAnim.finished.catch(function() {}).then(function() {
+     applyMode(mode);
+-    // Force a frame so the incoming page always starts from its entry pose.
+-    void appEl.offsetWidth;
+-    appEl.classList.add('mode-page-enter-' + direction);
+-    modeSwitchTimer = setTimeout(function() {
+-      appEl.classList.remove('mode-page-enter-' + direction);
+-      modeSwitchAnimating = false;
+-    }, 235);
+-  }, 130);
++    appEl.animate([
++      { opacity: 0.42, transform: 'translate3d(' + inX + 'px,0,0) scale(0.988)' },
++      { opacity: 1, transform: 'translate3d(0,0,0) scale(1)' }
++    ], { duration: 285, easing: 'cubic-bezier(0.16,1,0.3,1)', fill: 'both' })
++      .finished.catch(function() {}).then(finishModeSwitch);
++  });
++  modeSwitchTimer = setTimeout(finishModeSwitch, 520);
+ }
+ 
+ function renderModeUI() {
+@@ -2687,13 +2793,9 @@
+     }
+   }
+ 
+-  // Header title
++  // Header title — the V1.9 shared page transition handles the visual interpolation.
+   var titleEl = document.querySelector('.header__title');
+-  if (titleEl) {
+-    titleEl.classList.add('header__title--switching');
+-    titleEl.textContent = isNotes ? 'Note' : 'To-Do';
+-    setTimeout(function() { titleEl.classList.remove('header__title--switching'); }, 200);
+-  }
++  if (titleEl) titleEl.textContent = isNotes ? 'Note' : 'To-Do';
+ 
+   // Header stats (calendar, alarm — todo only)
+   var calendarBtn = document.getElementById('calendarBtn');
+@@ -5640,24 +5742,80 @@
+   return 'none';
+ }
+ 
+-// ===== Right-swipe on header area → switch between To-Do / Note =====
++// ===== Header horizontal swipe → interactive To-Do / Note mode switch =====
+ (function() {
+   var headerEl = document.querySelector('.header__top');
+   if (!headerEl) return;
+-  var swipeX = 0, swipeY = 0, swiping = false;
++  var swipeX = 0, swipeY = 0, swiping = false, horizontalIntent = false;
++  var rafId = 0;
++
++  function renderSwipePreview(dx) {
++    var appEl = document.querySelector('.app');
++    if (!appEl || modeSwitchAnimating) return;
++    var allowed = (dx > 0 && currentMode === 'todo') || (dx < 0 && currentMode === 'notes');
++    var resisted = allowed ? dx * 0.18 : dx * 0.055;
++    var offset = Math.max(-22, Math.min(22, resisted));
++    var dim = Math.min(0.045, Math.abs(offset) / 520);
++    appEl.classList.add('mode-swipe-preview');
++    appEl.style.transition = 'none';
++    appEl.style.transform = 'translate3d(' + offset.toFixed(2) + 'px,0,0) scale(0.998)';
++    appEl.style.opacity = String(1 - dim);
++    modeSwipePreviewActive = true;
++  }
++
++  function springBackSwipePreview() {
++    var appEl = document.querySelector('.app');
++    if (!appEl || !modeSwipePreviewActive) { clearModeSwipePreview(); return; }
++    appEl.style.transition = 'transform 220ms cubic-bezier(0.16,1,0.3,1), opacity 180ms ease-out';
++    appEl.style.transform = 'translate3d(0,0,0) scale(1)';
++    appEl.style.opacity = '1';
++    setTimeout(clearModeSwipePreview, 230);
++  }
++
+   headerEl.addEventListener('touchstart', function(e) {
++    if (modeSwitchAnimating || !e.touches.length) return;
+     swipeX = e.touches[0].clientX;
+     swipeY = e.touches[0].clientY;
+     swiping = true;
++    horizontalIntent = false;
+   }, { passive: true });
++
++  headerEl.addEventListener('touchmove', function(e) {
++    if (!swiping || modeSwitchAnimating || !e.touches.length) return;
++    var dx = e.touches[0].clientX - swipeX;
++    var dy = e.touches[0].clientY - swipeY;
++    if (!horizontalIntent && (Math.abs(dx) > 7 || Math.abs(dy) > 7)) {
++      horizontalIntent = Math.abs(dx) > Math.abs(dy) * 1.15;
++    }
++    if (!horizontalIntent) return;
++    e.preventDefault();
++    cancelAnimationFrame(rafId);
++    rafId = requestAnimationFrame(function() { renderSwipePreview(dx); });
++  }, { passive: false });
++
+   headerEl.addEventListener('touchend', function(e) {
+     if (!swiping) return;
+     swiping = false;
++    cancelAnimationFrame(rafId);
++    if (!e.changedTouches.length) { springBackSwipePreview(); return; }
+     var dx = e.changedTouches[0].clientX - swipeX;
+     var dy = Math.abs(e.changedTouches[0].clientY - swipeY);
+-    if (dx > 40 && dx > dy && currentMode === 'todo') switchMode('notes', 'right');
+-    if (dx < -40 && Math.abs(dx) > dy && currentMode === 'notes') switchMode('todo', 'left');
+-  });
++    if (horizontalIntent && dx > 40 && dx > dy && currentMode === 'todo') {
++      switchMode('notes', 'right');
++      return;
++    }
++    if (horizontalIntent && dx < -40 && Math.abs(dx) > dy && currentMode === 'notes') {
++      switchMode('todo', 'left');
++      return;
++    }
++    springBackSwipePreview();
++  }, { passive: true });
++
++  headerEl.addEventListener('touchcancel', function() {
++    swiping = false;
++    cancelAnimationFrame(rafId);
++    springBackSwipePreview();
++  }, { passive: true });
+ })();
+ 
+ // Toolbar button active state feedback
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.8.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.9.txt' '--exclude=SELF_TEST_V1.8.txt' '--exclude=SELF_TEST_V1.9.txt' /mnt/data/listnote_v18_baseline/verify-overwrite-safety.bat ./verify-overwrite-safety.bat
+--- /mnt/data/listnote_v18_baseline/verify-overwrite-safety.bat	1970-01-01 00:00:00.000000000 +0000
++++ ./verify-overwrite-safety.bat	2026-08-11 15:55:24.489033243 +0000
+@@ -0,0 +1,101 @@
++@echo off
++setlocal EnableExtensions EnableDelayedExpansion
++cd /d "%~dp0"
++set "PACKAGE=com.todolist.app"
++
++echo ============================================================
++echo To-Do V1.9 in-place update safety check
++echo Package: %PACKAGE%
++echo ============================================================
++
++set "SDK_DIR="
++for /f "tokens=1,* delims==" %%A in (local.properties) do (
++  if /I "%%A"=="sdk.dir" set "SDK_DIR=%%B"
++)
++if not defined SDK_DIR (
++  if defined ANDROID_SDK_ROOT set "SDK_DIR=%ANDROID_SDK_ROOT%"
++)
++if not defined SDK_DIR (
++  if defined ANDROID_HOME set "SDK_DIR=%ANDROID_HOME%"
++)
++if not defined SDK_DIR (
++  echo [ERROR] Android SDK path not found. Check local.properties / ANDROID_SDK_ROOT.
++  exit /b 2
++)
++set "SDK_DIR=!SDK_DIR:/=\!"
++set "ADB=!SDK_DIR!\platform-tools\adb.exe"
++if not exist "!ADB!" (
++  echo [ERROR] adb.exe not found at !ADB!
++  exit /b 3
++)
++
++set "APKSIGNER="
++for /f "delims=" %%F in ('dir /b /s "!SDK_DIR!\build-tools\*\apksigner.bat" 2^>nul') do set "APKSIGNER=%%F"
++if not defined APKSIGNER (
++  echo [ERROR] apksigner.bat not found under Android SDK build-tools.
++  exit /b 4
++)
++
++set "NEW_APK="
++for %%F in ("android\app\build\outputs\apk\debug\*.apk") do set "NEW_APK=%%~fF"
++if not defined NEW_APK (
++  echo [ERROR] No debug APK found. Build V1.9 once in Android Studio first.
++  exit /b 5
++)
++
++echo [1/4] Checking connected device...
++"!ADB!" get-state >nul 2>&1
++if errorlevel 1 (
++  echo [ERROR] No adb device connected/authorized.
++  exit /b 6
++)
++
++echo [2/4] Locating installed stable To-Do APK...
++set "REMOTE_APK="
++for /f "tokens=2 delims=:" %%P in ('"!ADB!" shell pm path %PACKAGE% 2^>nul ^| findstr /B /C:"package:"') do (
++  if not defined REMOTE_APK set "REMOTE_APK=%%P"
++)
++if not defined REMOTE_APK (
++  echo [ERROR] %PACKAGE% is not installed on the connected phone.
++  exit /b 7
++)
++set "REMOTE_APK=!REMOTE_APK: =!"
++set "OLD_APK=%TEMP%\todo-installed-current.apk"
++"!ADB!" pull "!REMOTE_APK!" "!OLD_APK!" >nul
++if errorlevel 1 (
++  echo [ERROR] Failed to pull installed APK.
++  exit /b 8
++)
++
++echo [3/4] Reading signing certificates...
++set "OLD_CERT="
++set "NEW_CERT="
++for /f "tokens=2,* delims=:" %%A in ('"!APKSIGNER!" verify --print-certs "!OLD_APK!" 2^>nul ^| findstr /I /C:"certificate SHA-256 digest"') do if not defined OLD_CERT set "OLD_CERT=%%B"
++for /f "tokens=2,* delims=:" %%A in ('"!APKSIGNER!" verify --print-certs "!NEW_APK!" 2^>nul ^| findstr /I /C:"certificate SHA-256 digest"') do if not defined NEW_CERT set "NEW_CERT=%%B"
++set "OLD_CERT=!OLD_CERT: =!"
++set "NEW_CERT=!NEW_CERT: =!"
++if not defined OLD_CERT (
++  echo [ERROR] Could not read certificate from installed APK.
++  exit /b 9
++)
++if not defined NEW_CERT (
++  echo [ERROR] Could not read certificate from new APK.
++  exit /b 10
++)
++
++echo Installed cert: !OLD_CERT!
++echo New APK cert : !NEW_CERT!
++echo.
++echo [4/4] Result
++if /I "!OLD_CERT!"=="!NEW_CERT!" (
++  echo [PASS] Package name and signing certificate are compatible for an in-place update.
++  echo        Do NOT uninstall the existing To-Do app. Install the new APK over it.
++  echo        Android should preserve the existing app sandbox/local data during the update.
++  exit /b 0
++) else (
++  echo [BLOCK] Signing certificate mismatch.
++  echo         Android will NOT allow this APK to overwrite the installed To-Do app.
++  echo         DO NOT uninstall the stable app if its local records/notes are important.
++  echo         Rebuild/sign V1.9 with the SAME key that signed the currently installed app.
++  exit /b 20
++)

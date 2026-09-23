@@ -1,0 +1,1063 @@
+diff -ruN /mnt/data/todo_v1226_base/README.md /mnt/data/todo_v1227/README.md
+--- /mnt/data/todo_v1226_base/README.md
++++ /mnt/data/todo_v1227/README.md
+@@ -1,4 +1,4 @@
+-# To-Do V1.22.6
++# To-Do V1.22.7
+ 
+ 本地优先的 To-Do + Note Android 应用。UI 使用 HTML/CSS/Vanilla JS，Android 原生层使用 Kotlin WebView，并负责精确定时、后台提醒守护与悬浮 Banner。
+ 
+@@ -9,6 +9,16 @@
+ 
+ 
+ 
++
++
++## V1.22.7 Note HTTP(S) 自动链接
++
++- Note 正文中的 `http://` / `https://` 明文网址会显示为 To-Do 风格蓝色可点击链接。
++- 第一版故意不识别 `example.com` / `www.example.com` 等无协议“模糊网址”，降低误判。
++- 输入空格、换行或粘贴完整 URL 后，只 linkify 最近完成的文本 token，不在每次输入时重写整篇 Note。
++- 旧笔记中的明文 HTTP(S) URL 在打开编辑器、尚未获取焦点前做一次安全 DOM linkify。
++- 点击链接通过 Android `ACTION_VIEW` 交给系统默认网页处理器/浏览器；WebView 自身不加载外站。
++- V1.22.3 IME/caret/单 Scroll Owner、V1.22.4 B/S/H、V1.22.5 缩放、V1.22.6 图片 focus-safe 预览均保持锁定。
+ 
+ ## V1.22.6 Note 图片预览焦点安全修复
+ 
+@@ -210,7 +220,7 @@
+ 成功后 APK 会复制到：
+ 
+ ```text
+-dist/To-Do-v1.22.6.apk
++dist/To-Do-v1.22.7.apk
+ ```
+ 
+ ## 技术栈
+diff -ruN /mnt/data/todo_v1226_base/SELF_TEST_V1.22.7.txt /mnt/data/todo_v1227/SELF_TEST_V1.22.7.txt
+--- /mnt/data/todo_v1226_base/SELF_TEST_V1.22.7.txt
++++ /mnt/data/todo_v1227/SELF_TEST_V1.22.7.txt
+@@ -0,0 +1,45 @@
++To-Do v1.22.7 Self Test
++========================
++Base: v1.22.6 NoteImageFocusSafePreview
++Target: v1.22.7 NoteHttpAutoLink
++
++Implementation boundary:
++- Explicit http:// and https:// only; no fuzzy bare-domain recognition.
++- Existing Note URLs are migrated before editor focus.
++- Live typing linkifies only the recently completed token on whitespace / Enter / paste.
++- No beforeinput preventDefault, no manual character insertion, no full-editor rewrite during typing.
++- Link click delegates through Android ACTION_VIEW; WebView does not navigate away.
++
++Static/source validation:
++- script_0.js node --check PASS
++- ui/todo.html == Android asset mirror PASS
++- inline main script == script_0.js PASS
++- static DOM IDs unique PASS
++- Android XML parse PASS
++- applicationId / namespace remain com.todolist.app PASS
++- versionCode=40 / versionName=1.22.7 PASS
++- Reminder/Daily/Banner/Snooze locked core SHA-256 20/20 PASS
++- NoteFileViewerActivity.kt / ImportReceiverActivity.kt / Manifest / FileProvider paths byte-identical to v1.22.6 PASS
++- MainActivity.kt equals v1.22.6 plus only the isolated openExternalUrl bridge PASS
++- V1.22.3 IME/caret critical functions exact-text unchanged PASS
++- V1.22.4 B/S/H critical functions exact-text unchanged PASS
++- V1.22.5 image-preview zoom functions exact-text unchanged PASS
++- V1.22.6 focus-safe inline-image pointer block exact-text unchanged PASS
++- Existing business localStorage key set unchanged PASS
++- URL parser checks PASS: explicit https/http accepted; bare-domain/javascript/credential URLs rejected; common Chinese/English trailing punctuation trimmed.
++
++Gradle build attempt:
++- ./gradlew :app:assembleDebug --offline --no-daemon attempted.
++- The sandbox still lacks cached Gradle 8.11.1 and cannot reach services.gradle.org (UnknownHostException), so a full Android compilation could not begin.
++
++Target-phone acceptance:
++1. Type `https://mojie.app/dashboard` then Space: URL becomes blue/clickable, caret remains after the space, no jump-to-top.
++2. Type the URL then Enter: previous-line URL becomes clickable, new line remains the current caret location.
++3. Paste a complete http(s) URL: it becomes clickable without corrupting Chinese IME / undo / formatting.
++4. Open an older Note that already contains plain-text http(s) URL: it displays as a link before typing begins.
++5. Tap a link: To-Do remains intact and Android opens the URL in the system web handler/default browser.
++6. `example.com` and `www.example.com` remain plain text in V1.22.7.
++7. `javascript:...` / non-http(s) text never becomes a clickable auto-link.
++8. Recheck B/S/H after link creation; their manual ON/OFF state remains the authority for next input.
++9. Recheck long-note keyboard: toolbar remains above IME, low caret reveal works, normal typing/deletion does not jump to top.
++10. Recheck inline image preview, image pinch/pan, PDF scroll/zoom, file attachments/import, Reminder/Daily/Banner/Snooze.
+diff -ruN /mnt/data/todo_v1226_base/android/app/build.gradle.kts /mnt/data/todo_v1227/android/app/build.gradle.kts
+--- /mnt/data/todo_v1226_base/android/app/build.gradle.kts
++++ /mnt/data/todo_v1227/android/app/build.gradle.kts
+@@ -11,8 +11,8 @@
+         applicationId = "com.todolist.app"
+         minSdk = 26
+         targetSdk = 35
+-        versionCode = 39
+-        versionName = "1.22.6"
++        versionCode = 40
++        versionName = "1.22.7"
+     }
+ 
+     buildTypes {
+diff -ruN /mnt/data/todo_v1226_base/android/app/src/main/assets/todo.html /mnt/data/todo_v1227/android/app/src/main/assets/todo.html
+--- /mnt/data/todo_v1226_base/android/app/src/main/assets/todo.html
++++ /mnt/data/todo_v1227/android/app/src/main/assets/todo.html
+@@ -2089,6 +2089,19 @@
+   margin: 4px 0;
+ }
+ .note-editor__body li { margin: 2px 0; }
++.note-editor__body a[href^="http://"],
++.note-editor__body a[href^="https://"],
++.note-editor__body a[href^="http://"]:visited,
++.note-editor__body a[href^="https://"]:visited {
++  color:#3b82c4;
++  text-decoration:none;
++  border-bottom:1px solid rgba(59,130,196,.32);
++  cursor:pointer;
++  overflow-wrap:anywhere;
++  -webkit-tap-highlight-color:rgba(59,130,196,.10);
++}
++.note-editor__body a[href^="http://"]:active,
++.note-editor__body a[href^="https://"]:active { opacity:.66; }
+ 
+ /* ===== Note inline images ===== */
+ .note-image-grid {
+@@ -4044,7 +4057,11 @@
+   document.documentElement.classList.add('note-editor-open');
+   document.body.classList.add('note-editor-open');
+   if (titleInput) titleInput.value = note.title;
+-  if (bodyEl) bodyEl.innerHTML = note.content;
++  if (bodyEl) {
++    bodyEl.innerHTML = note.content;
++    // V1.22.7: migrate visible legacy plain-text http(s) URLs before focus so selection/IME are untouched.
++    noteLinkifyExistingUrls(bodyEl);
++  }
+   _boldActive = false;
+   _strikeActive = false;
+   _highlightActive = false;
+@@ -7581,6 +7598,241 @@
+ }, true);
+ document.getElementById('noteEditorBody')?.addEventListener('pointercancel', function(){ noteFilePointerTap = null; }, true);
+ 
++// ===== Note http(s) auto-linking =====
++// V1.22.7 safety model, inspired by mature editors: explicit-protocol only (no fuzzy domain guesses),
++// link only the just-completed token / pasted token, and never rewrite the full editor while typing.
++// Existing notes are migrated before focus in openNoteEditor(), where no live caret/IME exists.
++var notePendingUrlCandidate = null;
++var noteAutoLinkBusy = false;
++
++function isAllowedNoteHttpUrl(value) {
++  value = String(value || '').trim();
++  if (!/^https?:\/\//i.test(value)) return false;
++  try {
++    var parsed = new URL(value);
++    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
++    if (!parsed.hostname) return false;
++    // Avoid silently creating credential-bearing links from plain text.
++    if (parsed.username || parsed.password) return false;
++    return true;
++  } catch(e) { return false; }
++}
++
++function trimNoteUrlTail(value) {
++  var token = String(value || '');
++  // Common sentence punctuation should remain plain text after the link.
++  while (/[.,，。;；:：!?！？、"'”’」』]$/.test(token)) token = token.slice(0, -1);
++  var pairs = {')':'(', ']':'[', '}':'{', '）':'（', '】':'【', '》':'《'};
++  var changed = true;
++  while (changed && token) {
++    changed = false;
++    var close = token.charAt(token.length - 1);
++    var open = pairs[close];
++    if (!open) break;
++    var opens = 0, closes = 0;
++    for (var i = 0; i < token.length; i++) {
++      if (token.charAt(i) === open) opens++;
++      if (token.charAt(i) === close) closes++;
++    }
++    if (closes > opens) { token = token.slice(0, -1); changed = true; }
++  }
++  return token;
++}
++
++function noteNodeIsLinkifiableText(node, root) {
++  if (!node || node.nodeType !== 3 || !root || !root.contains(node)) return false;
++  var parent = node.parentElement;
++  if (!parent) return false;
++  if (parent.closest('a')) return false;
++  if (parent.closest('[contenteditable="false"],.note-file-card,.note-image-grid,.note-image-picker-marker,.note-file-picker-marker')) return false;
++  return true;
++}
++
++function noteCaretTextOffset(root) {
++  var sel = window.getSelection();
++  if (!root || !sel || !sel.rangeCount || !root.contains(sel.anchorNode)) return null;
++  try {
++    var r = document.createRange();
++    r.selectNodeContents(root);
++    r.setEnd(sel.anchorNode, sel.anchorOffset);
++    return r.toString().length;
++  } catch(e) { return null; }
++}
++
++function restoreNoteCaretTextOffset(root, offset) {
++  if (!root || offset == null) return;
++  var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
++  var remaining = Math.max(0, Number(offset) || 0), node;
++  while ((node = walker.nextNode())) {
++    var len = (node.nodeValue || '').length;
++    if (remaining <= len) {
++      try {
++        var range = document.createRange();
++        range.setStart(node, remaining);
++        range.collapse(true);
++        var sel = window.getSelection();
++        sel.removeAllRanges(); sel.addRange(range);
++        return;
++      } catch(e) { return; }
++    }
++    remaining -= len;
++  }
++  try {
++    var endRange = document.createRange();
++    endRange.selectNodeContents(root); endRange.collapse(false);
++    var endSel = window.getSelection();
++    endSel.removeAllRanges(); endSel.addRange(endRange);
++  } catch(e2) {}
++}
++
++function noteUrlCandidateBeforeCaret() {
++  var bodyEl = document.getElementById('noteEditorBody');
++  var sel = window.getSelection();
++  if (!bodyEl || !sel || !sel.rangeCount || !sel.isCollapsed || !bodyEl.contains(sel.anchorNode)) return null;
++  var node = sel.anchorNode;
++  var offset = sel.anchorOffset;
++  if (node && node.nodeType === 1 && offset > 0) {
++    var prev = node.childNodes[offset - 1];
++    if (prev && prev.nodeType === 3) { node = prev; offset = (prev.nodeValue || '').length; }
++  }
++  if (!noteNodeIsLinkifiableText(node, bodyEl)) return null;
++  var text = node.nodeValue || '';
++  var scanEnd = Math.min(offset, text.length);
++  while (scanEnd > 0 && /\s/.test(text.charAt(scanEnd - 1))) scanEnd--;
++  if (scanEnd <= 0) return null;
++  var prefix = text.slice(Math.max(0, scanEnd - 2048), scanEnd);
++  var match = prefix.match(/https?:\/\/[^\s<>"']+$/i);
++  if (!match) return null;
++  var raw = match[0];
++  var url = trimNoteUrlTail(raw);
++  if (!url || !isAllowedNoteHttpUrl(url)) return null;
++  var start = scanEnd - raw.length;
++  var end = start + url.length;
++  if (start < 0 || end <= start) return null;
++  return { node:node, start:start, end:end, url:url };
++}
++
++function applyNoteAutoLinkCandidate(candidate) {
++  var bodyEl = document.getElementById('noteEditorBody');
++  if (!bodyEl || !candidate || noteAutoLinkBusy) return false;
++  var node = candidate.node;
++  if (!noteNodeIsLinkifiableText(node, bodyEl) || !node.isConnected) return false;
++  if ((node.nodeValue || '').slice(candidate.start, candidate.end) !== candidate.url) return false;
++  var caretOffset = noteCaretTextOffset(bodyEl);
++  var oldScrollTop = bodyEl.scrollTop;
++  var oldScrollLeft = bodyEl.scrollLeft;
++  noteAutoLinkBusy = true;
++  var ok = false;
++  try {
++    var range = document.createRange();
++    range.setStart(node, candidate.start);
++    range.setEnd(node, candidate.end);
++    var sel = window.getSelection();
++    sel.removeAllRanges(); sel.addRange(range);
++    ok = !!document.execCommand('createLink', false, candidate.url);
++    if (ok) {
++      var links = bodyEl.querySelectorAll('a[href]');
++      for (var i = links.length - 1; i >= 0; i--) {
++        var link = links[i];
++        if ((link.textContent || '') === candidate.url && isAllowedNoteHttpUrl(link.getAttribute('href') || '')) {
++          link.setAttribute('rel','noopener noreferrer');
++          break;
++        }
++      }
++    }
++  } catch(e) { ok = false; }
++  restoreNoteCaretTextOffset(bodyEl, caretOffset);
++  bodyEl.scrollTop = oldScrollTop;
++  bodyEl.scrollLeft = oldScrollLeft;
++  rememberNoteSelection();
++  noteAutoLinkBusy = false;
++  if (ok) noteAutoSave();
++  return ok;
++}
++
++function noteLinkifyExistingUrls(root) {
++  if (!root) return false;
++  var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
++  var nodes = [], node;
++  while ((node = walker.nextNode())) if (noteNodeIsLinkifiableText(node, root)) nodes.push(node);
++  var changed = false;
++  nodes.forEach(function(textNode) {
++    var text = textNode.nodeValue || '';
++    var re = /https?:\/\/[^\s<>"']+/ig;
++    var matches = [], m;
++    while ((m = re.exec(text))) {
++      var url = trimNoteUrlTail(m[0]);
++      if (url && isAllowedNoteHttpUrl(url)) matches.push({ index:m.index, raw:m[0], url:url });
++    }
++    if (!matches.length || !textNode.parentNode) return;
++    var frag = document.createDocumentFragment();
++    var cursor = 0;
++    matches.forEach(function(item) {
++      if (item.index < cursor) return;
++      if (item.index > cursor) frag.appendChild(document.createTextNode(text.slice(cursor, item.index)));
++      var a = document.createElement('a');
++      a.href = item.url;
++      a.rel = 'noopener noreferrer';
++      a.textContent = item.url;
++      frag.appendChild(a);
++      cursor = item.index + item.url.length;
++      changed = true;
++    });
++    if (cursor < text.length) frag.appendChild(document.createTextNode(text.slice(cursor)));
++    textNode.parentNode.replaceChild(frag, textNode);
++  });
++  return changed;
++}
++
++function openNoteHttpUrl(href) {
++  href = String(href || '').trim();
++  if (!isAllowedNoteHttpUrl(href)) return;
++  closeNoteKeyboardForOverlay();
++  if (typeof AndroidBridge !== 'undefined' && AndroidBridge.openExternalUrl) {
++    try {
++      var result = String(AndroidBridge.openExternalUrl(href));
++      if (result === 'unavailable') showToast('没有可用的浏览器');
++      else if (result !== 'ok') showToast('暂时无法打开链接');
++      return;
++    } catch(e) {}
++  }
++  try { window.open(href, '_blank', 'noopener'); } catch(e2) {}
++}
++
++var noteLinkBody = document.getElementById('noteEditorBody');
++if (noteLinkBody) {
++  // Capture the URL before Enter splits the current text node; apply only after the native edit completes.
++  noteLinkBody.addEventListener('beforeinput', function(e) {
++    if (noteAutoLinkBusy || e.isComposing) return;
++    var type = String(e.inputType || '');
++    if (type === 'insertParagraph' || type === 'insertLineBreak') notePendingUrlCandidate = noteUrlCandidateBeforeCaret();
++  });
++  noteLinkBody.addEventListener('input', function(e) {
++    if (noteAutoLinkBusy || e.isComposing) return;
++    var type = String(e.inputType || '');
++    if (type === 'insertParagraph' || type === 'insertLineBreak') {
++      var pending = notePendingUrlCandidate; notePendingUrlCandidate = null;
++      if (pending) setTimeout(function(){ applyNoteAutoLinkCandidate(pending); }, 0);
++      return;
++    }
++    if (type === 'insertText' && /\s/.test(String(e.data || ''))) {
++      setTimeout(function(){ var c = noteUrlCandidateBeforeCaret(); if (c) applyNoteAutoLinkCandidate(c); }, 0);
++    }
++  });
++  noteLinkBody.addEventListener('paste', function() {
++    // Do not intercept/cancel paste; wait until Chromium has inserted it, then inspect only the token at the caret.
++    setTimeout(function(){ var c = noteUrlCandidateBeforeCaret(); if (c) applyNoteAutoLinkCandidate(c); }, 0);
++  });
++  noteLinkBody.addEventListener('click', function(e) {
++    var link = e.target && e.target.closest ? e.target.closest('a[href]') : null;
++    if (!link || !noteLinkBody.contains(link)) return;
++    var href = link.getAttribute('href') || '';
++    if (!isAllowedNoteHttpUrl(href)) return;
++    e.preventDefault(); e.stopPropagation();
++    openNoteHttpUrl(href);
++  }, true);
++}
++
+ // ===== Keyboard-aware Note editor =====
+ // V1.22.3: keep V1.22.2's single-scroll-owner model, but make Android WindowInsets the
+ // authoritative IME geometry when the native bridge is available. visualViewport remains
+diff -ruN /mnt/data/todo_v1226_base/android/app/src/main/java/com/todolist/app/MainActivity.kt /mnt/data/todo_v1227/android/app/src/main/java/com/todolist/app/MainActivity.kt
+--- /mnt/data/todo_v1226_base/android/app/src/main/java/com/todolist/app/MainActivity.kt
++++ /mnt/data/todo_v1227/android/app/src/main/java/com/todolist/app/MainActivity.kt
+@@ -814,6 +814,24 @@
+         }
+ 
+         @JavascriptInterface
++        fun openExternalUrl(urlRaw: String): String {
++            val uri = try { Uri.parse(urlRaw.trim()) } catch (_: Exception) { return "invalid" }
++            val scheme = uri.scheme?.lowercase() ?: return "invalid"
++            if (scheme != "http" && scheme != "https") return "invalid"
++            if (uri.host.isNullOrBlank()) return "invalid"
++            val intent = Intent(Intent.ACTION_VIEW, uri).apply {
++                addCategory(Intent.CATEGORY_BROWSABLE)
++            }
++            if (intent.resolveActivity(packageManager) == null) return "unavailable"
++            return try {
++                runOnUiThread {
++                    try { startActivity(intent) } catch (_: Exception) {}
++                }
++                "ok"
++            } catch (_: Exception) { "failed" }
++        }
++
++        @JavascriptInterface
+         fun beginExternalNoteImport(noteIdRaw: String, target: String): String {
+             val noteId = noteIdRaw.toLongOrNull() ?: return "invalid"
+             if (noteId <= 0L) return "invalid"
+diff -ruN /mnt/data/todo_v1226_base/build-apk.bat /mnt/data/todo_v1227/build-apk.bat
+--- /mnt/data/todo_v1226_base/build-apk.bat
++++ /mnt/data/todo_v1227/build-apk.bat
+@@ -10,9 +10,9 @@
+ )
+ if not exist "dist" mkdir "dist"
+ for %%F in ("android\app\build\outputs\apk\debug\*.apk") do (
+-  copy /Y "%%~fF" "dist\To-Do-v1.22.6.apk" >nul
++  copy /Y "%%~fF" "dist\To-Do-v1.22.7.apk" >nul
+   echo.
+-  echo APK: %CD%\dist\To-Do-v1.22.6.apk
++  echo APK: %CD%\dist\To-Do-v1.22.7.apk
+   exit /b 0
+ )
+ echo Build finished but no APK was found under android\app\build\outputs\apk\debug
+diff -ruN /mnt/data/todo_v1226_base/changes/CHANGELOG_V1.22.7.md /mnt/data/todo_v1227/changes/CHANGELOG_V1.22.7.md
+--- /mnt/data/todo_v1226_base/changes/CHANGELOG_V1.22.7.md
++++ /mnt/data/todo_v1227/changes/CHANGELOG_V1.22.7.md
+@@ -0,0 +1,19 @@
++# V1.22.7 — Note HTTP(S) Auto Link
++
++## Scope
++Only the Note HTTP(S) link experience and the minimal Android external-URL bridge are changed.
++
++## Behavior
++- Explicit `http://` and `https://` URLs only; no fuzzy bare-domain recognition.
++- URL completion is recognized on whitespace / Enter / paste.
++- Live typing modifies only the just-completed text token. It never scans/replaces the whole editor on each keystroke.
++- Legacy plain-text URLs are linkified before the Note editor receives focus.
++- Link clicks are intercepted and delegated to Android `ACTION_VIEW`; the Note WebView does not navigate away.
++- URL scheme/host are validated in both JS and Kotlin; non-http(s) schemes are rejected.
++
++## Regression boundary
++- No changes to reminder / Daily / Banner / Snooze runtime.
++- No changes to NoteFileViewerActivity, ImportReceiverActivity, file/image import, PDF/image zoom.
++- Existing V1.22.3 IME/caret architecture remains exact except unrelated surrounding source offsets.
++- Existing V1.22.4 manual B/S/H implementation remains unchanged.
++- Existing V1.22.6 focus-safe image preview implementation remains unchanged.
+diff -ruN /mnt/data/todo_v1226_base/changes/LOCKED_CORE_GUARD_V1.22.7.txt /mnt/data/todo_v1227/changes/LOCKED_CORE_GUARD_V1.22.7.txt
+--- /mnt/data/todo_v1226_base/changes/LOCKED_CORE_GUARD_V1.22.7.txt
++++ /mnt/data/todo_v1227/changes/LOCKED_CORE_GUARD_V1.22.7.txt
+@@ -0,0 +1,43 @@
++Locked Core Guard — V1.22.6 -> V1.22.7 Note HTTP(S) Auto-Link
++
++Authorized scope:
++- ui/todo.html + Android asset + script_0.js: conservative Note http(s) recognition, link styling, local token linkification, legacy pre-focus linkify and link-click interception.
++- MainActivity.kt: one isolated openExternalUrl(http/https) JavaScript bridge using Android ACTION_VIEW.
++- Version/readme/release metadata.
++
++Explicitly unchanged:
++- V1.22.3 IME geometry, toolbar-at-keyboard-edge, caret reveal and single Scroll Owner.
++- V1.22.4 B/S/H manual future-input state.
++- V1.22.5 PDF/image gesture zoom.
++- V1.22.6 focus-safe inline image preview entry.
++- NoteFileViewerActivity, ImportReceiverActivity, image/file import/storage and FileProvider.
++- Reminder / Daily / Banner / Snooze locked core.
++
++- PASS  android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt  49dbbad17f11d7109eb4d82a55857e01b219e22b2d68c91289e801f2f6d9468f
++- PASS  android/app/src/main/java/com/todolist/app/receiver/BootReceiver.kt  5c749c6186e9ba2e9226e29e93856753879c898e8b2dcbe5d7a9922c4d27ca7d
++- PASS  android/app/src/main/java/com/todolist/app/receiver/DailyTaskActionReceiver.kt  9bd9bb60566ee86da41ce282cf3b1b845f4f4caa05b34567cc5612ac33c092de
++- PASS  android/app/src/main/java/com/todolist/app/receiver/DailyTaskReminderReceiver.kt  26928a47fd1f97f7ab9b51500f5c58f20333e2c1d1cc72edd4cc6a3ed9907292
++- PASS  android/app/src/main/java/com/todolist/app/receiver/MidnightReceiver.kt  49ebf2634854cd20c6d03656d4c1da7de3a6c0a30f542cdf23e7b0c9b9f1219e
++- PASS  android/app/src/main/java/com/todolist/app/receiver/ReminderActionReceiver.kt  ba2b57ee965759555fe4913827b2aa4fdeb1499854fb40c298efeb2bcfc3e361
++- PASS  android/app/src/main/java/com/todolist/app/receiver/TodoReminderReceiver.kt  36b242a80eaa2a9d4f4cd1aad3d8ff7105027e68ce0f166efd1b8aea495cb207
++- PASS  android/app/src/main/java/com/todolist/app/reminder/DailyTaskStore.kt  5770232c61f413fa8e88dadd07182f1a3a81d04a8758d9e3b4e37d43d417162e
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderDiagnostics.kt  445283809d9ecbafd08e80e8cd882444372127ef7aebea8d38c30a9857be4898
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderNotifier.kt  2b99868689598268ac27e07ed55385d5e2786ab6c1b9027b80dff2459b5642fc
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderScheduler.kt  4d58be9846178a49e45ca62d69368be10190512599c19e5aeac5431e9bd79a1e
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderStore.kt  f2e941bc491f4d743697136e135888e98c14324236abb8814b9632669a183df6
++- PASS  android/app/src/main/java/com/todolist/app/reminder/SnoozeStore.kt  87f3a0ee2af0af3bf1d43453a24b2d4429de4b653b9faf4482f616a9da574b6d
++- PASS  android/app/src/main/java/com/todolist/app/reminder/TodoSnapshotStore.kt  74ea806ecddc1680c3e7cb5f7e0abb9db8ba1a69ab9a4b3ac2e90a7cd5e9c1b3
++- PASS  android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt  be35d5eff3dd8067f0596d13055b9dda7f8d77204fe4ff1015c7f57499a58ca4
++- PASS  android/app/src/main/java/com/todolist/app/ui/BannerView.kt  f5e3fb07f5700e148e26cb4c9091f17e5ed06d2f82ad22bf15b9af24c328d68a
++- PASS  android/app/src/main/java/com/todolist/app/ui/DailyTaskBannerView.kt  41aa1e68973d2b77462484c22be00b9b712349c452a4db3c819e534854ea2bb5
++- PASS  android/app/src/main/java/com/todolist/app/ui/SnoozeSwipeBannerView.kt  4b99f2224df38ca6d90b749290174f69291e5f24589af35a58af12720bc829f4
++- PASS  android/app/src/main/java/com/todolist/app/ui/TodoReminderBannerView.kt  c53e279feafaa0b46f470c4e0ee0ab3d0cd48420171ac006079a6988f867c408
++- PASS  android/app/src/main/java/com/todolist/app/util/Dp.kt  4076197dac4258610e66978ffa4d4347ba1c1eb75ec364ddca9344c99ee617e8
++- PASS unchanged  android/app/src/main/java/com/todolist/app/NoteFileViewerActivity.kt
++- PASS unchanged  android/app/src/main/java/com/todolist/app/ImportReceiverActivity.kt
++- PASS unchanged  android/app/src/main/AndroidManifest.xml
++- PASS unchanged  android/app/src/main/res/xml/file_paths.xml
++
++Locked reminder/banner core: 20/20 PASS.
++MainActivity: PASS — baseline plus isolated openExternalUrl bridge only.
++Result: PASS
+diff -ruN /mnt/data/todo_v1226_base/changes/NOTE_HTTP_AUTOLINK_V1.22.7.md /mnt/data/todo_v1227/changes/NOTE_HTTP_AUTOLINK_V1.22.7.md
+--- /mnt/data/todo_v1226_base/changes/NOTE_HTTP_AUTOLINK_V1.22.7.md
++++ /mnt/data/todo_v1227/changes/NOTE_HTTP_AUTOLINK_V1.22.7.md
+@@ -0,0 +1,34 @@
++# Note HTTP(S) Auto-Link Architecture — V1.22.7
++
++## Scope
++This release adds clickable web links to Note body text without turning the existing contenteditable editor into a new editor framework.
++
++## Recognition boundary
++- Auto-link only explicit `http://` and `https://` URLs.
++- Do not fuzzy-link `example.com`, `www.example.com`, IP-like text, or email-like text.
++- Reject non-http(s) protocols in both JavaScript and the Android bridge.
++- Reject credential-bearing URL text (`user:pass@host`) from auto-link creation.
++
++## Live-editor safety
++- Never scan or replace the whole Note on every key stroke.
++- Space: inspect only the URL token immediately before the caret.
++- Enter / line break: capture only the just-completed token before Chromium splits the text block, then link it after native input completes.
++- Paste: do not cancel or rewrite the paste event; inspect only the token at the caret after Chromium inserts it.
++- Use the existing browser editing engine and `execCommand(createLink)` for the narrow selected URL range; preserve/restore the caret text offset and body scroll position.
++- The manual B/S/H state remains authoritative and is re-synchronized by the already-existing beforeinput path on the next typed character.
++
++## Legacy notes
++Existing plain-text HTTP(S) URLs are linkified only immediately after `bodyEl.innerHTML = note.content` and before the editor is focused. There is therefore no live caret, IME, or toolbar geometry to disturb.
++
++## Click behavior
++- Intercept only valid HTTP(S) anchors inside `noteEditorBody`.
++- The Note WebView never navigates to the remote page.
++- Delegate to Android through a minimal `openExternalUrl()` bridge using `Intent.ACTION_VIEW` / `CATEGORY_BROWSABLE` after scheme/host validation.
++- Browser fallback (`window.open`) exists for non-Android local HTML testing.
++
++## Explicitly locked
++- V1.22.3 IME WindowInsets / toolbar-at-keyboard-edge / one-shot caret reveal / single Scroll Owner.
++- V1.22.4 B / S / H manual typing-state architecture.
++- V1.22.5 PDF and image pinch/pan.
++- V1.22.6 focus-safe inline-image preview entry.
++- File/image import, PDF viewer, Reminder/Daily/Banner/Snooze.
+diff -ruN /mnt/data/todo_v1226_base/script_0.js /mnt/data/todo_v1227/script_0.js
+--- /mnt/data/todo_v1226_base/script_0.js
++++ /mnt/data/todo_v1227/script_0.js
+@@ -1131,7 +1131,11 @@
+   document.documentElement.classList.add('note-editor-open');
+   document.body.classList.add('note-editor-open');
+   if (titleInput) titleInput.value = note.title;
+-  if (bodyEl) bodyEl.innerHTML = note.content;
++  if (bodyEl) {
++    bodyEl.innerHTML = note.content;
++    // V1.22.7: migrate visible legacy plain-text http(s) URLs before focus so selection/IME are untouched.
++    noteLinkifyExistingUrls(bodyEl);
++  }
+   _boldActive = false;
+   _strikeActive = false;
+   _highlightActive = false;
+@@ -4668,6 +4672,241 @@
+ }, true);
+ document.getElementById('noteEditorBody')?.addEventListener('pointercancel', function(){ noteFilePointerTap = null; }, true);
+ 
++// ===== Note http(s) auto-linking =====
++// V1.22.7 safety model, inspired by mature editors: explicit-protocol only (no fuzzy domain guesses),
++// link only the just-completed token / pasted token, and never rewrite the full editor while typing.
++// Existing notes are migrated before focus in openNoteEditor(), where no live caret/IME exists.
++var notePendingUrlCandidate = null;
++var noteAutoLinkBusy = false;
++
++function isAllowedNoteHttpUrl(value) {
++  value = String(value || '').trim();
++  if (!/^https?:\/\//i.test(value)) return false;
++  try {
++    var parsed = new URL(value);
++    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
++    if (!parsed.hostname) return false;
++    // Avoid silently creating credential-bearing links from plain text.
++    if (parsed.username || parsed.password) return false;
++    return true;
++  } catch(e) { return false; }
++}
++
++function trimNoteUrlTail(value) {
++  var token = String(value || '');
++  // Common sentence punctuation should remain plain text after the link.
++  while (/[.,，。;；:：!?！？、"'”’」』]$/.test(token)) token = token.slice(0, -1);
++  var pairs = {')':'(', ']':'[', '}':'{', '）':'（', '】':'【', '》':'《'};
++  var changed = true;
++  while (changed && token) {
++    changed = false;
++    var close = token.charAt(token.length - 1);
++    var open = pairs[close];
++    if (!open) break;
++    var opens = 0, closes = 0;
++    for (var i = 0; i < token.length; i++) {
++      if (token.charAt(i) === open) opens++;
++      if (token.charAt(i) === close) closes++;
++    }
++    if (closes > opens) { token = token.slice(0, -1); changed = true; }
++  }
++  return token;
++}
++
++function noteNodeIsLinkifiableText(node, root) {
++  if (!node || node.nodeType !== 3 || !root || !root.contains(node)) return false;
++  var parent = node.parentElement;
++  if (!parent) return false;
++  if (parent.closest('a')) return false;
++  if (parent.closest('[contenteditable="false"],.note-file-card,.note-image-grid,.note-image-picker-marker,.note-file-picker-marker')) return false;
++  return true;
++}
++
++function noteCaretTextOffset(root) {
++  var sel = window.getSelection();
++  if (!root || !sel || !sel.rangeCount || !root.contains(sel.anchorNode)) return null;
++  try {
++    var r = document.createRange();
++    r.selectNodeContents(root);
++    r.setEnd(sel.anchorNode, sel.anchorOffset);
++    return r.toString().length;
++  } catch(e) { return null; }
++}
++
++function restoreNoteCaretTextOffset(root, offset) {
++  if (!root || offset == null) return;
++  var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
++  var remaining = Math.max(0, Number(offset) || 0), node;
++  while ((node = walker.nextNode())) {
++    var len = (node.nodeValue || '').length;
++    if (remaining <= len) {
++      try {
++        var range = document.createRange();
++        range.setStart(node, remaining);
++        range.collapse(true);
++        var sel = window.getSelection();
++        sel.removeAllRanges(); sel.addRange(range);
++        return;
++      } catch(e) { return; }
++    }
++    remaining -= len;
++  }
++  try {
++    var endRange = document.createRange();
++    endRange.selectNodeContents(root); endRange.collapse(false);
++    var endSel = window.getSelection();
++    endSel.removeAllRanges(); endSel.addRange(endRange);
++  } catch(e2) {}
++}
++
++function noteUrlCandidateBeforeCaret() {
++  var bodyEl = document.getElementById('noteEditorBody');
++  var sel = window.getSelection();
++  if (!bodyEl || !sel || !sel.rangeCount || !sel.isCollapsed || !bodyEl.contains(sel.anchorNode)) return null;
++  var node = sel.anchorNode;
++  var offset = sel.anchorOffset;
++  if (node && node.nodeType === 1 && offset > 0) {
++    var prev = node.childNodes[offset - 1];
++    if (prev && prev.nodeType === 3) { node = prev; offset = (prev.nodeValue || '').length; }
++  }
++  if (!noteNodeIsLinkifiableText(node, bodyEl)) return null;
++  var text = node.nodeValue || '';
++  var scanEnd = Math.min(offset, text.length);
++  while (scanEnd > 0 && /\s/.test(text.charAt(scanEnd - 1))) scanEnd--;
++  if (scanEnd <= 0) return null;
++  var prefix = text.slice(Math.max(0, scanEnd - 2048), scanEnd);
++  var match = prefix.match(/https?:\/\/[^\s<>"']+$/i);
++  if (!match) return null;
++  var raw = match[0];
++  var url = trimNoteUrlTail(raw);
++  if (!url || !isAllowedNoteHttpUrl(url)) return null;
++  var start = scanEnd - raw.length;
++  var end = start + url.length;
++  if (start < 0 || end <= start) return null;
++  return { node:node, start:start, end:end, url:url };
++}
++
++function applyNoteAutoLinkCandidate(candidate) {
++  var bodyEl = document.getElementById('noteEditorBody');
++  if (!bodyEl || !candidate || noteAutoLinkBusy) return false;
++  var node = candidate.node;
++  if (!noteNodeIsLinkifiableText(node, bodyEl) || !node.isConnected) return false;
++  if ((node.nodeValue || '').slice(candidate.start, candidate.end) !== candidate.url) return false;
++  var caretOffset = noteCaretTextOffset(bodyEl);
++  var oldScrollTop = bodyEl.scrollTop;
++  var oldScrollLeft = bodyEl.scrollLeft;
++  noteAutoLinkBusy = true;
++  var ok = false;
++  try {
++    var range = document.createRange();
++    range.setStart(node, candidate.start);
++    range.setEnd(node, candidate.end);
++    var sel = window.getSelection();
++    sel.removeAllRanges(); sel.addRange(range);
++    ok = !!document.execCommand('createLink', false, candidate.url);
++    if (ok) {
++      var links = bodyEl.querySelectorAll('a[href]');
++      for (var i = links.length - 1; i >= 0; i--) {
++        var link = links[i];
++        if ((link.textContent || '') === candidate.url && isAllowedNoteHttpUrl(link.getAttribute('href') || '')) {
++          link.setAttribute('rel','noopener noreferrer');
++          break;
++        }
++      }
++    }
++  } catch(e) { ok = false; }
++  restoreNoteCaretTextOffset(bodyEl, caretOffset);
++  bodyEl.scrollTop = oldScrollTop;
++  bodyEl.scrollLeft = oldScrollLeft;
++  rememberNoteSelection();
++  noteAutoLinkBusy = false;
++  if (ok) noteAutoSave();
++  return ok;
++}
++
++function noteLinkifyExistingUrls(root) {
++  if (!root) return false;
++  var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
++  var nodes = [], node;
++  while ((node = walker.nextNode())) if (noteNodeIsLinkifiableText(node, root)) nodes.push(node);
++  var changed = false;
++  nodes.forEach(function(textNode) {
++    var text = textNode.nodeValue || '';
++    var re = /https?:\/\/[^\s<>"']+/ig;
++    var matches = [], m;
++    while ((m = re.exec(text))) {
++      var url = trimNoteUrlTail(m[0]);
++      if (url && isAllowedNoteHttpUrl(url)) matches.push({ index:m.index, raw:m[0], url:url });
++    }
++    if (!matches.length || !textNode.parentNode) return;
++    var frag = document.createDocumentFragment();
++    var cursor = 0;
++    matches.forEach(function(item) {
++      if (item.index < cursor) return;
++      if (item.index > cursor) frag.appendChild(document.createTextNode(text.slice(cursor, item.index)));
++      var a = document.createElement('a');
++      a.href = item.url;
++      a.rel = 'noopener noreferrer';
++      a.textContent = item.url;
++      frag.appendChild(a);
++      cursor = item.index + item.url.length;
++      changed = true;
++    });
++    if (cursor < text.length) frag.appendChild(document.createTextNode(text.slice(cursor)));
++    textNode.parentNode.replaceChild(frag, textNode);
++  });
++  return changed;
++}
++
++function openNoteHttpUrl(href) {
++  href = String(href || '').trim();
++  if (!isAllowedNoteHttpUrl(href)) return;
++  closeNoteKeyboardForOverlay();
++  if (typeof AndroidBridge !== 'undefined' && AndroidBridge.openExternalUrl) {
++    try {
++      var result = String(AndroidBridge.openExternalUrl(href));
++      if (result === 'unavailable') showToast('没有可用的浏览器');
++      else if (result !== 'ok') showToast('暂时无法打开链接');
++      return;
++    } catch(e) {}
++  }
++  try { window.open(href, '_blank', 'noopener'); } catch(e2) {}
++}
++
++var noteLinkBody = document.getElementById('noteEditorBody');
++if (noteLinkBody) {
++  // Capture the URL before Enter splits the current text node; apply only after the native edit completes.
++  noteLinkBody.addEventListener('beforeinput', function(e) {
++    if (noteAutoLinkBusy || e.isComposing) return;
++    var type = String(e.inputType || '');
++    if (type === 'insertParagraph' || type === 'insertLineBreak') notePendingUrlCandidate = noteUrlCandidateBeforeCaret();
++  });
++  noteLinkBody.addEventListener('input', function(e) {
++    if (noteAutoLinkBusy || e.isComposing) return;
++    var type = String(e.inputType || '');
++    if (type === 'insertParagraph' || type === 'insertLineBreak') {
++      var pending = notePendingUrlCandidate; notePendingUrlCandidate = null;
++      if (pending) setTimeout(function(){ applyNoteAutoLinkCandidate(pending); }, 0);
++      return;
++    }
++    if (type === 'insertText' && /\s/.test(String(e.data || ''))) {
++      setTimeout(function(){ var c = noteUrlCandidateBeforeCaret(); if (c) applyNoteAutoLinkCandidate(c); }, 0);
++    }
++  });
++  noteLinkBody.addEventListener('paste', function() {
++    // Do not intercept/cancel paste; wait until Chromium has inserted it, then inspect only the token at the caret.
++    setTimeout(function(){ var c = noteUrlCandidateBeforeCaret(); if (c) applyNoteAutoLinkCandidate(c); }, 0);
++  });
++  noteLinkBody.addEventListener('click', function(e) {
++    var link = e.target && e.target.closest ? e.target.closest('a[href]') : null;
++    if (!link || !noteLinkBody.contains(link)) return;
++    var href = link.getAttribute('href') || '';
++    if (!isAllowedNoteHttpUrl(href)) return;
++    e.preventDefault(); e.stopPropagation();
++    openNoteHttpUrl(href);
++  }, true);
++}
++
+ // ===== Keyboard-aware Note editor =====
+ // V1.22.3: keep V1.22.2's single-scroll-owner model, but make Android WindowInsets the
+ // authoritative IME geometry when the native bridge is available. visualViewport remains
+diff -ruN /mnt/data/todo_v1226_base/ui/todo.html /mnt/data/todo_v1227/ui/todo.html
+--- /mnt/data/todo_v1226_base/ui/todo.html
++++ /mnt/data/todo_v1227/ui/todo.html
+@@ -2089,6 +2089,19 @@
+   margin: 4px 0;
+ }
+ .note-editor__body li { margin: 2px 0; }
++.note-editor__body a[href^="http://"],
++.note-editor__body a[href^="https://"],
++.note-editor__body a[href^="http://"]:visited,
++.note-editor__body a[href^="https://"]:visited {
++  color:#3b82c4;
++  text-decoration:none;
++  border-bottom:1px solid rgba(59,130,196,.32);
++  cursor:pointer;
++  overflow-wrap:anywhere;
++  -webkit-tap-highlight-color:rgba(59,130,196,.10);
++}
++.note-editor__body a[href^="http://"]:active,
++.note-editor__body a[href^="https://"]:active { opacity:.66; }
+ 
+ /* ===== Note inline images ===== */
+ .note-image-grid {
+@@ -4044,7 +4057,11 @@
+   document.documentElement.classList.add('note-editor-open');
+   document.body.classList.add('note-editor-open');
+   if (titleInput) titleInput.value = note.title;
+-  if (bodyEl) bodyEl.innerHTML = note.content;
++  if (bodyEl) {
++    bodyEl.innerHTML = note.content;
++    // V1.22.7: migrate visible legacy plain-text http(s) URLs before focus so selection/IME are untouched.
++    noteLinkifyExistingUrls(bodyEl);
++  }
+   _boldActive = false;
+   _strikeActive = false;
+   _highlightActive = false;
+@@ -7581,6 +7598,241 @@
+ }, true);
+ document.getElementById('noteEditorBody')?.addEventListener('pointercancel', function(){ noteFilePointerTap = null; }, true);
+ 
++// ===== Note http(s) auto-linking =====
++// V1.22.7 safety model, inspired by mature editors: explicit-protocol only (no fuzzy domain guesses),
++// link only the just-completed token / pasted token, and never rewrite the full editor while typing.
++// Existing notes are migrated before focus in openNoteEditor(), where no live caret/IME exists.
++var notePendingUrlCandidate = null;
++var noteAutoLinkBusy = false;
++
++function isAllowedNoteHttpUrl(value) {
++  value = String(value || '').trim();
++  if (!/^https?:\/\//i.test(value)) return false;
++  try {
++    var parsed = new URL(value);
++    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
++    if (!parsed.hostname) return false;
++    // Avoid silently creating credential-bearing links from plain text.
++    if (parsed.username || parsed.password) return false;
++    return true;
++  } catch(e) { return false; }
++}
++
++function trimNoteUrlTail(value) {
++  var token = String(value || '');
++  // Common sentence punctuation should remain plain text after the link.
++  while (/[.,，。;；:：!?！？、"'”’」』]$/.test(token)) token = token.slice(0, -1);
++  var pairs = {')':'(', ']':'[', '}':'{', '）':'（', '】':'【', '》':'《'};
++  var changed = true;
++  while (changed && token) {
++    changed = false;
++    var close = token.charAt(token.length - 1);
++    var open = pairs[close];
++    if (!open) break;
++    var opens = 0, closes = 0;
++    for (var i = 0; i < token.length; i++) {
++      if (token.charAt(i) === open) opens++;
++      if (token.charAt(i) === close) closes++;
++    }
++    if (closes > opens) { token = token.slice(0, -1); changed = true; }
++  }
++  return token;
++}
++
++function noteNodeIsLinkifiableText(node, root) {
++  if (!node || node.nodeType !== 3 || !root || !root.contains(node)) return false;
++  var parent = node.parentElement;
++  if (!parent) return false;
++  if (parent.closest('a')) return false;
++  if (parent.closest('[contenteditable="false"],.note-file-card,.note-image-grid,.note-image-picker-marker,.note-file-picker-marker')) return false;
++  return true;
++}
++
++function noteCaretTextOffset(root) {
++  var sel = window.getSelection();
++  if (!root || !sel || !sel.rangeCount || !root.contains(sel.anchorNode)) return null;
++  try {
++    var r = document.createRange();
++    r.selectNodeContents(root);
++    r.setEnd(sel.anchorNode, sel.anchorOffset);
++    return r.toString().length;
++  } catch(e) { return null; }
++}
++
++function restoreNoteCaretTextOffset(root, offset) {
++  if (!root || offset == null) return;
++  var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
++  var remaining = Math.max(0, Number(offset) || 0), node;
++  while ((node = walker.nextNode())) {
++    var len = (node.nodeValue || '').length;
++    if (remaining <= len) {
++      try {
++        var range = document.createRange();
++        range.setStart(node, remaining);
++        range.collapse(true);
++        var sel = window.getSelection();
++        sel.removeAllRanges(); sel.addRange(range);
++        return;
++      } catch(e) { return; }
++    }
++    remaining -= len;
++  }
++  try {
++    var endRange = document.createRange();
++    endRange.selectNodeContents(root); endRange.collapse(false);
++    var endSel = window.getSelection();
++    endSel.removeAllRanges(); endSel.addRange(endRange);
++  } catch(e2) {}
++}
++
++function noteUrlCandidateBeforeCaret() {
++  var bodyEl = document.getElementById('noteEditorBody');
++  var sel = window.getSelection();
++  if (!bodyEl || !sel || !sel.rangeCount || !sel.isCollapsed || !bodyEl.contains(sel.anchorNode)) return null;
++  var node = sel.anchorNode;
++  var offset = sel.anchorOffset;
++  if (node && node.nodeType === 1 && offset > 0) {
++    var prev = node.childNodes[offset - 1];
++    if (prev && prev.nodeType === 3) { node = prev; offset = (prev.nodeValue || '').length; }
++  }
++  if (!noteNodeIsLinkifiableText(node, bodyEl)) return null;
++  var text = node.nodeValue || '';
++  var scanEnd = Math.min(offset, text.length);
++  while (scanEnd > 0 && /\s/.test(text.charAt(scanEnd - 1))) scanEnd--;
++  if (scanEnd <= 0) return null;
++  var prefix = text.slice(Math.max(0, scanEnd - 2048), scanEnd);
++  var match = prefix.match(/https?:\/\/[^\s<>"']+$/i);
++  if (!match) return null;
++  var raw = match[0];
++  var url = trimNoteUrlTail(raw);
++  if (!url || !isAllowedNoteHttpUrl(url)) return null;
++  var start = scanEnd - raw.length;
++  var end = start + url.length;
++  if (start < 0 || end <= start) return null;
++  return { node:node, start:start, end:end, url:url };
++}
++
++function applyNoteAutoLinkCandidate(candidate) {
++  var bodyEl = document.getElementById('noteEditorBody');
++  if (!bodyEl || !candidate || noteAutoLinkBusy) return false;
++  var node = candidate.node;
++  if (!noteNodeIsLinkifiableText(node, bodyEl) || !node.isConnected) return false;
++  if ((node.nodeValue || '').slice(candidate.start, candidate.end) !== candidate.url) return false;
++  var caretOffset = noteCaretTextOffset(bodyEl);
++  var oldScrollTop = bodyEl.scrollTop;
++  var oldScrollLeft = bodyEl.scrollLeft;
++  noteAutoLinkBusy = true;
++  var ok = false;
++  try {
++    var range = document.createRange();
++    range.setStart(node, candidate.start);
++    range.setEnd(node, candidate.end);
++    var sel = window.getSelection();
++    sel.removeAllRanges(); sel.addRange(range);
++    ok = !!document.execCommand('createLink', false, candidate.url);
++    if (ok) {
++      var links = bodyEl.querySelectorAll('a[href]');
++      for (var i = links.length - 1; i >= 0; i--) {
++        var link = links[i];
++        if ((link.textContent || '') === candidate.url && isAllowedNoteHttpUrl(link.getAttribute('href') || '')) {
++          link.setAttribute('rel','noopener noreferrer');
++          break;
++        }
++      }
++    }
++  } catch(e) { ok = false; }
++  restoreNoteCaretTextOffset(bodyEl, caretOffset);
++  bodyEl.scrollTop = oldScrollTop;
++  bodyEl.scrollLeft = oldScrollLeft;
++  rememberNoteSelection();
++  noteAutoLinkBusy = false;
++  if (ok) noteAutoSave();
++  return ok;
++}
++
++function noteLinkifyExistingUrls(root) {
++  if (!root) return false;
++  var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
++  var nodes = [], node;
++  while ((node = walker.nextNode())) if (noteNodeIsLinkifiableText(node, root)) nodes.push(node);
++  var changed = false;
++  nodes.forEach(function(textNode) {
++    var text = textNode.nodeValue || '';
++    var re = /https?:\/\/[^\s<>"']+/ig;
++    var matches = [], m;
++    while ((m = re.exec(text))) {
++      var url = trimNoteUrlTail(m[0]);
++      if (url && isAllowedNoteHttpUrl(url)) matches.push({ index:m.index, raw:m[0], url:url });
++    }
++    if (!matches.length || !textNode.parentNode) return;
++    var frag = document.createDocumentFragment();
++    var cursor = 0;
++    matches.forEach(function(item) {
++      if (item.index < cursor) return;
++      if (item.index > cursor) frag.appendChild(document.createTextNode(text.slice(cursor, item.index)));
++      var a = document.createElement('a');
++      a.href = item.url;
++      a.rel = 'noopener noreferrer';
++      a.textContent = item.url;
++      frag.appendChild(a);
++      cursor = item.index + item.url.length;
++      changed = true;
++    });
++    if (cursor < text.length) frag.appendChild(document.createTextNode(text.slice(cursor)));
++    textNode.parentNode.replaceChild(frag, textNode);
++  });
++  return changed;
++}
++
++function openNoteHttpUrl(href) {
++  href = String(href || '').trim();
++  if (!isAllowedNoteHttpUrl(href)) return;
++  closeNoteKeyboardForOverlay();
++  if (typeof AndroidBridge !== 'undefined' && AndroidBridge.openExternalUrl) {
++    try {
++      var result = String(AndroidBridge.openExternalUrl(href));
++      if (result === 'unavailable') showToast('没有可用的浏览器');
++      else if (result !== 'ok') showToast('暂时无法打开链接');
++      return;
++    } catch(e) {}
++  }
++  try { window.open(href, '_blank', 'noopener'); } catch(e2) {}
++}
++
++var noteLinkBody = document.getElementById('noteEditorBody');
++if (noteLinkBody) {
++  // Capture the URL before Enter splits the current text node; apply only after the native edit completes.
++  noteLinkBody.addEventListener('beforeinput', function(e) {
++    if (noteAutoLinkBusy || e.isComposing) return;
++    var type = String(e.inputType || '');
++    if (type === 'insertParagraph' || type === 'insertLineBreak') notePendingUrlCandidate = noteUrlCandidateBeforeCaret();
++  });
++  noteLinkBody.addEventListener('input', function(e) {
++    if (noteAutoLinkBusy || e.isComposing) return;
++    var type = String(e.inputType || '');
++    if (type === 'insertParagraph' || type === 'insertLineBreak') {
++      var pending = notePendingUrlCandidate; notePendingUrlCandidate = null;
++      if (pending) setTimeout(function(){ applyNoteAutoLinkCandidate(pending); }, 0);
++      return;
++    }
++    if (type === 'insertText' && /\s/.test(String(e.data || ''))) {
++      setTimeout(function(){ var c = noteUrlCandidateBeforeCaret(); if (c) applyNoteAutoLinkCandidate(c); }, 0);
++    }
++  });
++  noteLinkBody.addEventListener('paste', function() {
++    // Do not intercept/cancel paste; wait until Chromium has inserted it, then inspect only the token at the caret.
++    setTimeout(function(){ var c = noteUrlCandidateBeforeCaret(); if (c) applyNoteAutoLinkCandidate(c); }, 0);
++  });
++  noteLinkBody.addEventListener('click', function(e) {
++    var link = e.target && e.target.closest ? e.target.closest('a[href]') : null;
++    if (!link || !noteLinkBody.contains(link)) return;
++    var href = link.getAttribute('href') || '';
++    if (!isAllowedNoteHttpUrl(href)) return;
++    e.preventDefault(); e.stopPropagation();
++    openNoteHttpUrl(href);
++  }, true);
++}
++
+ // ===== Keyboard-aware Note editor =====
+ // V1.22.3: keep V1.22.2's single-scroll-owner model, but make Android WindowInsets the
+ // authoritative IME geometry when the native bridge is available. visualViewport remains

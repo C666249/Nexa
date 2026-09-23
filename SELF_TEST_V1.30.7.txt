@@ -1,0 +1,15 @@
+To-Do V1.30.7 self-test checklist
+
+[PASS static] ui/todo.html and android/app/src/main/assets/todo.html are byte-identical.
+[PASS static] Stable/Beta product flavors are present; Beta uses applicationIdSuffix .beta, Beta display resources, and a dedicated β-badged launcher icon override.
+[PASS static] buildBoth stages two versioned APK names into dist after Gradle succeeds.
+[PASS static] checklist status derivation exists: 0/N todo, partial in-progress, N/N completed.
+[PASS static] checklist expands in-card; no new page is used.
+[PASS static] search includes child checklist text.
+[PASS device/user] Root build-both.bat was verified on the user's Windows Android environment to produce both Stable and Beta APKs into dist/.
+[PARTIAL device] Old installed Beta cannot be upgraded in place because it was signed with a different historical certificate; one-time uninstall/reinstall is required. versionCode has been corrected to 1307 (> old Beta 1305).
+[NEEDS DEVICE] Verify WebView/localStorage data isolation by creating different data in Stable and Beta.
+[NEEDS DEVICE] Verify checklist expand/collapse spring feel, swipe compatibility, reminder behavior, and status-tab movement on a real phone.
+[PASS regression] All existing Node regression tests under tests/*.test.js passed after the V1.30.7 changes.
+[PASS syntax] The inline application JavaScript passes `node --check` after extraction from ui/todo.html.
+[BUILD ENV LIMIT] Gradle wrapper could not be executed in this container because Gradle 8.11.1 is not cached and services.gradle.org is unreachable here. Build must be verified in Android Studio / the user's Android SDK environment.

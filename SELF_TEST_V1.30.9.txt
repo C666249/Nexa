@@ -1,0 +1,20 @@
+To-Do V1.30.9 Stable self-test
+
+PASS: applicationId = com.todolist.app
+PASS: versionCode = 1309; versionName = 1.30.9
+PASS: expected APK filename = To-Do-v1.30.9.apk
+PASS: no custom signingConfig / keystore added
+PASS: ui/todo.html mirrors android/app/src/main/assets/todo.html byte-for-byte
+PASS: checklist status refresh no longer replaces whole todo-item className
+PASS: checklist expanded/structural classes are untouched during child/parent status updates
+PASS: bottom fixed category bar/FABs have compositor-stability guards
+PASS: new-todo category button opens the existing category picker
+PASS: creator can select an existing label or add a new label; selected label is stored on submit
+PASS: existing Node regression suite passes
+PASS: inline JavaScript syntax check passes
+
+Manual phone checks requested:
+1. Expand a checklist and tap several child checkboxes quickly: bottom recycle/AI/+ controls should not flash.
+2. Tap parent checkbox in expanded and collapsed checklist states: no bottom-control flash.
+3. Edit a collapsed checklist title: no checklist/bottom-control flash.
+4. Open + -> 单条待办 or 清单待办 -> 分类: choose an existing tag, then create a new tag; saved todo should use that tag.

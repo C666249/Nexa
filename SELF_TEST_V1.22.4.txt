@@ -1,0 +1,44 @@
+To-Do v1.22.4 Self Test
+========================
+Base: v1.22.3 NoteImeCaretFix
+Target: v1.22.4
+
+Focus:
+- B (bold), S (strike-through), H (highlight) are explicit manual future-input switches.
+- A collapsed caret does not import B/S/H state from already-formatted text.
+- A non-collapsed selection edits existing text without arming future typing.
+- Native contenteditable / Android IME input is preserved; beforeinput is not cancelled and characters are not manually reinserted.
+- V1.22.3 keyboard, toolbar-at-IME-edge, single-scroll-owner and caret-reveal behavior remains locked.
+
+Static/source checks:
+- script_0.js node --check PASS
+- ui/todo.html == Android asset mirror PASS
+- inline script == script_0.js PASS
+- Android XML parse PASS
+- business localStorage keys unchanged vs v1.22.3 PASS
+- applicationId / namespace remain com.todolist.app PASS
+- versionCode=37 / versionName=1.22.4 PASS
+- Reminder/Daily/Banner/Snooze locked core SHA-256 20/20 PASS
+- MainActivity.kt byte-identical to v1.22.3 PASS
+- v1.22.3 IME/caret core functions exact-text unchanged PASS
+- selectionchange no longer imports B/S/H manual state from caret formatting PASS
+- updateToolbarState renders B/S/H from manual booleans PASS
+- beforeinput path never calls preventDefault and never reinserts input text PASS
+- H OFF only neutralizes inheritance from the app's known highlight palette PASS
+
+Gradle build:
+- ./gradlew :app:assembleDebug --offline --no-daemon was attempted.
+- The sandbox lacks cached Gradle 8.11.1 and cannot reach services.gradle.org (UnknownHostException).
+- This is an environment limitation, not a compiler result; Android Studio build on the user's machine is still required.
+
+Target-phone checks:
+1. B ON -> type -> B OFF -> tap after existing bold -> type: new text normal and B stays OFF.
+2. Repeat the same for S.
+3. H ON -> type -> H OFF once -> tap after existing highlight -> type: new text normal; no second H tap.
+4. With B/S/H ON, moving the caret to plain text keeps that chosen future-input format.
+5. Select existing text -> B/S/H applies; tap the same control again while selected -> removes.
+6. Selection formatting must not silently arm a previously-OFF future-input switch.
+7. Long-press H: selection recolors existing text; collapsed caret enables future H with the chosen color.
+8. Check Chinese Pinyin composition, English, numbers and emoji.
+9. Recheck V1.22.3 keyboard/tool-bar/caret behavior and no jump-to-top.
+10. Recheck Backspace/Delete, Enter, undo/redo, paste, attachments and autosave.

@@ -1,0 +1,33 @@
+SELF TEST — List-Note V1.5
+Base: V1.4 Full
+Target: V1.5 Full
+
+Requirement review:
+PASS - Android install identity changed to com.listnote.app so it can coexist with stable com.todolist.app build.
+PASS - Launcher/system app label changed to List-Note.
+PASS - Root Gradle files remain at outer project level for Android Studio: settings.gradle.kts, build.gradle.kts, gradlew.bat, gradle/, android/.
+PASS - namespace/Kotlin packages intentionally remain com.todolist.app (minimal Diff; not Android install identity).
+PASS - V1.4 reminder + To-Do + Note logic is unchanged except the explicitly authorized internal action namespace isolation.
+
+Static checks:
+PASS - AndroidManifest.xml XML parse.
+PASS - strings.xml XML parse.
+PASS - ui/todo.html and android/app/src/main/assets/todo.html are byte-identical.
+PASS - JavaScript inline script parse via extraction + node --check.
+PASS - applicationId is com.listnote.app.
+PASS - app_name is List-Note.
+PASS - versionCode/versionName are 15/1.5.
+PASS - internal action namespace is com.listnote.app.action.* and old action namespace is absent from current runtime source.
+
+Locked Core:
+Unchanged locked files: 18/18 PASS
+Authorized identity-only locked edits: 4/4 PASS
+New Golden Baseline: V1.5
+
+Build status:
+NOT RUN - Full Android APK build is not claimed in this container. local.properties points to the user's Windows SDK path and no matching Android SDK is available here.
+NOT RUN - Real-device test.
+
+Important install behavior:
+- Stable app and List-Note are separate apps because applicationId differs.
+- App data and special permissions are isolated; List-Note will need notification/overlay/exact-alarm permissions granted separately.

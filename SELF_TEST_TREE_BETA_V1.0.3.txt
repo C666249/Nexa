@@ -1,0 +1,60 @@
+To-Do Tree Beta V1.0.3 — Final Self Test
+=========================================
+
+Baseline
+- Exact previous Beta baseline: To-Do-Tree-Beta-V1.0.2-Full.zip
+- Stable Golden: To-Do-v1.22.12-NoteAttachmentDeleteGuard-Full.zip
+- Beta applicationId: com.todolist.app.beta
+- versionCode: 1003
+- versionName: 1.0.3-beta1
+- APK output: To-Do-Tree-Beta-V1.0.3.apk
+
+A. User-video diagnosis — PASS
+- Reviewed supplied 4.88 s Honor/MagicOS recording frame-by-frame.
+- Early IME animation briefly positions toolbar correctly; fully-open IME hides it; closing IME restores it.
+- This rules out another one-shot inset timing tweak and triggers Architecture Escalation at the Beta shell layer.
+
+B. V1.0.3 architecture correction — PASS (logic/static)
+- Golden V1.22.12 inner editor/IME/caret behavior remains protected.
+- Edit shell follows visualViewport visible bottom for the entire IME animation.
+- Format bar remains a normal Golden flex item; it is NOT changed to an independently scrolling/floating editor.
+- No new IME polling/probing timers.
+- Read and editor-close reset all Beta viewport-dock state.
+- visualViewport-unavailable path falls back to Golden inset behavior.
+- Dedicated dock logic sequence test: PASS.
+
+C. Golden editor protection — PASS
+- MainActivity.kt: exact vs V1.22.12.
+- NoteFileViewerActivity.kt: exact vs V1.22.12.
+- ImportReceiverActivity.kt: exact vs V1.22.12.
+- Nine Keyboard-aware Note functions + __onNativeImeInset: exact vs V1.22.12.
+- Mature B/S/H, URL, image, file, annotation, attachment-delete and navigation helper functions unchanged vs V1.0.2.
+
+D. Note top-right menu — PASS
+Exactly two actions:
+1) 移到主题…
+2) 删除笔记
+
+E. Native Locked Core — PASS
+- Reminder / Daily / Banner / Snooze: 20/20 exact vs Stable V1.22.12.
+
+F. Fixed Beta signing — PASS
+- Same bundled V1.0.2 Beta signing identity retained.
+- V1.0.3 is expected to overwrite V1.0.2 without uninstalling or clearing Beta data.
+
+G. Static gates — PASS
+- ui/todo.html == Android asset.
+- inline runtime script == script_0.js.
+- node --check script_0.js.
+- Android XML parse.
+- applicationId/version/output name.
+- ZIP integrity and SHA manifest are checked at packaging time.
+
+H. Gradle compiler
+- Local sandbox network cannot resolve services.gradle.org; no local compiler PASS is claimed.
+- GitHub Actions green build remains mandatory before installation.
+
+True-device acceptance target
+- On Honor/MagicOS, when keyboard is fully open (not merely animating), the complete format bar must stay immediately above the keyboard/accessory top edge.
+- It must remain there through opening/closing animation and while moving the caret in a long Note.
+- No regressions in caret reveal, long-note scroll, Read/✓, image/file/link interaction islands.

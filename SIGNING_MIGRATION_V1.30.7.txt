@@ -1,0 +1,9 @@
+To-Do V1.30.7 dual-app migration note
+
+- Stable package remains: com.todolist.app
+- Beta package remains: com.todolist.app.beta
+- V1.30.7 versionCode is 1307, which is higher than the previously installed Beta versionCode 1305 shown during device verification.
+- The old Beta APK on the phone was signed with a different certificate. Android cannot upgrade an installed app when the package name is the same but the signing certificate differs.
+- Therefore, for this one-time migration only: back up any Beta data you need, uninstall the old To-Do Beta, then install the new V1.30.7 Beta.
+- After the new dual-variant Beta is installed, builds made on the same machine/signing key can upgrade it normally as long as versionCode keeps increasing.
+- Do NOT uninstall the Stable app just to solve the old Beta signature mismatch; Stable and Beta use different package names.

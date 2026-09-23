@@ -1,0 +1,49 @@
+Tree Beta V1.0 Locked Core Guard
+================================
+Baseline: To-Do v1.22.12 NoteAttachmentDeleteGuard
+
+Native locked-core verification:
+- Reminder/Daily/Banner/Snooze: 20 / 20 SHA-256 exact.
+- MainActivity.kt SHA-256: 14ed8680227e95cf2e960c1b163bb73c15417e802650a00c6db49d205c37890c (unchanged)
+- NoteFileViewerActivity.kt SHA-256: 77179dc33fff903991a3d71dd8993fb798762ee0068e46132b8fb18695cdb74a (unchanged)
+- ImportReceiverActivity.kt SHA-256: 2f5f9e6acfecc2a8e7f9c1171f95b52feab529350f681a4b32ee7ab3529adf05 (unchanged)
+- res/xml/file_paths.xml SHA-256: b889ed85ae25890fad4fe089c7fe36d171242d6afa9e5fe2349370d8c3434ba7 (unchanged)
+
+Intentional native/config changes only:
+- android/app/build.gradle.kts: Beta applicationId/version/APK filename.
+- AndroidManifest.xml: ImportReceiver taskAffinity isolated for Beta.
+- strings.xml: Beta app/import label.
+- launcher icon PNGs: β badge.
+
+Web runtime named-function audit against V1.22.12:
+- 283 named functions exist in both versions.
+- 251 / 283 are byte-identical.
+- 32 shared functions changed only where Tree architecture / Note shell requires it.
+- 9 old Schema-V1 folder/child-note functions removed.
+- 77 new Tree/Topic/Read-Edit helper functions added.
+
+Explicit editor-core function source equality PASS for:
+- syncNoteImeLayout
+- syncResolvedNoteImeSpace
+- scheduleNoteCaretReveal
+- syncNoteViewportOffset
+- syncCollapsedNoteTypingFormat
+- toggleManualInlineCommand
+- toggleHighlight
+- selectionBackColorIsActive
+- openNoteImagePreview
+- closeNoteImagePreview
+- resetNoteImagePreviewTransform
+- applyNoteImagePreviewTransform
+- createNoteFileCard
+- insertPickedFileItems
+- openNoteFileActions
+- cleanupNoteFileAnnotations
+- openActiveNoteFileAnnotation
+- moveNoteInsertionRangeOutsideFileAnnotation
+- applyNoteAutoLinkCandidate
+- openNoteHttpUrl
+- noteProtectedFileNodes
+- noteRangeIntersectsProtectedFile
+- noteCaretTouchesProtectedFile
+- shouldBlockNoteFileDeletion

@@ -1,0 +1,50 @@
+To-Do v1.22.10 Self Test
+=========================
+Base: v1.22.9 NoteIceCyanMotionLinks
+Target: v1.22.10 NoteDarkElectricLinks
+
+Implementation boundary:
+- Runtime behavior change is CSS-only for existing Note http(s) anchors.
+- Resting palette is darker cyan-blue -> electric blue -> deep indigo.
+- Ice-blue / pearl-white / violet exist only as transient press/reveal accents.
+- No JavaScript edits.
+- No Kotlin edits.
+- No link layout-box change (no inline-block, transform, width/height/top/bottom).
+
+Static/source validation:
+- script_0.js node --check PASS
+- ui/todo.html == Android asset mirror PASS
+- inline main script == script_0.js PASS
+- script_0.js byte-identical to v1.22.9 PASS
+- MainActivity.kt byte-identical to v1.22.9 PASS
+- NoteFileViewerActivity.kt / ImportReceiverActivity.kt / Manifest / FileProvider byte-identical to v1.22.9 PASS
+- Reminder/Daily/Banner/Snooze locked core SHA-256 20/20 PASS
+- V1.22.7 Note auto-link JavaScript remains byte-identical through V1.22.10 PASS
+- V1.22.3 IME/caret critical functions unchanged because entire JS is unchanged PASS
+- V1.22.4 B/S/H critical functions unchanged because entire JS is unchanged PASS
+- V1.22.5 image zoom JavaScript unchanged PASS
+- V1.22.6 focus-safe image preview JavaScript unchanged PASS
+- versionCode=43 / versionName=1.22.10 PASS
+- ZIP integrity PASS
+
+Motion safety:
+- Resting state does not continuously animate.
+- Reveal only animates opacity/text-shadow/underline color.
+- Press sweep only changes background-position plus paint-only feedback.
+- Link line boxes and wrapping model remain unchanged.
+- prefers-reduced-motion disables reveal/sweep movement.
+
+Target-phone acceptance:
+1. Resting http(s) links are clearly darker and readable on the warm Note paper.
+2. The resting visible gradient reads cyan-blue -> electric blue -> deep indigo, without a permanent purple/white strip.
+3. Press and hold briefly: ice/pearl/violet highlight sweeps across, underline brightens, release returns to the dark resting palette.
+4. Visited links keep the same product style; no browser default purple.
+5. Long-press/select link text remains readable.
+6. Tap still opens the same default browser/system URL handler.
+7. Type URL + Space / Enter / Paste: linkify behavior remains identical to v1.22.9/v1.22.7.
+8. Recheck long-note IME: no jump-to-top; toolbar remains above keyboard.
+9. Recheck B/S/H, image preview/zoom, PDF zoom/scroll, file import, Reminder/Daily/Banner/Snooze.
+
+Gradle build availability:
+- This source bundle contains the Windows `gradlew.bat` wrapper but no Unix `gradlew` launcher, and this Linux sandbox has no standalone Gradle executable.
+- Therefore a full Android Gradle compile cannot be run here; Android Studio / Windows `gradlew.bat` remains the required build verification.

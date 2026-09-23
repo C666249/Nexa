@@ -1,0 +1,17 @@
+STABLE V1.25.3 SELF TEST
+
+Target:
+- com.todolist.app
+- versionCode 51
+- versionName 1.25.3
+
+Required checks:
+[PASS] ui/todo.html == Android assets/todo.html
+[PASS] Note/Topic Rail lifecycle matches Beta V1.2.3
+[PASS] History actions immediate + Read/Edit disabled-state logic
+[PASS] Header action height remains 28px
+[PASS] JS syntax
+[PASS] Android XML parse
+[PASS] Native Kotlin/Java unchanged from V1.25.2
+[PASS] No Beta signingConfig
+[PASS] ZIP integrity/path safety

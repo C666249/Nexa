@@ -1,0 +1,23 @@
+To-Do V1.13 Self Test
+Base: V1.12 Full
+Target: V1.13 Full
+
+PASS: V1.12 screenshot-reported Kotlin syntax defect removed (`raw == ""true""`).
+PASS: JS `node --check` on the single inline application script.
+PASS: HTML parser completed; 152 IDs inspected with no duplicate IDs.
+PASS: Required onboarding DOM IDs present.
+PASS: `ui/todo.html` and `android/app/src/main/assets/todo.html` are byte-identical.
+PASS: AndroidManifest + Android resource XML parse.
+PASS: Kotlin parser-oriented check found no syntax / unexpected-token / expecting / cannot-be-reassigned errors in project Kotlin sources. Plain kotlinc cannot resolve Android SDK classes in this environment, so unresolved Android references are expected and are not reported as compile success.
+PASS: 15/15 locked reminder/core files SHA-256 unchanged from V1.12.
+PASS: Note Data Layer / Note Event Handlers / Folder Sidebar block SHA-256 unchanged from V1.12.
+PASS: applicationId/namespace remain com.todolist.app.
+PASS: business localStorage keys retained; onboarding uses new independent keys.
+
+Attempted: `./gradlew :app:compileDebugKotlin --no-daemon`
+Result: environment cannot resolve/download `https://services.gradle.org/distributions/gradle-8.11.1-bin.zip` (`UnknownHostException`).
+Therefore full Android Gradle compilation was NOT completed in this sandbox and is NOT claimed as PASS.
+
+Real-device onboarding / animation / gesture testing: not available in this environment.
+PASS: Final SHA256SUMS verification for 111 project files (excluding SHA256SUMS.txt itself).
+PASS: ZIP integrity will be tested after packaging with `unzip -t`.

@@ -1,0 +1,41 @@
+Tree Beta V1.0.1 Locked Core Guard
+==================================
+Baseline: To-Do Tree Beta V1.0
+Stable Golden: To-Do v1.22.12 NoteAttachmentDeleteGuard
+
+Authorized runtime scope:
+- ui/todo.html + Android asset mirror + derived script_0.js: IME re-query probes / stale-zero visual fallback only.
+- MainActivity.kt: centralize existing IME inset dispatch + add requestNoteImeInsets() read-only bridge.
+- build.gradle.kts / build-apk.bat: version metadata only.
+
+Protected native result:
+- Reminder/Daily/Banner/Snooze locked core: 20 / 20 SHA-256 exact vs V1.22.12.
+- NoteFileViewerActivity.kt: unchanged vs V1.0, SHA-256 77179dc33fff903991a3d71dd8993fb798762ee0068e46132b8fb18695cdb74a
+- ImportReceiverActivity.kt: unchanged vs V1.0, SHA-256 2f5f9e6acfecc2a8e7f9c1171f95b52feab529350f681a4b32ee7ab3529adf05
+- AndroidManifest.xml: unchanged vs V1.0.
+- res/xml/file_paths.xml: unchanged vs V1.0, SHA-256 b889ed85ae25890fad4fe089c7fe36d171242d6afa9e5fe2349370d8c3434ba7
+
+Intentional MainActivity delta only:
+- add dispatchImeInsetsToWeb(WindowInsetsCompat?) helper using the exact existing JS callback contract.
+- existing WindowInsets listener delegates to that helper.
+- add @JavascriptInterface requestNoteImeInsets() -> ViewCompat.getRootWindowInsets(webView).
+
+Protected web functions source-equality PASS vs V1.0:
+- syncNoteImeLayout
+- syncResolvedNoteImeSpace
+- scheduleNoteCaretReveal
+- syncNoteViewportOffset
+- syncCollapsedNoteTypingFormat
+- toggleManualInlineCommand
+- toggleHighlight
+- selectionBackColorIsActive
+- openNoteImagePreview / closeNoteImagePreview / reset/apply transform
+- createNoteFileCard / insertPickedFileItems / openNoteFileActions
+- cleanupNoteFileAnnotations / openActiveNoteFileAnnotation / moveNoteInsertionRangeOutsideFileAnnotation
+- applyNoteAutoLinkCandidate / openNoteHttpUrl
+- noteProtectedFileNodes / range/caret protection / shouldBlockNoteFileDeletion
+
+Note overflow menu audit:
+- exactly 2 buttons: 移到主题…, 删除笔记.
+
+Result: PASS

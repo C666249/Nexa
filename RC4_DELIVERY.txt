@@ -1,0 +1,9 @@
+Nexa 1.0.2 RC4 — Primary channel
+applicationId: com.nexa.app
+versionCode: 7
+versionName: 1.0.2
+
+Fix: Note editor H-off/highlight boundary no longer uses legacy To-Do #f5ecd8; it uses the live Nexa paper background and normalizes legacy neutral spans on note open.
+Validation in handoff environment: Node/static 46/46 PASS; JS syntax PASS; Android XML parse PASS; ui/todo.html mirror PASS.
+Android compile NOT claimed here: Android SDK 35 and Gradle 8.11.1 distribution were not cached and outbound download was unavailable.
+Read AGENTS.md, PROJECT_STATE.md, WORKFLOW.md, DELIVERY_RULE.txt and dev-logs/nexa-rc4.md before continuing.

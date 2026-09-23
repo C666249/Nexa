@@ -1,0 +1,34 @@
+SELF TEST — To-Do V1.15
+Base: V1.14 Full
+Target: V1.15 Full
+
+FUNCTION / STATIC REVIEW
+- PASS  Todo + Daily Banner both inherit SnoozeSwipeBannerView.
+- PASS  Right swipe thresholds are width-relative: 18% => +5 min, 38% => +10 min.
+- PASS  Below first threshold releases back to the original position.
+- PASS  +5/+10 threshold changes use CLOCK_TICK haptic feedback.
+- PASS  Successful commit animates the Banner out before firing the snooze callback.
+- PASS  Custom success Toast is non-touchable and auto fades out.
+- PASS  Todo snooze uses System.currentTimeMillis() + minutes, not original reminderAt.
+- PASS  Daily snooze does not mutate DailyTaskRecord hour/minute.
+- PASS  SnoozeStore uses separate native SharedPreferences reminder_snooze_v1.
+- PASS  Todo/Daily receivers suppress early delivery while snoozeUntil remains in the future.
+- PASS  FloatWindowService restore/fallback paths also respect snoozeUntil.
+- PASS  Normal reminder scheduling/cancellation clears stale snooze state.
+- PASS  Feature Coach copy explains +5/+10 right-swipe gesture for Todo reminder and Daily.
+
+DATA / LOCKED CORE
+- PASS  applicationId remains com.todolist.app.
+- PASS  WebView business localStorage key set exactly matches V1.14.
+- PASS  13/13 non-authorized Android/Manifest Locked Core files byte-identical to V1.14.
+- PASS  Notes Data Core byte-identical to V1.14.
+- PASS  Notes Event Core byte-identical to V1.14.
+- PASS  Folder Sidebar Core byte-identical to V1.14.
+- PASS  ui/todo.html and android/app/src/main/assets/todo.html byte-identical.
+
+TECHNICAL CHECKS
+- PASS  Inline JavaScript: node --check.
+- PASS  AndroidManifest + values XML parse.
+- PASS  Kotlin source lexical bracket/string/comment balance scanner.
+- PASS  No recurrence of the V1.12 malformed ""true"" source pattern.
+- LIMIT Full :app:compileDebugKotlin could not run in this sandbox because Gradle 8.11.1 wrapper download cannot resolve services.gradle.org and no Android SDK is installed here. This is not reported as a successful Android build.

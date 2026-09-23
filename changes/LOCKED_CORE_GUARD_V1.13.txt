@@ -1,0 +1,29 @@
+Locked Core Guard — V1.12 -> V1.13
+
+15/15 whole-file SHA-256 locked core checks PASS against V1.12:
+- FloatWindowManager.kt
+- FloatWindowService.kt
+- ReminderScheduler.kt
+- ReminderStore.kt
+- DailyTaskStore.kt
+- ReminderNotifier.kt
+- TodoSnapshotStore.kt
+- TodoReminderReceiver.kt
+- DailyTaskReminderReceiver.kt
+- DailyTaskActionReceiver.kt
+- ReminderActionReceiver.kt
+- BootReceiver.kt
+- MidnightReceiver.kt
+- BannerView.kt
+- DailyTaskBannerView.kt
+
+Note core block checks PASS:
+- Notes Data Layer SHA-256 PASS
+- Notes Event Handlers SHA-256 PASS
+- Folder Sidebar SHA-256 PASS
+
+Authorized changes outside locked core:
+- MainActivity.kt: V1.12 compile fix only.
+- TodoReminderBannerView.kt: LayoutParams compile-safety qualification only.
+- ui/todo.html + Android asset mirror: onboarding / context-coach UI and logic.
+- build.gradle.kts / build-apk.bat: version/output-name bump.

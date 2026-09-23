@@ -1,0 +1,1628 @@
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' '--exclude=SELF_TEST_V1.6.txt' '--exclude=SELF_TEST_V1.7.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.6.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.7.txt' "a/README.md" b/README.md
+--- "a/README.md"	2026-08-11 11:20:44.000000000 +0000
++++ b/README.md	2026-08-11 11:46:37.119229653 +0000
+@@ -1,41 +1,46 @@
+-# List-Note V1.6
++# List-Note V1.7
+ 
+-本地优先的 To-Do + Note Android 应用。UI 使用 HTML/CSS/Vanilla JS，Android 原生层使用 Kotlin WebView，并负责精确定时、开机恢复、前台服务与悬浮提醒。
++本地优先的 To-Do + Note Android 应用。UI 使用 HTML/CSS/Vanilla JS，Android 原生层使用 Kotlin WebView，并负责精确定时、后台提醒守护与悬浮 Banner。
+ 
+-## V1.6 测试版应用身份
+-
+-为与手机上的稳定版并存，本版本仅修改 Android 安装身份与显示名称：
++## 独立测试版身份
+ 
+ - Launcher 名称：`List-Note`
+ - applicationId：`com.listnote.app`
+-- Kotlin/Java namespace 仍保持 `com.todolist.app`，避免无必要搬迁核心源码。
+-- 因 applicationId 不同，Android 会把它识别为独立 App；应用数据、通知权限、悬浮窗权限、精确闹钟权限也与稳定版相互独立。
+-- 内部提醒 action 前缀同步改为 `com.listnote.app.action.*`，避免测试版与稳定版在旧 Android 上发生隐式广播串扰。
+-
+-
+-## V1.6 提醒可靠性修复
+-
+-- Android 13+ 使用 `USE_EXACT_ALARM`（提醒属于核心的用户指定定时功能），Android 12 保留 `SCHEDULE_EXACT_ALARM`。
+-- Alarm Receiver 到点后先直接发布高优先级提醒，再启动悬浮窗前台服务；即使厂商系统拦截后台服务，也不再出现“完全没动静”。
+-- 单条提醒通知为 ongoing，并带“切换状态 / 关闭提醒”，与 APP 本地数据同步。
+-- 悬浮窗成功附着后自动撤掉兜底通知，仍以原设计的顶部悬浮 Banner 为主。
+-- 每日提醒弹窗新增“10 秒测试提醒”，用于验证 AlarmManager → Receiver → Notification → Foreground Service → Overlay 整条链路。
++- Kotlin/Java namespace：`com.todolist.app`
++- 与手机上的稳定版独立安装、独立数据、独立权限。
++- 内部提醒 action 前缀：`com.listnote.app.action.*`。
++
++## V1.7 提醒链重构
++
++V1.6 的问题不是悬浮 Banner 本身：用户实测“桌面等待没有反应，但重新进入 APP 后马上弹出”，说明原来的定时唤醒/后台启动链在设备后台阶段没有可靠执行。另一个 FlowLedger 项目之所以能稳定显示悬浮 Banner，是因为它通常从已经存活的 NotificationListenerService / AccessibilityService 中调用 OverlayBanner，悬浮窗宿主进程本身已经处于活动状态。
++
++V1.7 因此不再依赖“到点后才临时启动悬浮服务”这一条单链路：
++
++1. 用户设置任意每日提醒或单条提醒时，立即在 APP 前台启动 `FloatWindowService` 作为低优先级、静音的提醒守护前台服务。
++2. `AlarmManager` 在拥有精确闹钟能力时改用 `setAlarmClock()`，作为用户明确指定时间的最强系统级唤醒路径；无精确权限时仍保留 `setAndAllowWhileIdle()` 兜底。
++3. 守护服务内部同时保存 Handler 定时回调，形成“系统 Alarm + 已运行进程内定时”双通道。10 秒测试优先验证这一点。
++4. Alarm Receiver 到点时持有短时 `PARTIAL_WAKE_LOCK`，先发布系统兜底提醒，再把事件交给已经存在/可重启的前台服务显示悬浮 Banner。
++5. 单条待办新增显式 `scheduleTodoReminder()` Native Bridge，不再只依赖整个 todo snapshot 的副作用来安排闹钟。
++6. 悬浮窗窗口参数参考 FlowLedger 的稳定实现：使用 application WindowManager、`TYPE_APPLICATION_OVERLAY`、`FLAG_LAYOUT_IN_SCREEN`，并显式计算状态栏/刘海安全顶部 inset。
++7. Service 使用 `START_STICKY`、`android:stopWithTask="false"`，只要仍有每日提醒、单条提醒或常驻待办 Banner，就保持提醒宿主。
++8. 开机、系统时间/时区变化、APP 更新后重新恢复 Alarm 与提醒守护。
+ 
++注意：因为这里使用 `setAlarmClock()` 强化用户明确设定的定时提醒，部分 Android / MagicOS 版本可能在系统状态栏显示“下一闹钟”图标。这是 V1.7 为后台可靠性做的主动取舍。
+ 
+ ## 当前功能
+ 
+-- **To-Do 模式**：全部 / 未完成 / 进行中 / 已完成、分类、搜索、日历、回收站、AI 助手等原有功能。
+-- **Note 模式**：笔记树、文件夹、子笔记、富文本编辑等 7 月 22 日版本功能已恢复并保留。
+-- **每日总结提醒**：右上角时钟设置每天重复时间；到点后显示今日完成进度悬浮 Banner，可展开详情并进入 APP。
+-- **单条待办提醒**：待办左滑显示两个独立按钮——绿色“提醒”、红色“删除”；提醒可设置年月日、时、分。
+-- **常驻待办 Banner**：到点后顶部显示对应待办，左侧复选框可切换 未完成 → 进行中 → 已完成，右侧 ✕ 才关闭；状态与 APP 双向同步。
+-- localStorage 仍是 WebView 主数据源；Android 只保存后台提醒所需的轻量镜像。
++- **To-Do 模式**：全部 / 未完成 / 进行中 / 已完成、分类、搜索、日历、回收站、AI 助手等。
++- **Note 模式**：保留 7 月 22 日版本的 Note / 文件夹 / 子笔记 / 编辑器能力。
++- **每日总结提醒**：右上角时钟设置每天时间，到点显示今日完成进度悬浮 Banner，可展开并进入 APP。
++- **单条待办提醒**：左滑仍是两个独立按钮：绿色“提醒”、红色“删除”；提醒设置年月日时分。
++- **常驻待办 Banner**：左侧复选框按“未完成 → 进行中 → 已完成”切换，右侧 ✕ 明确关闭；状态与 APP 双向同步。
++- localStorage 继续作为 WebView 主数据源；Android 只保存后台提醒所需的轻量镜像。
+ 
+ ## Android Studio 打开方式
+ 
+-**直接打开本 ZIP 解压后的最外层 `To-Do List` 文件夹，不要再进入 `android/`。**
++**直接打开解压后的最外层 `To-Do List` / `List-Note` 项目目录，不要进入 `android/`。**
+ 
+-项目根目录已经包含：
++根目录包含：
+ 
+ ```text
+ settings.gradle.kts
+@@ -48,7 +53,7 @@
+ android/
+ ```
+ 
+-Gradle 中的 `:app` 映射到 `android/app`，因此既保留原项目源码位置，又能让 Android Studio 直接把最外层识别为 Gradle 工程。
++Gradle 中 `:app` 映射到 `android/app`。
+ 
+ Windows 也可双击：
+ 
+@@ -59,7 +64,7 @@
+ 成功后 APK 会复制到：
+ 
+ ```text
+-dist/List-Note-v1.6.apk
++dist/List-Note-v1.7.apk
+ ```
+ 
+ ## 技术栈
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' '--exclude=SELF_TEST_V1.6.txt' '--exclude=SELF_TEST_V1.7.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.6.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.7.txt' "a/android/app/build.gradle.kts" b/android/app/build.gradle.kts
+--- "a/android/app/build.gradle.kts"	2026-08-11 11:20:41.000000000 +0000
++++ b/android/app/build.gradle.kts	2026-08-11 11:42:51.557048407 +0000
+@@ -11,8 +11,8 @@
+         applicationId = "com.listnote.app"
+         minSdk = 26
+         targetSdk = 35
+-        versionCode = 16
+-        versionName = "1.6"
++        versionCode = 17
++        versionName = "1.7"
+     }
+ 
+     buildTypes {
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' '--exclude=SELF_TEST_V1.6.txt' '--exclude=SELF_TEST_V1.7.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.6.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.7.txt' "a/android/app/src/main/AndroidManifest.xml" b/android/app/src/main/AndroidManifest.xml
+--- "a/android/app/src/main/AndroidManifest.xml"	2026-08-11 11:18:40.000000000 +0000
++++ b/android/app/src/main/AndroidManifest.xml	2026-08-11 11:42:23.899080396 +0000
+@@ -9,6 +9,7 @@
+     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
+     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
++    <uses-permission android:name="android.permission.WAKE_LOCK" />
+ 
+     <application
+         android:allowBackup="true"
+@@ -31,6 +32,7 @@
+         <service
+             android:name=".service.FloatWindowService"
+             android:foregroundServiceType="specialUse"
++            android:stopWithTask="false"
+             android:exported="false">
+             <property
+                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' '--exclude=SELF_TEST_V1.6.txt' '--exclude=SELF_TEST_V1.7.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.6.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.7.txt' "a/android/app/src/main/assets/todo.html" b/android/app/src/main/assets/todo.html
+--- "a/android/app/src/main/assets/todo.html"	2026-08-11 11:21:13.000000000 +0000
++++ b/android/app/src/main/assets/todo.html	2026-08-11 11:42:01.986832459 +0000
+@@ -3652,16 +3652,26 @@
+   if (!todo || !date) { showToast('日期或时间不正确'); return; }
+   if (date.getTime() <= Date.now() + 5000) { showToast('提醒时间必须晚于现在'); return; }
+   todo.reminderAt = date.getTime();
+-  saveTodos(); render(); closeTodoReminderPicker();
++  saveTodos();
++  let nativeScheduleResult = 'ok';
++  if (typeof AndroidBridge !== 'undefined' && AndroidBridge.scheduleTodoReminder) {
++    try {
++      nativeScheduleResult = String(AndroidBridge.scheduleTodoReminder(String(todo.id), todo.text || '', todo.status || 'todo', String(todo.reminderAt)));
++    } catch(e) { nativeScheduleResult = '失败'; }
++  }
++  render(); closeTodoReminderPicker();
+   if (typeof AndroidBridge !== 'undefined' && AndroidBridge.requestReminderPermissions) { try { AndroidBridge.requestReminderPermissions(); } catch(e) {} }
+   const label = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+-  showToast(`提醒已设定 · ${label}`);
++  showToast(nativeScheduleResult.startsWith('失败') || nativeScheduleResult === 'invalid' ? `提醒已保存 · 原生调度失败` : `提醒已设定 · ${label}`);
+ });
+ document.getElementById('reminderCancelExisting').addEventListener('click', () => {
+   const todo = todos.find(t => t.id === reminderEditingTodoId);
+   if (!todo) return;
++  const cancelledId = todo.id;
+   todo.reminderAt = null;
+-  saveTodos(); render(); closeTodoReminderPicker(); showToast('已取消该条提醒');
++  saveTodos();
++  if (typeof AndroidBridge !== 'undefined' && AndroidBridge.cancelTodoReminder) { try { AndroidBridge.cancelTodoReminder(String(cancelledId)); } catch(e) {} }
++  render(); closeTodoReminderPicker(); showToast('已取消该条提醒');
+ });
+ window.__pullNativeTodoMutations = function() {
+   if (typeof AndroidBridge === 'undefined' || !AndroidBridge.getTodoMutations) return;
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' '--exclude=SELF_TEST_V1.6.txt' '--exclude=SELF_TEST_V1.7.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.6.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.7.txt' "a/android/app/src/main/java/com/todolist/app/MainActivity.kt" b/android/app/src/main/java/com/todolist/app/MainActivity.kt
+--- "a/android/app/src/main/java/com/todolist/app/MainActivity.kt"	2026-08-11 10:22:37.000000000 +0000
++++ b/android/app/src/main/java/com/todolist/app/MainActivity.kt	2026-08-11 11:41:46.939518632 +0000
+@@ -20,7 +20,9 @@
+ import androidx.core.content.ContextCompat
+ import com.todolist.app.manager.FloatWindowManager
+ import com.todolist.app.receiver.MidnightReceiver
++import com.todolist.app.reminder.ReminderDiagnostics
+ import com.todolist.app.reminder.ReminderScheduler
++import com.todolist.app.reminder.TodoReminderRecord
+ import com.todolist.app.reminder.ReminderStore
+ import com.todolist.app.service.FloatWindowService
+ import org.json.JSONArray
+@@ -80,12 +82,18 @@
+         setContentView(webView)
+         registerNativeMutationReceiver()
+ 
+-        try { ReminderScheduler.rescheduleAll(this, restoreFiredOverdue = true) } catch (_: Exception) {}
++        try {
++            ReminderScheduler.rescheduleAll(this, restoreFiredOverdue = true)
++            if (ReminderScheduler.hasArmedWork(this)) FloatWindowService.ensureKeeperRunning(this)
++        } catch (_: Exception) {}
+     }
+ 
+     override fun onResume() {
+         super.onResume()
+-        try { ReminderScheduler.rescheduleAll(this, restoreFiredOverdue = false) } catch (_: Exception) {}
++        try {
++            ReminderScheduler.rescheduleAll(this, restoreFiredOverdue = false)
++            if (ReminderScheduler.hasArmedWork(this)) FloatWindowService.refreshKeeper(this)
++        } catch (_: Exception) {}
+         if (permissionFlowActive) {
+             webView.postDelayed({ continueReminderPermissionFlow() }, 250)
+         }
+@@ -268,16 +276,52 @@
+         fun syncTodoSnapshot(todosJson: String) {
+             try {
+                 ReminderScheduler.syncTodoSnapshot(this@MainActivity, todosJson)
+-                // Keep any already-visible persistent reminder in lockstep with edits/status
+-                // changes made inside the app. Native -> Web uses the mutation queue; this is
+-                // the Web -> Native half of the same two-way contract.
+                 ReminderStore.getAll(this@MainActivity)
+                     .filter { it.fired }
+                     .forEach { FloatWindowManager.updateTodo(it.id, it.text, it.status) }
++                if (ReminderScheduler.hasArmedWork(this@MainActivity)) {
++                    FloatWindowService.ensureKeeperRunning(this@MainActivity)
++                    FloatWindowService.refreshKeeper(this@MainActivity)
++                }
+             } catch (_: Exception) {}
+         }
+ 
+         @JavascriptInterface
++        fun scheduleTodoReminder(idRaw: String, text: String, status: String, reminderAtRaw: String): String {
++            return try {
++                val id = idRaw.toLong()
++                val reminderAt = reminderAtRaw.toLong()
++                if (id <= 0L || reminderAt <= System.currentTimeMillis()) return "invalid"
++                val record = TodoReminderRecord(id, text, status, reminderAt, fired = false)
++                ReminderStore.upsert(this@MainActivity, record)
++                FloatWindowService.ensureKeeperRunning(this@MainActivity)
++                ReminderScheduler.scheduleTodo(this@MainActivity, record)
++                FloatWindowService.refreshKeeper(this@MainActivity)
++                ReminderDiagnostics.record(this@MainActivity, "todo_bridge_armed", "$id:$reminderAt")
++                "ok"
++            } catch (e: Exception) {
++                "失败: ${e.message ?: e.javaClass.simpleName}"
++            }
++        }
++
++        @JavascriptInterface
++        fun cancelTodoReminder(idRaw: String): String {
++            return try {
++                val id = idRaw.toLong()
++                ReminderScheduler.cancelTodo(this@MainActivity, id)
++                ReminderStore.remove(this@MainActivity, id, enqueueClearMutation = false)
++                FloatWindowManager.dismissTodoReminder(id, silent = true)
++                FloatWindowService.refreshKeeper(this@MainActivity)
++                "ok"
++            } catch (e: Exception) {
++                "失败: ${e.message ?: e.javaClass.simpleName}"
++            }
++        }
++
++        @JavascriptInterface
++        fun getReminderDiagnostics(): String = ReminderDiagnostics.json(this@MainActivity)
++
++        @JavascriptInterface
+         fun getTodoMutations(): String = ReminderStore.peekMutations(this@MainActivity)
+ 
+         @JavascriptInterface
+@@ -313,7 +357,9 @@
+         fun scheduleTestAlarm(): String {
+             runOnUiThread { beginReminderPermissionFlow() }
+             return try {
+-                MidnightReceiver.scheduleTest(this@MainActivity)
++                FloatWindowService.ensureKeeperRunning(this@MainActivity)
++                val triggerAt = MidnightReceiver.scheduleTest(this@MainActivity)
++                FloatWindowService.armTestFallback(this@MainActivity, triggerAt)
+                 "ok"
+             } catch (e: Exception) {
+                 "失败: ${e.message}"
+@@ -328,7 +374,11 @@
+                 .putInt("minute", minute.coerceIn(0, 59))
+                 .putBoolean("enabled", true)
+                 .apply()
+-            try { ReminderScheduler.scheduleDaily(this@MainActivity) } catch (_: Exception) {}
++            try {
++                FloatWindowService.ensureKeeperRunning(this@MainActivity)
++                ReminderScheduler.scheduleDaily(this@MainActivity)
++                FloatWindowService.refreshKeeper(this@MainActivity)
++            } catch (_: Exception) {}
+             runOnUiThread { beginReminderPermissionFlow() }
+             return reminderPermissionState()
+         }
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' '--exclude=SELF_TEST_V1.6.txt' '--exclude=SELF_TEST_V1.7.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.6.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.7.txt' "a/android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt" b/android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt
+--- "a/android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt"	2026-08-11 10:22:37.000000000 +0000
++++ b/android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt	2026-08-11 11:42:21.825081675 +0000
+@@ -5,6 +5,7 @@
+ import android.os.Build
+ import android.provider.Settings
+ import android.view.Gravity
++import android.view.WindowInsets
+ import android.view.WindowManager
+ import com.todolist.app.ui.BannerView
+ import com.todolist.app.ui.TodoReminderBannerView
+@@ -54,7 +55,7 @@
+ 
+         val screenWidth = context.resources.displayMetrics.widthPixels
+         val bannerWidth = (screenWidth * 0.82).toInt()
+-        val params = makeParams(context, bannerWidth, yDp = 4f)
++        val params = makeParams(context, wm, bannerWidth, yDp = 10f)
+         wm.addView(dailyBannerView, params)
+         dailyBannerView?.slideIn()
+         repositionTodoBanners()
+@@ -89,7 +90,7 @@
+ 
+         val screenWidth = context.resources.displayMetrics.widthPixels
+         val width = (screenWidth * 0.94).toInt()
+-        wm.addView(view, makeParams(context, width, yDp = 10f))
++        wm.addView(view, makeParams(context, wm, width, yDp = 10f))
+         view.alpha = 0f
+         view.translationY = -48f * context.resources.displayMetrics.density
+         view.animate().alpha(1f).translationY(0f).setDuration(280).start()
+@@ -161,7 +162,12 @@
+         }
+     }
+ 
+-    private fun makeParams(context: Context, widthPx: Int, yDp: Float): WindowManager.LayoutParams {
++    private fun makeParams(
++        context: Context,
++        wm: WindowManager,
++        widthPx: Int,
++        yDp: Float
++    ): WindowManager.LayoutParams {
+         val density = context.resources.displayMetrics.density
+         return WindowManager.LayoutParams().apply {
+             type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+@@ -172,14 +178,31 @@
+             }
+             format = PixelFormat.TRANSLUCENT
+             flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+-                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
++                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
++                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+             width = widthPx
+             height = WindowManager.LayoutParams.WRAP_CONTENT
+-            y = (yDp * density).toInt()
++            y = safeTopInset(context, wm) + (yDp * density).toInt()
+         }
+     }
+ 
++    // Same reliable positioning pattern used by the user's FlowLedger overlay: attach with the
++    // application WindowManager and account for status-bar/display-cutout insets explicitly.
++    private fun safeTopInset(context: Context, wm: WindowManager): Int {
++        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
++            return runCatching {
++                wm.currentWindowMetrics.windowInsets.getInsetsIgnoringVisibility(
++                    WindowInsets.Type.statusBars() or WindowInsets.Type.displayCutout()
++                ).top
++            }.getOrDefault((30f * context.resources.displayMetrics.density).toInt())
++        }
++        @Suppress("DiscouragedApi")
++        val id = context.resources.getIdentifier("status_bar_height", "dimen", "android")
++        return if (id > 0) context.resources.getDimensionPixelSize(id)
++        else (24f * context.resources.displayMetrics.density).toInt()
++    }
++
+     private fun clearWindowManagerIfIdle() {
+         if (!hasAnyOverlay()) {
+             windowManager = null
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' '--exclude=SELF_TEST_V1.6.txt' '--exclude=SELF_TEST_V1.7.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.6.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.7.txt' "a/android/app/src/main/java/com/todolist/app/receiver/BootReceiver.kt" b/android/app/src/main/java/com/todolist/app/receiver/BootReceiver.kt
+--- "a/android/app/src/main/java/com/todolist/app/receiver/BootReceiver.kt"	2026-08-11 10:22:37.000000000 +0000
++++ b/android/app/src/main/java/com/todolist/app/receiver/BootReceiver.kt	2026-08-11 11:46:00.396047693 +0000
+@@ -6,6 +6,7 @@
+ import android.content.Intent
+ import android.util.Log
+ import com.todolist.app.reminder.ReminderScheduler
++import com.todolist.app.service.FloatWindowService
+ 
+ class BootReceiver : BroadcastReceiver() {
+     companion object { private const val TAG = "BootReceiver" }
+@@ -20,7 +21,10 @@
+         ) {
+             try {
+                 ReminderScheduler.rescheduleAll(context, restoreFiredOverdue = true)
+-                Log.i(TAG, "Rescheduled reminders after $action")
++                if (ReminderScheduler.hasArmedWork(context)) {
++                    FloatWindowService.ensureKeeperRunning(context)
++                }
++                Log.i(TAG, "Rescheduled reminders and keeper after $action")
+             } catch (e: Exception) {
+                 Log.w(TAG, "Reschedule failed after $action: ${e.message}")
+             }
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' '--exclude=SELF_TEST_V1.6.txt' '--exclude=SELF_TEST_V1.7.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.6.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.7.txt' "a/android/app/src/main/java/com/todolist/app/receiver/MidnightReceiver.kt" b/android/app/src/main/java/com/todolist/app/receiver/MidnightReceiver.kt
+--- "a/android/app/src/main/java/com/todolist/app/receiver/MidnightReceiver.kt"	2026-08-11 11:18:58.000000000 +0000
++++ b/android/app/src/main/java/com/todolist/app/receiver/MidnightReceiver.kt	2026-08-11 11:41:28.823229653 +0000
+@@ -3,79 +3,42 @@
+ import android.content.BroadcastReceiver
+ import android.content.Context
+ import android.content.Intent
+-import android.os.Build
++import android.os.PowerManager
+ import android.util.Log
++import com.todolist.app.reminder.ReminderDiagnostics
+ import com.todolist.app.reminder.ReminderNotifier
+ import com.todolist.app.reminder.ReminderScheduler
+ import com.todolist.app.reminder.TodoSnapshotStore
+ import com.todolist.app.service.FloatWindowService
+ 
+ class MidnightReceiver : BroadcastReceiver() {
+-
+     companion object {
+         private const val TAG = "MidnightReceiver"
+         const val ACTION_MIDNIGHT = "com.listnote.app.action.MIDNIGHT"
++        const val EXTRA_TEST = "is_test"
+ 
+         fun schedule(context: Context) = ReminderScheduler.scheduleDaily(context)
+-        fun scheduleTest(context: Context) = ReminderScheduler.scheduleDailyTest(context)
++        fun scheduleTest(context: Context): Long = ReminderScheduler.scheduleDailyTest(context)
+     }
+ 
+     override fun onReceive(context: Context, intent: Intent) {
+         if (intent.action != ACTION_MIDNIGHT) return
+-        Log.i(TAG, "Daily reminder alarm triggered")
+-
+-        // Exact repeating alarms are intentionally implemented as one-shot + reschedule.
+-        ReminderScheduler.scheduleDaily(context)
++        val app = context.applicationContext
++        val isTest = intent.getBooleanExtra(EXTRA_TEST, false)
++        val pm = app.getSystemService(Context.POWER_SERVICE) as PowerManager
++        val wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "ListNote:DailyReminder")
++        wakeLock.acquire(20_000L)
++
++        ReminderDiagnostics.record(app, if (isTest) "test_alarm_received" else "daily_alarm_received")
++        Log.i(TAG, "Daily reminder alarm triggered; test=$isTest")
++
++        if (!isTest) ReminderScheduler.scheduleDaily(app)
++
++        // Receiver-level safety signal. The foreground service removes it once the overlay exists.
++        val summary = TodoSnapshotStore.todaySummary(app)
++        if (summary != null) ReminderNotifier.postDaily(app, summary.percent, summary.completed, summary.total)
++        else ReminderNotifier.postDaily(app, 0f, 0, 0)
+ 
+-        // Build the summary at alarm time from the last full WebView snapshot. This avoids
+-        // carrying yesterday's precomputed "today" list across midnight when the app is closed.
+-        val nativeSummary = TodoSnapshotStore.todaySummary(context)
+-        val prefs = context.getSharedPreferences("daily_banner", Context.MODE_PRIVATE)
+-
+-        val percent: Float
+-        val completed: Int
+-        val total: Int
+-        val inProgress: ArrayList<String>
+-        val todo: ArrayList<String>
+-        val completedItems: ArrayList<String>
+-
+-        if (nativeSummary != null) {
+-            percent = nativeSummary.percent
+-            completed = nativeSummary.completed
+-            total = nativeSummary.total
+-            inProgress = nativeSummary.inProgress
+-            todo = nativeSummary.todo
+-            completedItems = nativeSummary.completedItems
+-        } else {
+-            // Backward-compatible fallback for an upgrade before the WebView has synced once.
+-            percent = prefs.getFloat("percent", 0f)
+-            completed = prefs.getInt("completed", 0)
+-            total = prefs.getInt("total", 0)
+-            inProgress = ArrayList(prefs.getString("in_progress", "")?.split("|||")?.filter { it.isNotEmpty() } ?: emptyList())
+-            todo = ArrayList(prefs.getString("todo", "")?.split("|||")?.filter { it.isNotEmpty() } ?: emptyList())
+-            completedItems = ArrayList(prefs.getString("completed_items", "")?.split("|||")?.filter { it.isNotEmpty() } ?: emptyList())
+-        }
+-
+-        // Alarm-receiver first notification: this survives an OEM blocking the overlay service.
+-        ReminderNotifier.postDaily(context, percent, completed, total)
+-
+-        val serviceIntent = Intent(context, FloatWindowService::class.java).apply {
+-            action = FloatWindowService.ACTION_SHOW
+-            putExtra(FloatWindowService.EXTRA_PERCENT, percent)
+-            putExtra(FloatWindowService.EXTRA_COMPLETED, completed)
+-            putExtra(FloatWindowService.EXTRA_TOTAL, total)
+-            putStringArrayListExtra(FloatWindowService.EXTRA_IN_PROGRESS, inProgress)
+-            putStringArrayListExtra(FloatWindowService.EXTRA_TODO, todo)
+-            putStringArrayListExtra(FloatWindowService.EXTRA_COMPLETED_ITEMS, completedItems)
+-        }
+-        try {
+-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+-                context.startForegroundService(serviceIntent)
+-            } else {
+-                context.startService(serviceIntent)
+-            }
+-        } catch (e: Exception) {
+-            Log.w(TAG, "startForegroundService failed: ${e.message}")
+-        }
++        FloatWindowService.dispatchDailyAlarm(app, isTest)
+     }
+ }
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' '--exclude=SELF_TEST_V1.6.txt' '--exclude=SELF_TEST_V1.7.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.6.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.7.txt' "a/android/app/src/main/java/com/todolist/app/receiver/ReminderActionReceiver.kt" b/android/app/src/main/java/com/todolist/app/receiver/ReminderActionReceiver.kt
+--- "a/android/app/src/main/java/com/todolist/app/receiver/ReminderActionReceiver.kt"	2026-08-11 11:18:34.000000000 +0000
++++ b/android/app/src/main/java/com/todolist/app/receiver/ReminderActionReceiver.kt	2026-08-11 11:42:51.556743467 +0000
+@@ -36,6 +36,7 @@
+                 FloatWindowManager.updateTodoStatus(id, next)
+                 ReminderNotifier.postTodo(context, id, record.text, next, alert = false)
+                 broadcastMutation(context, id, "status", next)
++                FloatWindowService.refreshKeeper(context)
+             }
+ 
+             ACTION_DISMISS -> {
+@@ -44,6 +45,7 @@
+                 ReminderScheduler.cancelTodo(context, id)
+                 ReminderNotifier.cancelTodo(context, id)
+                 broadcastMutation(context, id, "clearReminder", null)
++                FloatWindowService.refreshKeeper(context)
+             }
+         }
+     }
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' '--exclude=SELF_TEST_V1.6.txt' '--exclude=SELF_TEST_V1.7.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.6.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.7.txt' "a/android/app/src/main/java/com/todolist/app/receiver/TodoReminderReceiver.kt" b/android/app/src/main/java/com/todolist/app/receiver/TodoReminderReceiver.kt
+--- "a/android/app/src/main/java/com/todolist/app/receiver/TodoReminderReceiver.kt"	2026-08-11 11:18:58.000000000 +0000
++++ b/android/app/src/main/java/com/todolist/app/receiver/TodoReminderReceiver.kt	2026-08-11 11:41:28.839229653 +0000
+@@ -3,8 +3,9 @@
+ import android.content.BroadcastReceiver
+ import android.content.Context
+ import android.content.Intent
+-import android.os.Build
++import android.os.PowerManager
+ import android.util.Log
++import com.todolist.app.reminder.ReminderDiagnostics
+ import com.todolist.app.reminder.ReminderNotifier
+ import com.todolist.app.reminder.ReminderStore
+ import com.todolist.app.service.FloatWindowService
+@@ -18,30 +19,21 @@
+ 
+     override fun onReceive(context: Context, intent: Intent) {
+         if (intent.action != ACTION_TODO_REMINDER) return
++        val app = context.applicationContext
+         val id = intent.getLongExtra(EXTRA_TODO_ID, -1L)
+         if (id <= 0L) return
+-        val record = ReminderStore.get(context, id) ?: return
+-        ReminderStore.markFired(context, id, true)
++        val record = ReminderStore.get(app, id) ?: return
+ 
+-        // First surface a heads-up/ongoing notification directly from the alarm receiver.
+-        // If an OEM later blocks the overlay foreground service, the user still gets the reminder.
+-        ReminderNotifier.postTodo(context, record.id, record.text, record.status, alert = true)
+-
+-        val serviceIntent = Intent(context, FloatWindowService::class.java).apply {
+-            action = FloatWindowService.ACTION_SHOW_TODO_REMINDER
+-            putExtra(FloatWindowService.EXTRA_TODO_ID, record.id)
+-            putExtra(FloatWindowService.EXTRA_TODO_TEXT, record.text)
+-            putExtra(FloatWindowService.EXTRA_TODO_STATUS, record.status)
+-            putExtra(FloatWindowService.EXTRA_REMINDER_AT, record.reminderAt)
+-        }
+-        try {
+-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+-                context.startForegroundService(serviceIntent)
+-            } else {
+-                context.startService(serviceIntent)
+-            }
+-        } catch (e: Exception) {
+-            Log.w(TAG, "Unable to start reminder service: ${e.message}")
++        val pm = app.getSystemService(Context.POWER_SERVICE) as PowerManager
++        pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "ListNote:TodoReminder").apply {
++            acquire(20_000L)
+         }
++
++        ReminderStore.markFired(app, id, true)
++        ReminderDiagnostics.record(app, "todo_alarm_received", id.toString())
++        ReminderNotifier.postTodo(app, record.id, record.text, record.status, alert = true)
++        Log.i(TAG, "Todo reminder alarm received: $id")
++
++        FloatWindowService.dispatchTodoAlarm(app, id)
+     }
+ }
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' '--exclude=SELF_TEST_V1.6.txt' '--exclude=SELF_TEST_V1.7.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.6.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.7.txt' "a/android/app/src/main/java/com/todolist/app/reminder/ReminderDiagnostics.kt" b/android/app/src/main/java/com/todolist/app/reminder/ReminderDiagnostics.kt
+--- "a/android/app/src/main/java/com/todolist/app/reminder/ReminderDiagnostics.kt"	1970-01-01 00:00:00.000000000 +0000
++++ b/android/app/src/main/java/com/todolist/app/reminder/ReminderDiagnostics.kt	2026-08-11 11:40:14.375229653 +0000
+@@ -0,0 +1,31 @@
++package com.todolist.app.reminder
++
++import android.content.Context
++import org.json.JSONArray
++import org.json.JSONObject
++
++/** Lightweight ring-buffer diagnostics for reminder delivery. No user content is logged. */
++object ReminderDiagnostics {
++    private const val PREFS = "reminder_diagnostics"
++    private const val KEY_EVENTS = "events"
++    private const val MAX_EVENTS = 30
++
++    fun record(context: Context, event: String, detail: String = "") {
++        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
++        val old = try { JSONArray(prefs.getString(KEY_EVENTS, "[]") ?: "[]") }
++        catch (_: Exception) { JSONArray() }
++        val next = JSONArray()
++        val start = (old.length() - (MAX_EVENTS - 1)).coerceAtLeast(0)
++        for (i in start until old.length()) next.put(old.opt(i))
++        next.put(JSONObject().apply {
++            put("at", System.currentTimeMillis())
++            put("event", event)
++            if (detail.isNotBlank()) put("detail", detail)
++        })
++        prefs.edit().putString(KEY_EVENTS, next.toString()).apply()
++    }
++
++    fun json(context: Context): String =
++        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
++            .getString(KEY_EVENTS, "[]") ?: "[]"
++}
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' '--exclude=SELF_TEST_V1.6.txt' '--exclude=SELF_TEST_V1.7.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.6.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.7.txt' "a/android/app/src/main/java/com/todolist/app/reminder/ReminderScheduler.kt" b/android/app/src/main/java/com/todolist/app/reminder/ReminderScheduler.kt
+--- "a/android/app/src/main/java/com/todolist/app/reminder/ReminderScheduler.kt"	2026-08-11 11:19:56.000000000 +0000
++++ b/android/app/src/main/java/com/todolist/app/reminder/ReminderScheduler.kt	2026-08-11 11:44:23.098651521 +0000
+@@ -7,10 +7,20 @@
+ import android.net.Uri
+ import android.os.Build
+ import android.util.Log
++import com.todolist.app.MainActivity
+ import com.todolist.app.receiver.MidnightReceiver
+ import com.todolist.app.receiver.TodoReminderReceiver
+ import java.util.Calendar
+ 
++/**
++ * AlarmManager is the durable source of timing truth.
++ *
++ * V1.7 deliberately uses setAlarmClock() whenever exact-alarm access is available. These alarms
++ * are the strongest user-facing AlarmManager primitive: RTC_WAKEUP is implied and Android exits
++ * low-power idle to deliver them. This is intentionally chosen for a reminder product where the
++ * user explicitly picked the time. If exact-alarm access is unavailable we retain a safe
++ * setAndAllowWhileIdle() fallback instead of silently dropping the reminder.
++ */
+ object ReminderScheduler {
+     private const val TAG = "ReminderScheduler"
+     private const val DAILY_REQUEST_CODE = 7001
+@@ -22,6 +32,12 @@
+         return alarmManager.canScheduleExactAlarms()
+     }
+ 
++    fun hasArmedWork(context: Context): Boolean {
++        val prefs = context.getSharedPreferences("banner_time", Context.MODE_PRIVATE)
++        val daily = prefs.getBoolean("enabled", false) || prefs.contains("hour") || prefs.contains("minute")
++        return daily || ReminderStore.getAll(context).isNotEmpty()
++    }
++
+     fun scheduleDaily(context: Context) {
+         val prefs = context.getSharedPreferences("banner_time", Context.MODE_PRIVATE)
+         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+@@ -34,7 +50,6 @@
+ 
+         val hour = prefs.getInt("hour", 0).coerceIn(0, 23)
+         val minute = prefs.getInt("minute", 6).coerceIn(0, 59)
+-
+         val now = Calendar.getInstance()
+         val target = Calendar.getInstance().apply {
+             set(Calendar.HOUR_OF_DAY, hour)
+@@ -45,53 +60,46 @@
+         }
+ 
+         alarmManager.cancel(pi)
+-        scheduleAlarm(alarmManager, target.timeInMillis, pi, context)
++        scheduleUserFacingAlarm(alarmManager, target.timeInMillis, pi, context, "daily", null)
++        ReminderDiagnostics.record(context, "daily_scheduled", target.timeInMillis.toString())
+         Log.i(TAG, "Daily summary scheduled for ${target.time}; exact=${canScheduleExact(context)}")
+     }
+ 
+-    fun scheduleDailyTest(context: Context) {
++    fun scheduleDailyTest(context: Context): Long {
++        val triggerAt = System.currentTimeMillis() + 10_000L
+         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+-        val pi = dailyPendingIntent(context, TEST_REQUEST_CODE)
++        val pi = dailyPendingIntent(context, TEST_REQUEST_CODE, isTest = true)
+         alarmManager.cancel(pi)
+-        scheduleAlarm(alarmManager, System.currentTimeMillis() + 10_000L, pi, context)
++        scheduleUserFacingAlarm(alarmManager, triggerAt, pi, context, "test", null)
++        ReminderDiagnostics.record(context, "test_scheduled", triggerAt.toString())
++        return triggerAt
+     }
+ 
+     fun scheduleTodo(context: Context, record: TodoReminderRecord) {
+         val triggerAt = if (record.reminderAt <= System.currentTimeMillis()) {
+-            // Overdue after reboot / process recovery: surface it promptly.
+             System.currentTimeMillis() + 2_000L
+         } else record.reminderAt
+         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+         val pi = todoPendingIntent(context, record.id)
+         alarmManager.cancel(pi)
+-        scheduleAlarm(alarmManager, triggerAt, pi, context)
++        scheduleUserFacingAlarm(alarmManager, triggerAt, pi, context, "todo", record.id)
++        ReminderDiagnostics.record(context, "todo_scheduled", "${record.id}:$triggerAt")
+         Log.i(TAG, "Todo ${record.id} scheduled @ $triggerAt; exact=${canScheduleExact(context)}")
+     }
+ 
+     fun cancelTodo(context: Context, id: Long) {
+         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+         alarmManager.cancel(todoPendingIntent(context, id))
++        ReminderDiagnostics.record(context, "todo_cancelled", id.toString())
+     }
+ 
+     fun syncTodoSnapshot(context: Context, todosJson: String) {
+         TodoSnapshotStore.save(context, todosJson)
+         val result = ReminderStore.syncSnapshot(context, todosJson)
+         result.removedIds.forEach { cancelTodo(context, it) }
+-
+-        // Do not re-arm a reminder after it has already fired. A fired reminder is kept in
+-        // ReminderStore only so its persistent overlay can survive service/process restarts.
+-        result.records
+-            .filter { !it.fired }
+-            .forEach { scheduleTodo(context, it) }
++        result.records.filter { !it.fired }.forEach { scheduleTodo(context, it) }
+     }
+ 
+-    /**
+-     * Recreate AlarmManager state after reboot/time changes/app cold start.
+-     *
+-     * restoreFiredOverdue=true is reserved for recovery entry points. It surfaces overdue or
+-     * already-fired persistent reminders promptly, while normal foreground syncs must not keep
+-     * creating new alarms for a banner that is already on screen.
+-     */
+     fun rescheduleAll(context: Context, restoreFiredOverdue: Boolean = false) {
+         scheduleDaily(context)
+         val now = System.currentTimeMillis()
+@@ -103,23 +111,54 @@
+         }
+     }
+ 
+-    private fun scheduleAlarm(
++    private fun scheduleUserFacingAlarm(
+         alarmManager: AlarmManager,
+         triggerAtMillis: Long,
+-        pi: PendingIntent,
+-        context: Context
++        operation: PendingIntent,
++        context: Context,
++        kind: String,
++        todoId: Long?
+     ) {
+         if (canScheduleExact(context)) {
+-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
++            val info = AlarmManager.AlarmClockInfo(
++                triggerAtMillis,
++                alarmInfoPendingIntent(context, kind, todoId)
++            )
++            alarmManager.setAlarmClock(info, operation)
+         } else {
+-            // Safe fallback while the user has not granted Alarms & reminders access.
+-            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
++            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, operation)
++        }
++    }
++
++    private fun alarmInfoPendingIntent(context: Context, kind: String, todoId: Long?): PendingIntent {
++        val intent = Intent(context, MainActivity::class.java).apply {
++            action = "com.listnote.app.action.OPEN_REMINDER_INFO"
++            data = Uri.parse("listnote://alarm-info/$kind/${todoId ?: 0L}")
++            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
++            if (todoId != null) putExtra(MainActivity.EXTRA_FOCUS_TODO_ID, todoId)
+         }
++        val requestCode = if (todoId == null) {
++            if (kind == "test") 9102 else 9101
++        } else {
++            10000 + ((todoId xor (todoId ushr 32)).toInt() and 0x3fffffff)
++        }
++        return PendingIntent.getActivity(
++            context,
++            requestCode,
++            intent,
++            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
++        )
+     }
+ 
+-    private fun dailyPendingIntent(context: Context, requestCode: Int = DAILY_REQUEST_CODE): PendingIntent {
++    private fun dailyPendingIntent(
++        context: Context,
++        requestCode: Int = DAILY_REQUEST_CODE,
++        isTest: Boolean = false
++    ): PendingIntent {
+         val intent = Intent(context, MidnightReceiver::class.java).apply {
+             action = MidnightReceiver.ACTION_MIDNIGHT
++            data = Uri.parse(if (isTest) "listnote://alarm/test" else "listnote://alarm/daily")
++            putExtra(MidnightReceiver.EXTRA_TEST, isTest)
+         }
+         return PendingIntent.getBroadcast(
+             context,
+@@ -132,7 +171,7 @@
+     private fun todoPendingIntent(context: Context, id: Long): PendingIntent {
+         val intent = Intent(context, TodoReminderReceiver::class.java).apply {
+             action = TodoReminderReceiver.ACTION_TODO_REMINDER
+-            data = Uri.parse("todolist://reminder/$id")
++            data = Uri.parse("listnote://reminder/$id")
+             putExtra(TodoReminderReceiver.EXTRA_TODO_ID, id)
+         }
+         return PendingIntent.getBroadcast(
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' '--exclude=SELF_TEST_V1.6.txt' '--exclude=SELF_TEST_V1.7.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.6.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.7.txt' "a/android/app/src/main/java/com/todolist/app/reminder/ReminderStore.kt" b/android/app/src/main/java/com/todolist/app/reminder/ReminderStore.kt
+--- "a/android/app/src/main/java/com/todolist/app/reminder/ReminderStore.kt"	2026-08-11 10:31:01.000000000 +0000
++++ b/android/app/src/main/java/com/todolist/app/reminder/ReminderStore.kt	2026-08-11 11:40:14.006845699 +0000
+@@ -106,6 +106,24 @@
+         return SyncResult(newRecords.values.toList(), removed)
+     }
+ 
++
++    fun upsert(context: Context, record: TodoReminderRecord) {
++        val normalized = record.copy(status = normalizeStatus(record.status))
++        val current = getAll(context).associateBy { it.id }.toMutableMap()
++        current[normalized.id] = normalized
++        saveAll(context, current.values.sortedBy { it.reminderAt })
++    }
++
++    fun remove(context: Context, id: Long, enqueueClearMutation: Boolean = false) {
++        saveAll(context, getAll(context).filterNot { it.id == id })
++        if (enqueueClearMutation) {
++            enqueueMutation(context, JSONObject().apply {
++                put("type", "clearReminder")
++                put("id", id)
++            })
++        }
++    }
++
+     fun markFired(context: Context, id: Long, fired: Boolean = true) {
+         val records = getAll(context).map {
+             if (it.id == id) it.copy(fired = fired) else it
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' '--exclude=SELF_TEST_V1.6.txt' '--exclude=SELF_TEST_V1.7.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.6.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.7.txt' "a/android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt" b/android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt
+--- "a/android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt"	2026-08-11 11:20:17.000000000 +0000
++++ b/android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt	2026-08-11 11:47:39.220198602 +0000
+@@ -8,24 +8,44 @@
+ import android.content.Context
+ import android.content.Intent
+ import android.os.Build
++import android.os.Handler
+ import android.os.IBinder
++import android.os.Looper
+ import android.provider.Settings
++import androidx.core.app.NotificationCompat
+ import com.todolist.app.MainActivity
+ import com.todolist.app.manager.FloatWindowManager
++import com.todolist.app.reminder.ReminderDiagnostics
+ import com.todolist.app.reminder.ReminderNotifier
+ import com.todolist.app.reminder.ReminderScheduler
+ import com.todolist.app.reminder.ReminderStore
++import com.todolist.app.reminder.TodoSnapshotStore
++import java.util.Calendar
+ 
++/**
++ * V1.7 reminder runtime.
++ *
++ * Unlike the previous fire-and-start design, this service is armed while the user still has the
++ * app in the foreground. It stays alive at low, silent notification importance whenever a daily reminder
++ * or item reminder exists. AlarmManager remains the durable wake-up mechanism, while a Handler
++ * inside this already-running service acts as a second, in-process delivery path. This mirrors the
++ * reliability characteristic of FlowLedger's already-alive overlay host without requiring
++ * accessibility or notification-listener privileges in List-Note.
++ */
+ class FloatWindowService : Service() {
+ 
+     companion object {
+-        const val CHANNEL_ID = "todo_banner_service_v2"
++        const val CHANNEL_ID = "listnote_reminder_keeper_v3"
+         const val ALERT_CHANNEL_ID = "todo_reminder_alerts_v2"
+-        const val CHANNEL_NAME = "To-Do 提醒服务"
++        const val CHANNEL_NAME = "List-Note 提醒守护"
+         const val ALERT_CHANNEL_NAME = "To-Do 重要提醒"
+         const val NOTIFICATION_ID = 1001
+-        private const val FALLBACK_BASE_ID = 30000
+ 
++        const val ACTION_KEEP_ALIVE = "com.listnote.app.action.KEEP_REMINDER_RUNTIME"
++        const val ACTION_REFRESH = "com.listnote.app.action.REFRESH_REMINDER_RUNTIME"
++        const val ACTION_ALARM_DAILY = "com.listnote.app.action.ALARM_DAILY"
++        const val ACTION_ALARM_TODO = "com.listnote.app.action.ALARM_TODO"
++        const val ACTION_ARM_TEST_FALLBACK = "com.listnote.app.action.ARM_TEST_FALLBACK"
+         const val ACTION_SHOW = "com.listnote.app.action.SHOW_BANNER"
+         const val ACTION_SHOW_TODO_REMINDER = "com.listnote.app.action.SHOW_TODO_REMINDER"
+         const val ACTION_CYCLE_TODO_STATUS = "com.listnote.app.action.CYCLE_TODO_STATUS"
+@@ -37,110 +57,210 @@
+         const val EXTRA_IN_PROGRESS = "in_progress"
+         const val EXTRA_TODO = "todo"
+         const val EXTRA_COMPLETED_ITEMS = "completed_items"
+-
+         const val EXTRA_TODO_ID = "todo_id"
+         const val EXTRA_TODO_TEXT = "todo_text"
+         const val EXTRA_TODO_STATUS = "todo_status"
+         const val EXTRA_REMINDER_AT = "reminder_at"
+-
++        const val EXTRA_TEST = "is_test"
++        const val EXTRA_TRIGGER_AT = "trigger_at"
+         const val ACTION_NATIVE_TODO_MUTATED = "com.listnote.app.action.NATIVE_TODO_MUTATED"
++
++        fun ensureKeeperRunning(context: Context) {
++            startCompat(context.applicationContext, Intent(context.applicationContext, FloatWindowService::class.java).apply {
++                action = ACTION_KEEP_ALIVE
++            })
++        }
++
++        fun refreshKeeper(context: Context) {
++            startCompat(context.applicationContext, Intent(context.applicationContext, FloatWindowService::class.java).apply {
++                action = ACTION_REFRESH
++            })
++        }
++
++        fun armTestFallback(context: Context, triggerAt: Long) {
++            startCompat(context.applicationContext, Intent(context.applicationContext, FloatWindowService::class.java).apply {
++                action = ACTION_ARM_TEST_FALLBACK
++                putExtra(EXTRA_TRIGGER_AT, triggerAt)
++            })
++        }
++
++        fun dispatchDailyAlarm(context: Context, isTest: Boolean) {
++            startCompat(context.applicationContext, Intent(context.applicationContext, FloatWindowService::class.java).apply {
++                action = ACTION_ALARM_DAILY
++                putExtra(EXTRA_TEST, isTest)
++            })
++        }
++
++        fun dispatchTodoAlarm(context: Context, id: Long) {
++            startCompat(context.applicationContext, Intent(context.applicationContext, FloatWindowService::class.java).apply {
++                action = ACTION_ALARM_TODO
++                putExtra(EXTRA_TODO_ID, id)
++            })
++        }
++
++        private fun startCompat(context: Context, intent: Intent) {
++            try {
++                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) context.startForegroundService(intent)
++                else context.startService(intent)
++            } catch (e: Exception) {
++                ReminderDiagnostics.record(context, "service_start_failed", e.javaClass.simpleName)
++            }
++        }
+     }
+ 
++    private val mainHandler = Handler(Looper.getMainLooper())
++    private val todoFallbacks = linkedMapOf<Long, Runnable>()
++    private var dailyFallback: Runnable? = null
++    private var testFallback: Runnable? = null
++    private var lastDailyDispatchAt = 0L
++
+     override fun onCreate() {
+         super.onCreate()
+         createNotificationChannels()
++        startForeground(NOTIFICATION_ID, buildServiceNotification("提醒守护已开启"))
++        ReminderDiagnostics.record(this, "keeper_created")
+     }
+ 
+     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+-        // startForegroundService() must be promoted immediately.
+-        startForeground(NOTIFICATION_ID, buildServiceNotification("提醒服务正在运行"))
++        startForeground(NOTIFICATION_ID, buildServiceNotification("提醒守护已开启"))
++        ReminderDiagnostics.record(this, "keeper_command", intent?.action ?: "null")
++
++        when (intent?.action) {
++            ACTION_KEEP_ALIVE, ACTION_REFRESH -> {
++                restorePersistentReminderOverlays()
++                armInProcessFallbacks()
++            }
++            ACTION_ARM_TEST_FALLBACK -> {
++                val triggerAt = intent?.getLongExtra(EXTRA_TRIGGER_AT, 0L) ?: 0L
++                if (triggerAt > 0L) armTestFallback(triggerAt)
++                armInProcessFallbacks()
++            }
++            ACTION_ALARM_DAILY -> {
++                handleDailyReminder(intent?.getBooleanExtra(EXTRA_TEST, false) ?: false, "alarm")
++                armInProcessFallbacks()
++            }
++            ACTION_ALARM_TODO -> {
++                handleTodoReminder(intent?.getLongExtra(EXTRA_TODO_ID, -1L) ?: -1L, "alarm")
++                armInProcessFallbacks()
++            }
++            // Backward-compatible entry points kept for existing notification/actions and old alarms.
++            ACTION_SHOW -> intent?.let { showDailySummaryFromIntent(it) }
++            ACTION_SHOW_TODO_REMINDER -> handleTodoReminder(intent?.getLongExtra(EXTRA_TODO_ID, -1L) ?: -1L, "legacy")
++            ACTION_CYCLE_TODO_STATUS -> cycleTodoStatus(intent?.getLongExtra(EXTRA_TODO_ID, -1L) ?: -1L)
++            ACTION_DISMISS_TODO_REMINDER -> dismissTodoReminder(intent?.getLongExtra(EXTRA_TODO_ID, -1L) ?: -1L)
++            null -> {
++                restorePersistentReminderOverlays()
++                runCatching { ReminderScheduler.rescheduleAll(this, restoreFiredOverdue = true) }
++                armInProcessFallbacks()
++            }
++        }
+ 
+-        if (intent == null) {
+-            restorePersistentReminderOverlays()
+-            if (!FloatWindowManager.hasAnyOverlay()) stopSelf()
+-            return if (FloatWindowManager.hasTodoOverlays()) START_STICKY else START_NOT_STICKY
+-        }
+-
+-        when (intent.action) {
+-            ACTION_SHOW -> showDailySummary(intent)
+-            ACTION_SHOW_TODO_REMINDER -> showTodoReminder(intent)
+-            ACTION_CYCLE_TODO_STATUS -> cycleTodoStatus(intent.getLongExtra(EXTRA_TODO_ID, -1L))
+-            ACTION_DISMISS_TODO_REMINDER -> dismissTodoReminder(intent.getLongExtra(EXTRA_TODO_ID, -1L))
+-            else -> if (!FloatWindowManager.hasAnyOverlay()) stopSelf()
++        return if (shouldStayAlive()) START_STICKY else {
++            stopSelf()
++            START_NOT_STICKY
+         }
+-        return if (FloatWindowManager.hasTodoOverlays()) START_STICKY else START_NOT_STICKY
+     }
+ 
+     override fun onBind(intent: Intent?): IBinder? = null
+ 
++    override fun onTaskRemoved(rootIntent: Intent?) {
++        ReminderDiagnostics.record(this, "task_removed")
++        runCatching { ReminderScheduler.rescheduleAll(this, restoreFiredOverdue = false) }
++        armInProcessFallbacks()
++        super.onTaskRemoved(rootIntent)
++    }
++
+     override fun onDestroy() {
+-        // Do not mark persistent todo reminders dismissed when Android kills the service.
++        clearFallbacks()
+         FloatWindowManager.dismissAllSilently()
++        ReminderDiagnostics.record(this, "keeper_destroyed")
+         super.onDestroy()
+     }
+ 
+-    private fun showDailySummary(intent: Intent) {
+-        val percent = intent.getFloatExtra(EXTRA_PERCENT, 0f)
+-        val completed = intent.getIntExtra(EXTRA_COMPLETED, 0)
+-        val total = intent.getIntExtra(EXTRA_TOTAL, 0)
+-        val inProgress = intent.getStringArrayListExtra(EXTRA_IN_PROGRESS) ?: arrayListOf()
+-        val todo = intent.getStringArrayListExtra(EXTRA_TODO) ?: arrayListOf()
+-        val completedItems = intent.getStringArrayListExtra(EXTRA_COMPLETED_ITEMS) ?: arrayListOf()
++    private fun handleDailyReminder(isTest: Boolean, source: String) {
++        val now = System.currentTimeMillis()
++        // Alarm + in-process fallback can arrive almost together. One visible banner is enough.
++        if (now - lastDailyDispatchAt < 3_000L) return
++        lastDailyDispatchAt = now
++        ReminderDiagnostics.record(this, if (isTest) "test_render" else "daily_render", source)
++        if (!isTest) runCatching { ReminderScheduler.scheduleDaily(this) }
++
++        val summary = TodoSnapshotStore.todaySummary(this)
++        if (summary != null) {
++            showDailySummary(
++                summary.percent,
++                summary.completed,
++                summary.total,
++                summary.inProgress,
++                summary.todo,
++                summary.completedItems
++            )
++        } else {
++            val prefs = getSharedPreferences("daily_banner", Context.MODE_PRIVATE)
++            showDailySummary(
++                prefs.getFloat("percent", 0f),
++                prefs.getInt("completed", 0),
++                prefs.getInt("total", 0),
++                splitList(prefs.getString("in_progress", "")),
++                splitList(prefs.getString("todo", "")),
++                splitList(prefs.getString("completed_items", ""))
++            )
++        }
++    }
++
++    private fun showDailySummaryFromIntent(intent: Intent) {
++        showDailySummary(
++            intent.getFloatExtra(EXTRA_PERCENT, 0f),
++            intent.getIntExtra(EXTRA_COMPLETED, 0),
++            intent.getIntExtra(EXTRA_TOTAL, 0),
++            intent.getStringArrayListExtra(EXTRA_IN_PROGRESS) ?: arrayListOf(),
++            intent.getStringArrayListExtra(EXTRA_TODO) ?: arrayListOf(),
++            intent.getStringArrayListExtra(EXTRA_COMPLETED_ITEMS) ?: arrayListOf()
++        )
++    }
+ 
++    private fun showDailySummary(
++        percent: Float,
++        completed: Int,
++        total: Int,
++        inProgress: List<String>,
++        todo: List<String>,
++        completedItems: List<String>
++    ) {
+         if (!Settings.canDrawOverlays(this)) {
+             ReminderNotifier.postDaily(this, percent, completed, total)
+-            stopIfIdle()
+             return
+         }
+-
+-        try {
+-            FloatWindowManager.showBanner(
+-                this,
+-                percent,
+-                completed,
+-                total,
+-                inProgress,
+-                todo,
+-                completedItems
+-            ) {
++        runCatching {
++            FloatWindowManager.showBanner(this, percent, completed, total, inProgress, todo, completedItems) {
+                 openApp()
+             }
+-            // Only remove the receiver-level safety notification after the overlay is attached.
+             ReminderNotifier.cancelDaily(this)
+-            // showBanner() first replaces any previous daily banner and clears its old callback.
+-            // Register the service lifecycle callback only after the new view has been attached.
+-            FloatWindowManager.onDailyDismissed = { stopIfIdle() }
+-        } catch (_: Exception) {
++            FloatWindowManager.onDailyDismissed = { reevaluateLifecycle() }
++            ReminderDiagnostics.record(this, "daily_overlay_attached")
++        }.onFailure {
++            ReminderDiagnostics.record(this, "daily_overlay_failed", it.javaClass.simpleName)
+             ReminderNotifier.postDaily(this, percent, completed, total)
+-            stopIfIdle()
+         }
+     }
+ 
+-    private fun showTodoReminder(intent: Intent) {
+-        val id = intent.getLongExtra(EXTRA_TODO_ID, -1L)
+-        if (id <= 0L) {
+-            stopIfIdle()
+-            return
+-        }
+-
+-        val stored = ReminderStore.get(this, id)
+-        val text = intent.getStringExtra(EXTRA_TODO_TEXT) ?: stored?.text ?: "待办提醒"
+-        val status = intent.getStringExtra(EXTRA_TODO_STATUS) ?: stored?.status ?: "todo"
++    private fun handleTodoReminder(id: Long, source: String) {
++        if (id <= 0L) return
++        val record = ReminderStore.get(this, id) ?: return
++        if (!record.fired) ReminderStore.markFired(this, id, true)
++        ReminderDiagnostics.record(this, "todo_render", "$id:$source")
+ 
+         if (!Settings.canDrawOverlays(this)) {
+-            ReminderNotifier.postTodo(this, id, text, status, alert = false)
+-            // The reminder remains active in ReminderStore, so it can be restored once overlay
+-            // permission is later granted and the app reschedules reminders.
+-            stopIfIdle()
++            ReminderNotifier.postTodo(this, id, record.text, record.status, alert = source != "fallback")
+             return
+         }
+ 
+-        try {
++        runCatching {
+             FloatWindowManager.showTodoReminder(
+                 context = this,
+                 id = id,
+-                text = text,
+-                status = status,
++                text = record.text,
++                status = record.status,
+                 onStatusChanged = { newStatus ->
+                     ReminderStore.updateStatus(this, id, newStatus)
+                     broadcastNativeMutation(id, "status", newStatus)
+@@ -149,30 +269,22 @@
+                     ReminderStore.dismiss(this, id)
+                     ReminderScheduler.cancelTodo(this, id)
+                     ReminderNotifier.cancelTodo(this, id)
+-                    cancelFallbackNotification(id)
+                     broadcastNativeMutation(id, "clearReminder", null)
+-                    stopIfIdle()
++                    refreshFallbacksAndLifecycle()
+                 },
+                 onOpenApp = { openApp(id) }
+             )
+-            // Overlay is now the primary UI; remove the alarm-arrival safety notification.
+             ReminderNotifier.cancelTodo(this, id)
+-        } catch (_: Exception) {
+-            ReminderNotifier.postTodo(this, id, text, status, alert = false)
+-            stopIfIdle()
++            ReminderDiagnostics.record(this, "todo_overlay_attached", id.toString())
++        }.onFailure {
++            ReminderDiagnostics.record(this, "todo_overlay_failed", "$id:${it.javaClass.simpleName}")
++            ReminderNotifier.postTodo(this, id, record.text, record.status, alert = false)
+         }
+     }
+ 
+     private fun cycleTodoStatus(id: Long) {
+-        if (id <= 0L) {
+-            stopIfIdle()
+-            return
+-        }
+-        val record = ReminderStore.get(this, id) ?: run {
+-            cancelFallbackNotification(id)
+-            stopIfIdle()
+-            return
+-        }
++        if (id <= 0L) return
++        val record = ReminderStore.get(this, id) ?: return
+         val next = when (record.status) {
+             "todo" -> "in-progress"
+             "in-progress" -> "completed"
+@@ -182,55 +294,102 @@
+         FloatWindowManager.updateTodoStatus(id, next)
+         broadcastNativeMutation(id, "status", next)
+         if (!Settings.canDrawOverlays(this)) ReminderNotifier.postTodo(this, id, record.text, next, alert = false)
+-        stopIfIdle()
+     }
+ 
+     private fun dismissTodoReminder(id: Long) {
+-        if (id <= 0L) {
+-            stopIfIdle()
+-            return
+-        }
++        if (id <= 0L) return
+         FloatWindowManager.dismissTodoReminder(id, silent = true)
+         ReminderStore.dismiss(this, id)
+         ReminderScheduler.cancelTodo(this, id)
+         ReminderNotifier.cancelTodo(this, id)
+-        cancelFallbackNotification(id)
+         broadcastNativeMutation(id, "clearReminder", null)
+-        stopIfIdle()
++        refreshFallbacksAndLifecycle()
+     }
+ 
+     private fun restorePersistentReminderOverlays() {
+         if (!Settings.canDrawOverlays(this)) return
+         ReminderStore.getAll(this).filter { it.fired }.forEach { record ->
+-            FloatWindowManager.showTodoReminder(
+-                context = this,
+-                id = record.id,
+-                text = record.text,
+-                status = record.status,
+-                onStatusChanged = { newStatus ->
+-                    ReminderStore.updateStatus(this, record.id, newStatus)
+-                    broadcastNativeMutation(record.id, "status", newStatus)
+-                },
+-                onDismiss = {
+-                    ReminderStore.dismiss(this, record.id)
+-                    ReminderScheduler.cancelTodo(this, record.id)
+-                    ReminderNotifier.cancelTodo(this, record.id)
+-                    cancelFallbackNotification(record.id)
+-                    broadcastNativeMutation(record.id, "clearReminder", null)
+-                    stopIfIdle()
+-                },
+-                onOpenApp = { openApp(record.id) }
+-            )
+-            ReminderNotifier.cancelTodo(this, record.id)
++            handleTodoReminder(record.id, "restore")
+         }
+     }
+ 
++    private fun armInProcessFallbacks() {
++        dailyFallback?.let { mainHandler.removeCallbacks(it) }
++        dailyFallback = null
++        todoFallbacks.values.forEach { mainHandler.removeCallbacks(it) }
++        todoFallbacks.clear()
++
++        val prefs = getSharedPreferences("banner_time", Context.MODE_PRIVATE)
++        if (prefs.getBoolean("enabled", false) || prefs.contains("hour") || prefs.contains("minute")) {
++            val hour = prefs.getInt("hour", 0).coerceIn(0, 23)
++            val minute = prefs.getInt("minute", 6).coerceIn(0, 59)
++            val now = Calendar.getInstance()
++            val target = Calendar.getInstance().apply {
++                set(Calendar.HOUR_OF_DAY, hour)
++                set(Calendar.MINUTE, minute)
++                set(Calendar.SECOND, 0)
++                set(Calendar.MILLISECOND, 0)
++                if (!after(now)) add(Calendar.DAY_OF_MONTH, 1)
++            }.timeInMillis
++            val task = Runnable {
++                handleDailyReminder(false, "fallback")
++                armInProcessFallbacks()
++            }
++            dailyFallback = task
++            mainHandler.postDelayed(task, (target - System.currentTimeMillis()).coerceAtLeast(1_000L))
++        }
++
++        val nowMs = System.currentTimeMillis()
++        ReminderStore.getAll(this).filter { !it.fired && it.reminderAt > nowMs }.forEach { record ->
++            val task = Runnable {
++                handleTodoReminder(record.id, "fallback")
++                todoFallbacks.remove(record.id)
++            }
++            todoFallbacks[record.id] = task
++            mainHandler.postDelayed(task, (record.reminderAt - nowMs).coerceAtLeast(1_000L))
++        }
++    }
++
++    private fun armTestFallback(triggerAt: Long) {
++        testFallback?.let { mainHandler.removeCallbacks(it) }
++        val task = Runnable {
++            handleDailyReminder(true, "fallback")
++            testFallback = null
++        }
++        testFallback = task
++        mainHandler.postDelayed(task, (triggerAt - System.currentTimeMillis()).coerceAtLeast(500L))
++    }
++
++    private fun clearFallbacks() {
++        dailyFallback?.let { mainHandler.removeCallbacks(it) }
++        testFallback?.let { mainHandler.removeCallbacks(it) }
++        todoFallbacks.values.forEach { mainHandler.removeCallbacks(it) }
++        dailyFallback = null
++        testFallback = null
++        todoFallbacks.clear()
++    }
++
++    private fun refreshFallbacksAndLifecycle() {
++        armInProcessFallbacks()
++        reevaluateLifecycle()
++    }
++
++    private fun shouldStayAlive(): Boolean =
++        ReminderScheduler.hasArmedWork(this) || FloatWindowManager.hasAnyOverlay() || testFallback != null
++
++    private fun reevaluateLifecycle() {
++        if (!shouldStayAlive()) stopSelf()
++    }
++
++    private fun splitList(raw: String?): ArrayList<String> =
++        ArrayList(raw.orEmpty().split("|||").filter { it.isNotEmpty() })
++
+     private fun openApp(todoId: Long? = null) {
+         val launchIntent = Intent(this, MainActivity::class.java).apply {
+-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
++            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+             todoId?.let { putExtra(MainActivity.EXTRA_FOCUS_TODO_ID, it) }
+         }
+-        startActivity(launchIntent)
++        runCatching { startActivity(launchIntent) }
+     }
+ 
+     private fun broadcastNativeMutation(id: Long, type: String, status: String?) {
+@@ -242,118 +401,38 @@
+         })
+     }
+ 
+-    private fun stopIfIdle() {
+-        if (!FloatWindowManager.hasAnyOverlay()) stopSelf()
+-    }
+-
+     private fun createNotificationChannels() {
+-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+-            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+-            nm.createNotificationChannel(
+-                NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW).apply {
+-                    description = "保持待办悬浮提醒持续显示"
+-                    setShowBadge(false)
+-                }
+-            )
+-            nm.createNotificationChannel(
+-                NotificationChannel(ALERT_CHANNEL_ID, ALERT_CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH).apply {
+-                    description = "当悬浮窗不可用时显示待办提醒"
+-                    enableVibration(true)
+-                }
+-            )
+-        }
++        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
++        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
++        nm.createNotificationChannel(
++            NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW).apply {
++                description = "保持用户已设置的 List-Note 定时提醒可靠运行"
++                setShowBadge(false)
++                enableVibration(false)
++                setSound(null, null)
++            }
++        )
+     }
+ 
+     private fun buildServiceNotification(text: String): Notification {
+-        val pendingIntent = PendingIntent.getActivity(
++        val openIntent = PendingIntent.getActivity(
+             this,
+             0,
+-            Intent(this, MainActivity::class.java),
++            Intent(this, MainActivity::class.java).apply {
++                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
++            },
+             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+         )
+-        return Notification.Builder(this, CHANNEL_ID)
++        return NotificationCompat.Builder(this, CHANNEL_ID)
++            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+             .setContentTitle("List-Note")
+             .setContentText(text)
+-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+-            .setContentIntent(pendingIntent)
++            .setContentIntent(openIntent)
+             .setOngoing(true)
++            .setOnlyAlertOnce(true)
++            .setSilent(true)
++            .setPriority(NotificationCompat.PRIORITY_LOW)
++            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+             .build()
+     }
+-
+-    private fun postFallbackSummaryNotification(percent: Float, completed: Int, total: Int) {
+-        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+-        val pendingIntent = PendingIntent.getActivity(
+-            this,
+-            10,
+-            Intent(this, MainActivity::class.java),
+-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+-        )
+-        val text = "今日完成 ${"%.0f".format(percent)}% · $completed/$total 项"
+-        nm.notify(
+-            FALLBACK_BASE_ID,
+-            Notification.Builder(this, ALERT_CHANNEL_ID)
+-                .setContentTitle("To-Do 每日总结")
+-                .setContentText(text)
+-                .setSmallIcon(android.R.drawable.ic_dialog_info)
+-                .setContentIntent(pendingIntent)
+-                .setAutoCancel(true)
+-                .setCategory(Notification.CATEGORY_REMINDER)
+-                .build()
+-        )
+-    }
+-
+-    private fun postFallbackTodoNotification(id: Long, text: String, status: String = "todo") {
+-        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+-        val pendingIntent = PendingIntent.getActivity(
+-            this,
+-            id.hashCode(),
+-            Intent(this, MainActivity::class.java).apply {
+-                putExtra(MainActivity.EXTRA_FOCUS_TODO_ID, id)
+-            },
+-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+-        )
+-        val cycleIntent = PendingIntent.getForegroundService(
+-            this,
+-            (id.hashCode() xor 0x51A7),
+-            Intent(this, FloatWindowService::class.java).apply {
+-                action = ACTION_CYCLE_TODO_STATUS
+-                putExtra(EXTRA_TODO_ID, id)
+-            },
+-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+-        )
+-        val dismissIntent = PendingIntent.getForegroundService(
+-            this,
+-            (id.hashCode() xor 0x71D5),
+-            Intent(this, FloatWindowService::class.java).apply {
+-                action = ACTION_DISMISS_TODO_REMINDER
+-                putExtra(EXTRA_TODO_ID, id)
+-            },
+-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+-        )
+-        val statusLabel = when (status) {
+-            "in-progress" -> "进行中"
+-            "completed" -> "已完成"
+-            else -> "未完成"
+-        }
+-        nm.notify(
+-            fallbackNotificationId(id),
+-            Notification.Builder(this, ALERT_CHANNEL_ID)
+-                .setContentTitle("待办提醒 · $statusLabel")
+-                .setContentText(text)
+-                .setSmallIcon(android.R.drawable.ic_dialog_info)
+-                .setContentIntent(pendingIntent)
+-                .addAction(Notification.Action.Builder(android.R.drawable.ic_menu_rotate, "切换状态", cycleIntent).build())
+-                .addAction(Notification.Action.Builder(android.R.drawable.ic_menu_close_clear_cancel, "关闭提醒", dismissIntent).build())
+-                .setOngoing(true)
+-                .setCategory(Notification.CATEGORY_REMINDER)
+-                .build()
+-        )
+-    }
+-
+-    private fun cancelFallbackNotification(id: Long) {
+-        (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+-            .cancel(fallbackNotificationId(id))
+-    }
+-
+-    private fun fallbackNotificationId(id: Long): Int = FALLBACK_BASE_ID + (id.hashCode() and 0x3fff)
+ }
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' '--exclude=SELF_TEST_V1.6.txt' '--exclude=SELF_TEST_V1.7.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.6.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.7.txt' "a/build-apk.bat" b/build-apk.bat
+--- "a/build-apk.bat"	2026-08-11 11:20:41.000000000 +0000
++++ b/build-apk.bat	2026-08-11 11:46:36.656905725 +0000
+@@ -10,9 +10,9 @@
+ )
+ if not exist "dist" mkdir "dist"
+ for %%F in ("android\app\build\outputs\apk\debug\*.apk") do (
+-  copy /Y "%%~fF" "dist\List-Note-v1.6.apk" >nul
++  copy /Y "%%~fF" "dist\List-Note-v1.7.apk" >nul
+   echo.
+-  echo APK: %CD%\dist\List-Note-v1.6.apk
++  echo APK: %CD%\dist\List-Note-v1.7.apk
+   exit /b 0
+ )
+ echo Build finished but no APK was found under android\app\build\outputs\apk\debug
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' '--exclude=SELF_TEST_V1.6.txt' '--exclude=SELF_TEST_V1.7.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.6.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.7.txt' "a/dev-logs/2026-08-11.md" b/dev-logs/2026-08-11.md
+--- "a/dev-logs/2026-08-11.md"	2026-08-11 10:43:33.000000000 +0000
++++ b/dev-logs/2026-08-11.md	2026-08-11 11:52:46.855229653 +0000
+@@ -14,3 +14,12 @@
+ - Launcher 名称改为 `List-Note`。
+ - 保持 namespace 与全部提醒/Note/To-Do 核心源码不变。
+ - 内部 action 前缀同步隔离为 `com.listnote.app.action.*`。
++
++# 2026-08-11 — V1.7
++- Base: V1.6 Full；用户授权完整重构此前失败的提醒子系统，To-Do/Note 其它成熟区域继续锁定。
++- 复盘 V1.6 真机现象：10 秒测试在桌面不触发、重新进入 APP 后立即出现；单条待办提醒没有到点悬浮。
++- 对照用户提供的 FlowLedger v1.8.1：其 OverlayBanner 直接使用 applicationContext + WindowManager + TYPE_APPLICATION_OVERLAY，并由已存活的系统绑定 Service 触发。List-Note 不引入无关 Accessibility/NotificationListener 权限，而是建立自己的低打扰前台 Reminder Keeper，复用“已有存活宿主直接挂 overlay”的生命周期特征。
++- AlarmManager 升级为用户明确设定时间优先 setAlarmClock；同时保留 Receiver + 高优先通知兜底、前台 Keeper 内 Handler 二次时钟、WAKE_LOCK。
++- 条目提醒由 WebView 在确认/取消时显式调用 Native Bridge，不再只依赖全量 snapshot 的隐式同步。
++- 悬浮窗挂载参数按 FlowLedger 的稳定实现收敛：application WindowManager、TYPE_APPLICATION_OVERLAY、FLAG_LAYOUT_IN_SCREEN、安全状态栏/挖孔 inset。
++- 左滑 UI 继续保持透明动作区 + 绿色提醒按钮 + 红色删除按钮两个独立按键；Note 模式未修改。
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' '--exclude=SELF_TEST_V1.6.txt' '--exclude=SELF_TEST_V1.7.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.6.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.7.txt' "a/docs/REMINDER_RELIABILITY_V1.7.md" b/docs/REMINDER_RELIABILITY_V1.7.md
+--- "a/docs/REMINDER_RELIABILITY_V1.7.md"	1970-01-01 00:00:00.000000000 +0000
++++ b/docs/REMINDER_RELIABILITY_V1.7.md	2026-08-11 11:46:37.139229653 +0000
+@@ -0,0 +1,67 @@
++# List-Note V1.7 — Reminder Runtime Redesign
++
++Base: V1.6 Full  
++Target: V1.7 Full
++
++## Device symptom that drove this redesign
++
++Observed on the user's HONOR Magic 6 Pro:
++
++- Tapping the 10-second test produced no desktop result for a long time.
++- Reopening List-Note caused the reminder to appear immediately.
++- Per-item reminders did not appear at all.
++
++This indicates that the overlay UI can render, but the closed/background app path is not reliably waking and hosting the overlay.
++
++## Reference project finding
++
++The supplied `FlowLedger-Final-v1.8.1-CompileFix` project renders its `OverlayBanner` directly from an already-live `NotificationListenerService` or `AccessibilityService` (and from MainActivity during manual flows). Its process/service host therefore already exists when `WindowManager.addView()` is called.
++
++List-Note does not legitimately need Notification Listener or Accessibility privileges, so V1.7 copies the *lifecycle property*, not those permissions: a dedicated reminder foreground service is armed while the user is still inside List-Note.
++
++## V1.7 runtime chain
++
++```text
++User sets reminder while app is foreground
++        ↓
++Persist reminder + start low/silent Reminder Keeper FGS
++        ↓
++Schedule AlarmManager.setAlarmClock() (exact access available)
++        +
++Arm in-process Handler fallback in already-running FGS
++        ↓
++At trigger time:
++  A. Alarm receiver wakes CPU briefly, posts safety notification, dispatches to FGS
++  B. If Alarm delivery is delayed but process remains alive, Handler fallback also dispatches
++        ↓
++Foreground service attaches TYPE_APPLICATION_OVERLAY Banner
++        ↓
++Overlay success cancels safety notification
++```
++
++Per-item reminder creation additionally uses an explicit JS -> Native `scheduleTodoReminder()` bridge. Snapshot sync remains as recovery/reconciliation rather than being the only scheduling mechanism.
++
++## Window attachment hardening
++
++The overlay manager now adopts the useful mechanics from FlowLedger:
++
++- application-context WindowManager
++- TYPE_APPLICATION_OVERLAY
++- FLAG_NOT_FOCUSABLE
++- FLAG_NOT_TOUCH_MODAL
++- FLAG_LAYOUT_IN_SCREEN
++- explicit status-bar/display-cutout safe-top inset
++
++The existing List-Note BannerView and TodoReminderBannerView visuals/interactions remain the UI layer.
++
++## Persistence
++
++- Reminder service: `START_STICKY`
++- Manifest: `android:stopWithTask="false"`
++- Service remains alive while daily reminder settings, reminder records, a test fallback, or overlay views exist.
++- BOOT_COMPLETED / TIME_SET / TIMEZONE_CHANGED / MY_PACKAGE_REPLACED reschedule durable alarms and attempt to restore the keeper.
++- Fired per-item reminders remain in ReminderStore until the user explicitly presses ✕, allowing restoration after service/process restart.
++
++## Diagnostics
++
++`ReminderDiagnostics` stores a 30-event ring buffer without todo text. Events include schedule, receiver arrival, keeper creation/commands, overlay attach/failure, and service-start failure. This is intended for future troubleshooting without changing user data.
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' '--exclude=SELF_TEST_V1.6.txt' '--exclude=SELF_TEST_V1.7.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.6.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.7.txt' "a/docs/requirements.md" b/docs/requirements.md
+--- "a/docs/requirements.md"	2026-08-11 10:43:33.000000000 +0000
++++ b/docs/requirements.md	2026-08-11 11:52:46.867229653 +0000
+@@ -27,3 +27,11 @@
+ - Android `applicationId` 改为 `com.listnote.app`，Launcher 名称改为 `List-Note`，用于与稳定版并存安装。
+ - namespace / Kotlin package 不迁移，遵守最小 Diff。
+ - 内部广播 action 使用 `com.listnote.app.action.*`，与稳定版彻底隔离。
++
++## V1.7 提醒可靠性补充
++- 用户已明确授权重构此前失败的提醒底层，但不得改动 Note 模式及与提醒无关的成熟 To-Do 行为。
++- 定时提醒不能依赖“重新进入 APP 才补触发”；在 APP 退到桌面后仍应由 Native 调度链独立触发。
++- 只要存在每日或单条提醒，Native 允许维持一个低打扰前台 Reminder Keeper，作为悬浮窗的常驻宿主；AlarmManager 仍是跨进程/休眠后的持久时钟。
++- 10 秒测试与单条提醒均必须具备 AlarmManager + Keeper 内存时钟双路径；任一路径到点均应复用同一个去重后的渲染逻辑。
++- 单条提醒确认/取消必须显式调用 Native Bridge 完成 schedule/cancel，避免仅依赖 localStorage 全量同步造成漏排程。
++- 不为实现提醒可靠性引入 AccessibilityService、NotificationListenerService 等与本产品目的无关的高权限能力。
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' '--exclude=SELF_TEST_V1.6.txt' '--exclude=SELF_TEST_V1.7.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.6.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.7.txt' "a/docs/tech-spec.md" b/docs/tech-spec.md
+--- "a/docs/tech-spec.md"	2026-08-11 10:43:33.000000000 +0000
++++ b/docs/tech-spec.md	2026-08-11 11:48:19.188952883 +0000
+@@ -1,4 +1,4 @@
+-# To-Do / Note Android 应用 — 技术规格（V1.5）
++# To-Do / Note Android 应用 — 技术规格（V1.7）
+ 
+ ## 架构
+ 
+@@ -11,14 +11,15 @@
+ MainActivity
+   ├─ TodoSnapshotStore（每日总结轻量镜像）
+   ├─ ReminderStore（单条提醒 + Native mutation queue）
+-  └─ ReminderScheduler（AlarmManager）
++  ├─ ReminderScheduler（AlarmManager.setAlarmClock + fallback）
++  └─ ReminderDiagnostics（30-event ring buffer）
+         ↓
+ BroadcastReceiver
+   ├─ MidnightReceiver
+   ├─ TodoReminderReceiver
+   └─ BootReceiver
+         ↓
+-FloatWindowService (foreground service)
++FloatWindowService (persistent reminder keeper foreground service)
+         ↓
+ FloatWindowManager
+   ├─ BannerView（日总结）
+@@ -33,12 +34,16 @@
+ 
+ ## 提醒策略
+ 
+-- 每日总结使用“一次性闹钟，到点后重新排下一天”，避免依赖系统的不精确 repeating alarm。
+-- 单条提醒按 todo id 创建独立 PendingIntent。
+-- Android 12+ 在可用时使用 exact alarm；未获精确闹钟特殊访问时使用允许待机的非精确 fallback，并在 APP 中引导权限。
++- 每日总结继续使用“一次性闹钟，到点后重新排下一天”。
++- 用户设置任意提醒时，在 APP 前台立即启动 `FloatWindowService` 作为低优先级静音提醒守护；有提醒任务时使用 `START_STICKY` 保持宿主。
++- 拥有 exact-alarm 能力时使用 `AlarmManager.setAlarmClock()`；否则退回 `setAndAllowWhileIdle()`。
++- 同时在守护服务内部用 Handler 保存进程内 fallback；这是对 HONOR/MagicOS 后台延迟 Alarm 的第二路径，不替代 AlarmManager。
++- 单条提醒按 todo id 创建独立 PendingIntent，并由 JS 明确调用 `scheduleTodoReminder()` Native Bridge；完整 snapshot 继续负责恢复与对账。
++- Alarm Receiver 到点时短时持有 `PARTIAL_WAKE_LOCK`，先发系统兜底提醒，再交给守护服务附着悬浮 Banner。
++- 悬浮窗采用 application WindowManager + `TYPE_APPLICATION_OVERLAY` + `FLAG_LAYOUT_IN_SCREEN` + 状态栏/刘海安全 inset。
+ - Android 13+ 请求通知权限；悬浮 Banner 使用 `SYSTEM_ALERT_WINDOW`。
+-- 开机、系统时间/时区改变、APP 更新、精确闹钟权限改变后重排提醒。
+-- 到点通过前台服务承载悬浮提醒；单条提醒只有显式点击 ✕ 才从 ReminderStore 清除。
++- 开机、系统时间/时区改变、APP 更新、精确闹钟权限改变后重排提醒并尝试恢复守护服务。
++- 单条提醒只有显式点击 ✕ 才从 ReminderStore 清除；已触发记录可在 service/process 重启后恢复悬浮条。
+ 
+ ## Gradle 根目录
+ 
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' '--exclude=SELF_TEST_V1.6.txt' '--exclude=SELF_TEST_V1.7.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.6.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.7.txt' "a/ui/todo.html" b/ui/todo.html
+--- "a/ui/todo.html"	2026-08-11 11:21:13.000000000 +0000
++++ b/ui/todo.html	2026-08-11 11:42:01.981578443 +0000
+@@ -3652,16 +3652,26 @@
+   if (!todo || !date) { showToast('日期或时间不正确'); return; }
+   if (date.getTime() <= Date.now() + 5000) { showToast('提醒时间必须晚于现在'); return; }
+   todo.reminderAt = date.getTime();
+-  saveTodos(); render(); closeTodoReminderPicker();
++  saveTodos();
++  let nativeScheduleResult = 'ok';
++  if (typeof AndroidBridge !== 'undefined' && AndroidBridge.scheduleTodoReminder) {
++    try {
++      nativeScheduleResult = String(AndroidBridge.scheduleTodoReminder(String(todo.id), todo.text || '', todo.status || 'todo', String(todo.reminderAt)));
++    } catch(e) { nativeScheduleResult = '失败'; }
++  }
++  render(); closeTodoReminderPicker();
+   if (typeof AndroidBridge !== 'undefined' && AndroidBridge.requestReminderPermissions) { try { AndroidBridge.requestReminderPermissions(); } catch(e) {} }
+   const label = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+-  showToast(`提醒已设定 · ${label}`);
++  showToast(nativeScheduleResult.startsWith('失败') || nativeScheduleResult === 'invalid' ? `提醒已保存 · 原生调度失败` : `提醒已设定 · ${label}`);
+ });
+ document.getElementById('reminderCancelExisting').addEventListener('click', () => {
+   const todo = todos.find(t => t.id === reminderEditingTodoId);
+   if (!todo) return;
++  const cancelledId = todo.id;
+   todo.reminderAt = null;
+-  saveTodos(); render(); closeTodoReminderPicker(); showToast('已取消该条提醒');
++  saveTodos();
++  if (typeof AndroidBridge !== 'undefined' && AndroidBridge.cancelTodoReminder) { try { AndroidBridge.cancelTodoReminder(String(cancelledId)); } catch(e) {} }
++  render(); closeTodoReminderPicker(); showToast('已取消该条提醒');
+ });
+ window.__pullNativeTodoMutations = function() {
+   if (typeof AndroidBridge === 'undefined' || !AndroidBridge.getTodoMutations) return;

@@ -1,0 +1,43 @@
+SELF TEST — To-Do V1.18
+Base: V1.17 Full
+Target: V1.18 Full
+
+REQUIREMENTS REVIEW
+- PASS  No fingerprint / lock-screen password feature added.
+- PASS  Note toolbar adds an image button immediately after “+子”.
+- PASS  Native multi-image picker path uses Android system Photo Picker, image-only, max 20.
+- PASS  Picked images are copied to app-private files/note_images instead of Base64/localStorage blobs.
+- PASS  Note image references are inserted at the remembered caret location.
+- PASS  Single image uses wide layout; multiple images use a two-column grid.
+- PASS  Note images support full-screen preview and per-image delete.
+- PASS  Deleting a Note / descendant Note deletes the private image files referenced by that Note.
+- PASS  Existing todo_glass_notes key and existing Note object fields remain compatible; no mandatory migration added.
+- PASS  Note body default font-weight = 400.
+- PASS  B button uses actual queryCommandState('bold'); default false, first press bold/on, second press normal/off.
+- PASS  selectionchange no longer calls execCommand('bold') / backColor to mutate content.
+
+ANIMATION REVIEW
+- PASS  SnoozeSwipeBannerView commitSnooze / commitDismiss / commitComplete / commitOpen all use one opacity-only fade path.
+- PASS  Release stage adds no translation; it fades from the exact gesture release position.
+- PASS  Fully transparent/invisible frame is held before WindowManager detach callback.
+- PASS  Daily direct checkbox completion, X, and body-open use the same fade path.
+- PASS  Todo X and body-open use the same fade path; checkbox status cycling remains non-dismissing.
+- PASS  Daily summary Banner auto-dismiss / X / open-app use opacity-only exit with one-shot guard.
+- PASS  Snooze Toast retains opacity-only exit and transparent-frame detach protection.
+- PASS  WebView small Toast transition is opacity-only.
+- PASS  Native UI scan found no remaining combined translation + alpha(0) exit animation in reminder UI/manager code.
+
+DATA / LOCKED CORE
+- PASS  applicationId / namespace remain com.todolist.app.
+- PASS  versionCode 29 / versionName 1.18.
+- PASS  Existing business keys unchanged: todo_glass_data, todo_glass_recycle, todo_glass_history, todo_glass_notes, todo_glass_daily_tasks_v1, todo_glass_onboarding_v1, banner_reminder_time.
+- PASS  16/16 selected reminder/data core files byte-identical to V1.17.
+- PASS  141/141 all pre-existing files outside authorized diff byte-identical to V1.17.
+- PASS  HTML source and Android asset mirror byte-identical.
+
+TECHNICAL CHECKS
+- PASS  Inline JavaScript: node --check.
+- PASS  DOM static parse: 165 unique ids, no duplicate ids; noteAddImageBtn and noteImagePreview exist.
+- PASS  AndroidManifest / res XML parse.
+- PASS  Standalone kotlinc reported no targeted syntax diagnostics: no “syntax error”, “unexpected tokens”, “expecting”, “cannot be reassigned”, or unclosed-token diagnostics. Android/AndroidX unresolved references are expected without SDK classpath.
+- LIMIT Full Gradle compile could not start because the wrapper still needs Gradle 8.11.1 from services.gradle.org and this sandbox cannot resolve that host (UnknownHostException). See v118_gradle_build.log. Not reported as a successful Android build.

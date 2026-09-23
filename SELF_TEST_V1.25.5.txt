@@ -1,0 +1,29 @@
+TO-DO V1.25.5 SELF TEST
+
+Baseline: To-Do V1.25.4
+
+AUTHORIZED RUNTIME DIFF ONLY
+1. Read Mode history actions restored to original display:none behavior.
+2. Edit Mode history actions restored to display:flex.
+3. New system-style hooked Undo/Redo SVG artwork retained.
+4. Timestamp toolbar text glyph replaced by 22px stroked SVG clock.
+
+PASS
+- ui/todo.html == android/app/src/main/assets/todo.html
+- Runtime JS node --check
+- Android XML parse: 5/5
+- Read initial History display:none
+- Read/Edit History toggle: none <-> flex
+- Hooked Undo/Redo artwork retained
+- Timestamp insertion function unchanged
+- Timestamp toolbar icon is 22px SVG
+- Native Kotlin/Java unchanged from V1.25.4: 23/23
+- Critical Swipe/Tree/IME functions unchanged from V1.25.4
+- applicationId = com.todolist.app
+- versionCode = 53
+- versionName = 1.25.5
+- No Beta signingConfig / beta-debug.keystore in Stable
+
+GRADLE
+Beta twin build attempt failed before compilation because this environment cannot resolve services.gradle.org.
+Android Studio on the user's original computer remains the real compile/signing gate.

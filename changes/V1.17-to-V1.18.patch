@@ -1,0 +1,1636 @@
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=V1.17-to-V1.18.patch' /mnt/data/todo_v117_baseline_for_v118/PROJECT_FILE_MANIFEST_V1.18.txt ./PROJECT_FILE_MANIFEST_V1.18.txt
+--- /mnt/data/todo_v117_baseline_for_v118/PROJECT_FILE_MANIFEST_V1.18.txt	1970-01-01 00:00:00.000000000 +0000
++++ ./PROJECT_FILE_MANIFEST_V1.18.txt	2026-08-12 06:27:32.233515739 +0000
+@@ -0,0 +1,158 @@
++CLAUDE.md
++PROJECT_FILE_MANIFEST_V1.10.1.txt
++PROJECT_FILE_MANIFEST_V1.10.txt
++PROJECT_FILE_MANIFEST_V1.13.txt
++PROJECT_FILE_MANIFEST_V1.14.txt
++PROJECT_FILE_MANIFEST_V1.15.txt
++PROJECT_FILE_MANIFEST_V1.16.txt
++PROJECT_FILE_MANIFEST_V1.17.txt
++PROJECT_FILE_MANIFEST_V1.18.txt
++PROJECT_FILE_MANIFEST_V1.4.txt
++PROJECT_FILE_MANIFEST_V1.5.txt
++PROJECT_FILE_MANIFEST_V1.6.txt
++PROJECT_FILE_MANIFEST_V1.7.txt
++PROJECT_FILE_MANIFEST_V1.8.txt
++PROJECT_FILE_MANIFEST_V1.9.txt
++README.md
++SELF_TEST_V1.10.1.txt
++SELF_TEST_V1.10.txt
++SELF_TEST_V1.13.txt
++SELF_TEST_V1.14.txt
++SELF_TEST_V1.15.txt
++SELF_TEST_V1.16.txt
++SELF_TEST_V1.17.txt
++SELF_TEST_V1.18.txt
++SELF_TEST_V1.4.txt
++SELF_TEST_V1.5.txt
++SELF_TEST_V1.6.txt
++SELF_TEST_V1.7.txt
++SELF_TEST_V1.8.txt
++SELF_TEST_V1.9.txt
++android/app/build.gradle.kts
++android/app/proguard-rules.pro
++android/app/src/main/AndroidManifest.xml
++android/app/src/main/assets/background.png
++android/app/src/main/assets/todo.html
++android/app/src/main/java/com/todolist/app/MainActivity.kt
++android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt
++android/app/src/main/java/com/todolist/app/receiver/BootReceiver.kt
++android/app/src/main/java/com/todolist/app/receiver/DailyTaskActionReceiver.kt
++android/app/src/main/java/com/todolist/app/receiver/DailyTaskReminderReceiver.kt
++android/app/src/main/java/com/todolist/app/receiver/MidnightReceiver.kt
++android/app/src/main/java/com/todolist/app/receiver/ReminderActionReceiver.kt
++android/app/src/main/java/com/todolist/app/receiver/TodoReminderReceiver.kt
++android/app/src/main/java/com/todolist/app/reminder/DailyTaskStore.kt
++android/app/src/main/java/com/todolist/app/reminder/ReminderDiagnostics.kt
++android/app/src/main/java/com/todolist/app/reminder/ReminderNotifier.kt
++android/app/src/main/java/com/todolist/app/reminder/ReminderScheduler.kt
++android/app/src/main/java/com/todolist/app/reminder/ReminderStore.kt
++android/app/src/main/java/com/todolist/app/reminder/SnoozeStore.kt
++android/app/src/main/java/com/todolist/app/reminder/TodoSnapshotStore.kt
++android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt
++android/app/src/main/java/com/todolist/app/ui/BannerView.kt
++android/app/src/main/java/com/todolist/app/ui/DailyTaskBannerView.kt
++android/app/src/main/java/com/todolist/app/ui/SnoozeSwipeBannerView.kt
++android/app/src/main/java/com/todolist/app/ui/TodoReminderBannerView.kt
++android/app/src/main/java/com/todolist/app/util/Dp.kt
++android/app/src/main/res/drawable-nodpi/ic_notification_large.png
++android/app/src/main/res/drawable/ic_notification_todo.xml
++android/app/src/main/res/mipmap-hdpi/ic_launcher.png
++android/app/src/main/res/mipmap-hdpi/ic_launcher_v2.png
++android/app/src/main/res/mipmap-hdpi/ic_launcher_v2_round.png
++android/app/src/main/res/mipmap-mdpi/ic_launcher.png
++android/app/src/main/res/mipmap-mdpi/ic_launcher_v2.png
++android/app/src/main/res/mipmap-mdpi/ic_launcher_v2_round.png
++android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
++android/app/src/main/res/mipmap-xhdpi/ic_launcher_v2.png
++android/app/src/main/res/mipmap-xhdpi/ic_launcher_v2_round.png
++android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
++android/app/src/main/res/mipmap-xxhdpi/ic_launcher_v2.png
++android/app/src/main/res/mipmap-xxhdpi/ic_launcher_v2_round.png
++android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
++android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_v2.png
++android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_v2_round.png
++android/app/src/main/res/values/strings.xml
++android/app/src/main/res/values/styles.xml
++assets/icon.jpg
++assets/icons/generate_icons.py
++assets/icons/ic_launcher_v1.16_source.png
++assets/icons/ic_launcher_v1.17_source.png
++assets/icons/icon.svg
++build-apk.bat
++build.gradle.kts
++changes/BASELINE_OVERRIDE_V1.4.md
++changes/CHANGELOG_V1.10.1.md
++changes/CHANGELOG_V1.10.md
++changes/CHANGELOG_V1.13.md
++changes/CHANGELOG_V1.14.md
++changes/CHANGELOG_V1.15.md
++changes/CHANGELOG_V1.16.md
++changes/CHANGELOG_V1.17.md
++changes/CHANGELOG_V1.18.md
++changes/CHANGELOG_V1.4.md
++changes/CHANGELOG_V1.5.md
++changes/CHANGELOG_V1.6.md
++changes/CHANGELOG_V1.7.md
++changes/CHANGELOG_V1.8.md
++changes/CHANGELOG_V1.9.md
++changes/LOCKED_CORE_GUARD_V1.10.1.txt
++changes/LOCKED_CORE_GUARD_V1.10.txt
++changes/LOCKED_CORE_GUARD_V1.13.txt
++changes/LOCKED_CORE_GUARD_V1.14.txt
++changes/LOCKED_CORE_GUARD_V1.15.txt
++changes/LOCKED_CORE_GUARD_V1.16.txt
++changes/LOCKED_CORE_GUARD_V1.17.txt
++changes/LOCKED_CORE_GUARD_V1.18.txt
++changes/LOCKED_CORE_GUARD_V1.4.txt
++changes/LOCKED_CORE_GUARD_V1.5.txt
++changes/LOCKED_CORE_GUARD_V1.6.txt
++changes/LOCKED_CORE_GUARD_V1.7.txt
++changes/LOCKED_CORE_GUARD_V1.8.txt
++changes/LOCKED_CORE_GUARD_V1.9.txt
++changes/User-July22-Note-to-V1.4.patch
++changes/V1.10-to-V1.10.1.patch
++changes/V1.12-to-V1.13.patch
++changes/V1.13-to-V1.14.patch
++changes/V1.14-to-V1.15.patch
++changes/V1.15-to-V1.16.patch
++changes/V1.16-to-V1.17.patch
++changes/V1.17-to-V1.18.patch
++changes/V1.4-to-V1.5.patch
++changes/V1.5-to-V1.6.patch
++changes/V1.6-to-V1.7.patch
++changes/V1.7-to-V1.8.patch
++changes/V1.8-to-V1.9.patch
++changes/V1.9-to-V1.10.patch
++dev-logs/2026-06-23.md
++dev-logs/2026-08-11.md
++dev-logs/2026-08-12.md
++dist/.gitkeep
++docs/FEATURE_COACH_V1.14.md
++docs/NOTE_IMAGES_V1.18.md
++docs/ONBOARDING_V1.13.md
++docs/REMINDER_RELIABILITY_V1.6.md
++docs/REMINDER_RELIABILITY_V1.7.md
++docs/SNOOZE_GESTURE_V1.15.md
++docs/UPDATE_SAFETY_V1.9.md
++docs/design-standards.md
++docs/execution-steps.md
++docs/requirements.md
++docs/tech-spec.md
++gradle.properties
++gradle/wrapper/gradle-wrapper.jar
++gradle/wrapper/gradle-wrapper.properties
++gradlew
++gradlew.bat
++local.properties
++local.properties.example
++script_0.js
++settings.gradle.kts
++start.bat
++tests/ai-chat.test.html
++tests/ai-integration.test.html
++ui/test_checkbox.html
++ui/todo.html
++v116_gradle_build.log
++v117_gradle_build.log
++v118_gradle_build.log
++verify-overwrite-safety.bat
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=V1.17-to-V1.18.patch' /mnt/data/todo_v117_baseline_for_v118/README.md ./README.md
+--- /mnt/data/todo_v117_baseline_for_v118/README.md	2026-08-12 05:49:14.000000000 +0000
++++ ./README.md	2026-08-12 06:15:56.353798220 +0000
+@@ -1,10 +1,20 @@
+-# To-Do V1.17
++# To-Do V1.18
+ 
+ 本地优先的 To-Do + Note Android 应用。UI 使用 HTML/CSS/Vanilla JS，Android 原生层使用 Kotlin WebView，并负责精确定时、后台提醒守护与悬浮 Banner。
+ 
+ 
+ 
+ 
++
++## V1.18 Note 图文编辑 + 原生悬浮层纯渐隐
++
++- Note 编辑器底部工具栏最右侧新增 `▧+` 图片按钮，调用 Android 系统 Photo Picker，最多一次选择 20 张图片；不申请整库相册权限。
++- 图片选择完成后复制到 APP 私有 `files/note_images/`，Note HTML 只保存 `https://note.local/image/...` 引用，不把大图 Base64 塞进 localStorage；覆盖升级时旧纯文字 Note 原样兼容。
++- 图片按当前光标位置插入；单图大图、多图双列网格；点图可全屏预览，单张可直接删除；删除 Note/子 Note 时同步清理该 Note 的私有图片文件。
++- 修复 Note 编辑器 B 粗体状态：正文默认正常字重；点击 B 后才进入蓝色高亮 + 粗体，再点一次恢复正常；光标/选区变化只读取格式状态，不再用 `execCommand('bold')` 反向修改正文。
++- 原生 WindowManager 悬浮层退出统一为 opacity-only：Todo/Daily 四向手势、×、正文打开、Daily 勾选完成、每日总结 Banner 自动退出均先纯透明渐隐，保持一帧完全透明后再 detach，减少 MagicOS/Android Overlay 最后一帧闪烁。
++- WebView 内普通小 Toast 同步改为 opacity-only 退出，不再伴随位移动画。
++
+ ## V1.17 Banner 四向手势 + 通知图标 + Daily 入场优化
+ 
+ - Todo / Daily 悬浮 Banner 在静止时仍保持单行，不新增常驻按钮：右滑继续是 `+5 min / +10 min`；左滑等同 `×` 关闭当前提醒；上滑直接完成；下滑等同点击 Banner 打开应用。
+@@ -99,7 +109,7 @@
+ ## 当前功能
+ 
+ - **To-Do 模式**：全部 / 未完成 / 进行中 / 已完成、分类、搜索、日历、回收站、AI 助手等。
+-- **Note 模式**：保留 7 月 22 日版本的 Note / 文件夹 / 子笔记 / 编辑器能力。
++- **Note 模式**：保留原 Note / 文件夹 / 子笔记 / 编辑器能力，并支持从系统相册多选图片插入正文、私有存储与图片预览。
+ - **每日总结提醒**：右上角时钟设置每天时间，到点显示今日完成进度悬浮 Banner，可展开并进入 APP。
+ - **Daily 每日事项**：独立半高抽屉管理每天固定重复的小事；今日完成/未完成两态，左滑编辑删除、月历完成统计、到点单行常驻 Banner。
+ - **单条待办提醒**：左滑仍是两个独立按钮：绿色“提醒”、红色“删除”；提醒设置年月日时分。
+@@ -134,7 +144,7 @@
+ 成功后 APK 会复制到：
+ 
+ ```text
+-dist/To-Do-v1.17.apk
++dist/To-Do-v1.18.apk
+ ```
+ 
+ ## 技术栈
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=V1.17-to-V1.18.patch' /mnt/data/todo_v117_baseline_for_v118/SELF_TEST_V1.18.txt ./SELF_TEST_V1.18.txt
+--- /mnt/data/todo_v117_baseline_for_v118/SELF_TEST_V1.18.txt	1970-01-01 00:00:00.000000000 +0000
++++ ./SELF_TEST_V1.18.txt	2026-08-12 06:24:26.902508998 +0000
+@@ -0,0 +1,43 @@
++SELF TEST — To-Do V1.18
++Base: V1.17 Full
++Target: V1.18 Full
++
++REQUIREMENTS REVIEW
++- PASS  No fingerprint / lock-screen password feature added.
++- PASS  Note toolbar adds an image button immediately after “+子”.
++- PASS  Native multi-image picker path uses Android system Photo Picker, image-only, max 20.
++- PASS  Picked images are copied to app-private files/note_images instead of Base64/localStorage blobs.
++- PASS  Note image references are inserted at the remembered caret location.
++- PASS  Single image uses wide layout; multiple images use a two-column grid.
++- PASS  Note images support full-screen preview and per-image delete.
++- PASS  Deleting a Note / descendant Note deletes the private image files referenced by that Note.
++- PASS  Existing todo_glass_notes key and existing Note object fields remain compatible; no mandatory migration added.
++- PASS  Note body default font-weight = 400.
++- PASS  B button uses actual queryCommandState('bold'); default false, first press bold/on, second press normal/off.
++- PASS  selectionchange no longer calls execCommand('bold') / backColor to mutate content.
++
++ANIMATION REVIEW
++- PASS  SnoozeSwipeBannerView commitSnooze / commitDismiss / commitComplete / commitOpen all use one opacity-only fade path.
++- PASS  Release stage adds no translation; it fades from the exact gesture release position.
++- PASS  Fully transparent/invisible frame is held before WindowManager detach callback.
++- PASS  Daily direct checkbox completion, X, and body-open use the same fade path.
++- PASS  Todo X and body-open use the same fade path; checkbox status cycling remains non-dismissing.
++- PASS  Daily summary Banner auto-dismiss / X / open-app use opacity-only exit with one-shot guard.
++- PASS  Snooze Toast retains opacity-only exit and transparent-frame detach protection.
++- PASS  WebView small Toast transition is opacity-only.
++- PASS  Native UI scan found no remaining combined translation + alpha(0) exit animation in reminder UI/manager code.
++
++DATA / LOCKED CORE
++- PASS  applicationId / namespace remain com.todolist.app.
++- PASS  versionCode 29 / versionName 1.18.
++- PASS  Existing business keys unchanged: todo_glass_data, todo_glass_recycle, todo_glass_history, todo_glass_notes, todo_glass_daily_tasks_v1, todo_glass_onboarding_v1, banner_reminder_time.
++- PASS  16/16 selected reminder/data core files byte-identical to V1.17.
++- PASS  141/141 all pre-existing files outside authorized diff byte-identical to V1.17.
++- PASS  HTML source and Android asset mirror byte-identical.
++
++TECHNICAL CHECKS
++- PASS  Inline JavaScript: node --check.
++- PASS  DOM static parse: 165 unique ids, no duplicate ids; noteAddImageBtn and noteImagePreview exist.
++- PASS  AndroidManifest / res XML parse.
++- PASS  Standalone kotlinc reported no targeted syntax diagnostics: no “syntax error”, “unexpected tokens”, “expecting”, “cannot be reassigned”, or unclosed-token diagnostics. Android/AndroidX unresolved references are expected without SDK classpath.
++- LIMIT Full Gradle compile could not start because the wrapper still needs Gradle 8.11.1 from services.gradle.org and this sandbox cannot resolve that host (UnknownHostException). See v118_gradle_build.log. Not reported as a successful Android build.
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=V1.17-to-V1.18.patch' /mnt/data/todo_v117_baseline_for_v118/android/app/build.gradle.kts ./android/app/build.gradle.kts
+--- /mnt/data/todo_v117_baseline_for_v118/android/app/build.gradle.kts	2026-08-12 05:44:33.000000000 +0000
++++ ./android/app/build.gradle.kts	2026-08-12 06:10:32.195478925 +0000
+@@ -11,8 +11,8 @@
+         applicationId = "com.todolist.app"
+         minSdk = 26
+         targetSdk = 35
+-        versionCode = 28
+-        versionName = "1.17"
++        versionCode = 29
++        versionName = "1.18"
+     }
+ 
+     buildTypes {
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=V1.17-to-V1.18.patch' /mnt/data/todo_v117_baseline_for_v118/android/app/src/main/assets/todo.html ./android/app/src/main/assets/todo.html
+--- /mnt/data/todo_v117_baseline_for_v118/android/app/src/main/assets/todo.html	2026-08-12 05:47:01.000000000 +0000
++++ ./android/app/src/main/assets/todo.html	2026-08-12 06:16:47.007474311 +0000
+@@ -1219,17 +1219,18 @@
+ 
+ /* ===== Toast ===== */
+ .toast {
+-  position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px);
++  position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+   background: rgba(92,77,60,0.88);
+   backdrop-filter: blur(12px);
+   -webkit-backdrop-filter: blur(12px);
+   color: #fff; font-size: 13px; font-weight: 500;
+   padding: 10px 20px; border-radius: 20px;
+   z-index: 400; opacity: 0; pointer-events: none;
+-  transition: var(--transition);
++  transition: opacity 180ms ease-out;
++  will-change: opacity;
+ }
+ .toast.show {
+-  opacity: 1; transform: translateX(-50%) translateY(0);
++  opacity: 1; transform: translateX(-50%);
+   pointer-events: auto;
+ }
+ .toast__undo {
+@@ -2046,6 +2047,7 @@
+   padding: 4px 16px 40vh;
+   overflow-y: auto;
+   font-size: 15px;
++  font-weight: 400;
+   line-height: 1.7;
+   color: var(--text-primary);
+   outline: none;
+@@ -2073,6 +2075,46 @@
+   margin: 4px 0;
+ }
+ .note-editor__body li { margin: 2px 0; }
++
++/* ===== Note inline images ===== */
++.note-image-grid {
++  display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px;
++  margin:10px 0 12px; padding:0; width:100%;
++  user-select:none; -webkit-user-select:none;
++}
++.note-image-grid.note-image-grid--single { grid-template-columns:1fr; }
++.note-image-item {
++  position:relative; overflow:hidden; min-width:0; border-radius:16px;
++  background:rgba(255,255,255,.46); border:1px solid rgba(255,255,255,.72);
++  box-shadow:0 5px 18px rgba(91,76,61,.10);
++}
++.note-image-grid--single .note-image-item { max-height:380px; }
++.note-image-item img {
++  display:block; width:100%; height:100%; max-height:300px; object-fit:cover;
++  background:#efe9df; cursor:pointer;
++}
++.note-image-grid--single .note-image-item img { height:auto; max-height:380px; object-fit:contain; }
++.note-image-remove {
++  position:absolute; top:7px; right:7px; width:28px!important; min-width:28px!important; height:28px!important;
++  border:1px solid rgba(255,255,255,.7)!important; border-radius:50%!important;
++  background:rgba(52,46,41,.58)!important; color:#fff!important; font-size:13px!important;
++  display:flex; align-items:center; justify-content:center; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
++  box-shadow:0 3px 10px rgba(0,0,0,.12);
++}
++.note-image-picker-marker { display:inline-block; width:2px; height:1em; vertical-align:middle; }
++.note-image-preview {
++  position:fixed; inset:0; z-index:16020; display:none; align-items:center; justify-content:center;
++  padding:24px 18px max(24px,env(safe-area-inset-bottom)); background:rgba(38,34,31,.72);
++  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); opacity:0; transition:opacity 180ms ease-out;
++}
++.note-image-preview.active { display:flex; opacity:1; }
++.note-image-preview img { max-width:100%; max-height:82vh; object-fit:contain; border-radius:18px; box-shadow:0 18px 60px rgba(0,0,0,.28); }
++.note-image-preview__close {
++  position:absolute; top:max(20px,env(safe-area-inset-top)); right:18px; width:38px; height:38px; border:0;
++  border-radius:50%; background:rgba(255,255,255,.88); color:#62584f; font-size:18px;
++  box-shadow:0 5px 18px rgba(0,0,0,.13);
++}
++.note-add-image-btn { color:#3b9e8a!important; }
+ .note-editor__children {
+   border-top: 1px solid var(--glass-border);
+   background: rgba(255,255,255,0.4);
+@@ -2363,6 +2405,7 @@
+       <span class="note-format-bar__sep"></span>
+       <button onclick="insertCheckbox()" title="待办勾选">☐</button>
+       <button onclick="moreAddChild()" title="添加子笔记">+子</button>
++      <button class="note-add-image-btn" id="noteAddImageBtn" title="添加图片" aria-label="添加图片">▧+</button>
+     </div>
+     <div class="note-editor__children" id="noteEditorChildren">
+       <div class="note-editor__children-header">子笔记</div>
+@@ -2370,6 +2413,11 @@
+     </div>
+   </div>
+ 
++  <div class="note-image-preview" id="noteImagePreview" aria-hidden="true">
++    <button class="note-image-preview__close" id="noteImagePreviewClose" aria-label="关闭图片预览">✕</button>
++    <img id="noteImagePreviewImg" alt="笔记图片预览">
++  </div>
++
+   <!-- Folder Sidebar -->
+   <div class="folder-sidebar-backdrop" id="folderSidebarBackdrop" style="display:none" onclick="closeFolderSidebar()"></div>
+   <div class="folder-sidebar" id="folderSidebar" style="display:none">
+@@ -3309,6 +3357,21 @@
+   return note;
+ }
+ 
++function extractNoteImageNames(content) {
++  var names = [];
++  var re = /data-note-image-name=["']([A-Za-z0-9._-]{1,180})["']/g;
++  var match;
++  while ((match = re.exec(String(content || ''))) !== null) names.push(match[1]);
++  return names;
++}
++
++function deleteNativeNoteImagesFromContent(content) {
++  if (typeof AndroidBridge === 'undefined' || !AndroidBridge.deleteNoteImage) return;
++  extractNoteImageNames(content).forEach(function(name) {
++    try { AndroidBridge.deleteNoteImage(name); } catch(e) {}
++  });
++}
++
+ function deleteNote(id) {
+   var note = getNoteById(id);
+   if (!note) return;
+@@ -3327,6 +3390,7 @@
+     for (var j = notes.length - 1; j >= 0; j--) {
+       if (notes[j].parentId === toDelete[di]) {
+         toDelete.push(notes[j].id);
++        deleteNativeNoteImagesFromContent(notes[j].content || '');
+         notes.splice(j, 1);
+       }
+     }
+@@ -3334,7 +3398,10 @@
+   }
+   // Re-find and delete the note itself (array may have shifted)
+   for (var k = notes.length - 1; k >= 0; k--) {
+-    if (notes[k].id === id) { notes.splice(k, 1); break; }
++    if (notes[k].id === id) {
++      deleteNativeNoteImagesFromContent(notes[k].content || '');
++      notes.splice(k, 1); break;
++    }
+   }
+   saveNotes();
+ }
+@@ -3658,6 +3725,8 @@
+   if (editor) editor.style.display = '';
+   if (titleInput) titleInput.value = note.title;
+   if (bodyEl) bodyEl.innerHTML = note.content;
++  _boldActive = false;
++  _highlightActive = false;
+   if (searchInput) searchInput.value = '';
+ 
+   // Render children in editor
+@@ -3671,7 +3740,11 @@
+     }).join('');
+   }
+ 
+-  if (bodyEl) setTimeout(function() { bodyEl.focus(); }, 100);
++  if (bodyEl) setTimeout(function() {
++    bodyEl.focus();
++    _boldActive = !!document.queryCommandState('bold');
++    updateToolbarState();
++  }, 100);
+ }
+ 
+ function closeNoteEditor() {
+@@ -6410,7 +6483,10 @@
+ 
+ // Resolve title: user input, or first line of body
+ function firstLineOfBody(bodyEl) {
+-  var text = (bodyEl.textContent || '').replace(/\n/g, ' ').trim();
++  var clone = bodyEl.cloneNode(true);
++  clone.querySelectorAll('.note-image-grid,.note-image-picker-marker,.note-image-remove').forEach(function(el) { el.remove(); });
++  var text = (clone.textContent || '').replace(/\n/g, ' ').trim();
++  if (!text && bodyEl.querySelector('.note-image-item')) return '图片笔记';
+   if (text.length > 50) text = text.substring(0, 50) + '…';
+   return text;
+ }
+@@ -6530,6 +6606,143 @@
+   document.execCommand('insertHTML', false, html);
+ }
+ 
++// ===== Note image picker / inline image blocks =====
++var noteImagePendingMarkerId = '';
++var noteImageMarkerSeq = 0;
++var noteLastSelectionRange = null;
++
++function rememberNoteSelection() {
++  var bodyEl = document.getElementById('noteEditorBody');
++  var sel = window.getSelection();
++  if (!bodyEl || !sel || !sel.rangeCount) return;
++  var range = sel.getRangeAt(0);
++  if (bodyEl.contains(range.commonAncestorContainer)) noteLastSelectionRange = range.cloneRange();
++}
++
++function insertImageMarkerAtCaret() {
++  var bodyEl = document.getElementById('noteEditorBody');
++  if (!bodyEl) return null;
++  var marker = document.createElement('span');
++  marker.id = 'noteImageMarker_' + Date.now() + '_' + (++noteImageMarkerSeq);
++  marker.className = 'note-image-picker-marker';
++  marker.setAttribute('contenteditable', 'false');
++
++  var range = noteLastSelectionRange && bodyEl.contains(noteLastSelectionRange.commonAncestorContainer)
++    ? noteLastSelectionRange.cloneRange() : null;
++  if (!range) {
++    range = document.createRange();
++    range.selectNodeContents(bodyEl);
++    range.collapse(false);
++  }
++  range.deleteContents();
++  range.insertNode(marker);
++  return marker;
++}
++
++function requestNoteImages() {
++  if (!currentNoteId) return showToast('请先打开一条笔记');
++  if (typeof AndroidBridge === 'undefined' || !AndroidBridge.pickNoteImages) {
++    return showToast('添加图片仅支持 Android APP');
++  }
++  rememberNoteSelection();
++  var oldMarker = noteImagePendingMarkerId ? document.getElementById(noteImagePendingMarkerId) : null;
++  if (oldMarker) oldMarker.remove();
++  var marker = insertImageMarkerAtCaret();
++  if (!marker) return;
++  noteImagePendingMarkerId = marker.id;
++  try {
++    var result = String(AndroidBridge.pickNoteImages(String(currentNoteId)));
++    if (result !== 'ok') { marker.remove(); noteImagePendingMarkerId = ''; showToast('无法打开系统相册'); }
++  } catch(e) {
++    marker.remove(); noteImagePendingMarkerId = ''; showToast('无法打开系统相册');
++  }
++}
++
++window.__onNoteImagesPicked = function(items) {
++  items = Array.isArray(items) ? items : [];
++  var bodyEl = document.getElementById('noteEditorBody');
++  if (!bodyEl) return;
++  var marker = noteImagePendingMarkerId ? document.getElementById(noteImagePendingMarkerId) : null;
++  noteImagePendingMarkerId = '';
++  if (!items.length) { if (marker) marker.remove(); return; }
++
++  var grid = document.createElement('div');
++  grid.className = 'note-image-grid' + (items.length === 1 ? ' note-image-grid--single' : '');
++  grid.setAttribute('contenteditable', 'false');
++  items.forEach(function(item) {
++    if (!item || !item.url || !item.name) return;
++    var fig = document.createElement('div');
++    fig.className = 'note-image-item';
++    fig.setAttribute('data-note-image-name', String(item.name));
++    var img = document.createElement('img');
++    img.src = String(item.url);
++    img.alt = '笔记图片';
++    img.setAttribute('data-note-image-preview', '1');
++    var remove = document.createElement('button');
++    remove.type = 'button';
++    remove.className = 'note-image-remove';
++    remove.setAttribute('data-note-image-remove', '1');
++    remove.setAttribute('aria-label', '删除图片');
++    remove.textContent = '✕';
++    fig.appendChild(img);
++    fig.appendChild(remove);
++    grid.appendChild(fig);
++  });
++  if (!grid.children.length) { if (marker) marker.remove(); return; }
++
++  var spacer = document.createElement('div');
++  spacer.innerHTML = '<br>';
++  if (marker && marker.parentNode) {
++    marker.parentNode.insertBefore(grid, marker);
++    marker.parentNode.insertBefore(spacer, marker);
++    marker.remove();
++  } else {
++    bodyEl.appendChild(grid); bodyEl.appendChild(spacer);
++  }
++  saveCurrentNote();
++  showToast(items.length === 1 ? '已添加图片' : ('已添加 ' + items.length + ' 张图片'));
++};
++
++function openNoteImagePreview(src) {
++  var overlay = document.getElementById('noteImagePreview');
++  var img = document.getElementById('noteImagePreviewImg');
++  if (!overlay || !img || !src) return;
++  img.src = src;
++  overlay.style.display = 'flex';
++  requestAnimationFrame(function() { overlay.classList.add('active'); });
++  overlay.setAttribute('aria-hidden', 'false');
++}
++function closeNoteImagePreview() {
++  var overlay = document.getElementById('noteImagePreview');
++  var img = document.getElementById('noteImagePreviewImg');
++  if (!overlay) return;
++  overlay.classList.remove('active');
++  overlay.setAttribute('aria-hidden', 'true');
++  setTimeout(function() { if (!overlay.classList.contains('active')) { overlay.style.display = 'none'; if (img) img.removeAttribute('src'); } }, 190);
++}
++
++document.getElementById('noteAddImageBtn')?.addEventListener('click', requestNoteImages);
++document.getElementById('noteImagePreviewClose')?.addEventListener('click', closeNoteImagePreview);
++document.getElementById('noteImagePreview')?.addEventListener('click', function(e) { if (e.target === e.currentTarget) closeNoteImagePreview(); });
++document.getElementById('noteEditorBody')?.addEventListener('click', function(e) {
++  var remove = e.target.closest('[data-note-image-remove]');
++  if (remove) {
++    e.preventDefault(); e.stopPropagation();
++    var fig = remove.closest('.note-image-item');
++    var grid = remove.closest('.note-image-grid');
++    var name = fig ? fig.getAttribute('data-note-image-name') : '';
++    if (name && typeof AndroidBridge !== 'undefined' && AndroidBridge.deleteNoteImage) { try { AndroidBridge.deleteNoteImage(name); } catch(err) {} }
++    if (fig) fig.remove();
++    if (grid && !grid.querySelector('.note-image-item')) grid.remove();
++    saveCurrentNote();
++    showToast('图片已删除');
++    return;
++  }
++  var img = e.target.closest('img[data-note-image-preview]');
++  if (img) { e.preventDefault(); e.stopPropagation(); openNoteImagePreview(img.src); }
++});
++
++
+ // ===== Keyboard-aware: shrink editor so toolbar (in flow) stays above keyboard =====
+ if (window.visualViewport) {
+   window.visualViewport.addEventListener('resize', function() {
+@@ -6622,8 +6835,8 @@
+   if (cmd === 'hiliteColor') {
+     toggleHighlight();
+   } else if (cmd === 'bold') {
+-    _boldActive = !_boldActive;
+     document.execCommand('bold', false, null);
++    _boldActive = !!document.queryCommandState('bold');
+     updateToolbarState();
+   } else if (cmd === 'indent') {
+     document.execCommand('insertHTML', false, '&emsp;');
+@@ -6810,20 +7023,16 @@
+   });
+ })();
+ 
+-// Update H button state when selection changes in editor
++// Selection changes must never mutate the note. They only mirror the caret's real formatting state.
+ document.addEventListener('selectionchange', function() {
+   var editor = document.getElementById('noteEditor');
+   if (!editor || editor.style.display === 'none') return;
+   var bodyEl = document.getElementById('noteEditorBody');
+   if (!bodyEl) return;
+-  if (bodyEl.contains(document.activeElement) || document.activeElement === bodyEl) {
+-    // If H/B are off, clear formatting so typing at cursor doesn't inherit it
+-    if (!_highlightActive) {
+-      try { document.execCommand('backColor', false, '#f5ecd8'); } catch(e) {}
+-    }
+-    if (!_boldActive) {
+-      try { document.execCommand('bold', false, null); } catch(e) {}
+-    }
++  var sel = window.getSelection();
++  if (sel && sel.rangeCount && bodyEl.contains(sel.getRangeAt(0).commonAncestorContainer)) {
++    noteLastSelectionRange = sel.getRangeAt(0).cloneRange();
++    _boldActive = !!document.queryCommandState('bold');
+     updateToolbarState();
+   }
+ });
+@@ -6871,6 +7080,10 @@
+   el = document.getElementById('noteEditorMoreMenu');
+   if (el && el.style.display !== 'none') { el.style.display = 'none'; return 'note-more'; }
+ 
++  // Note image preview sits above the editor.
++  el = document.getElementById('noteImagePreview');
++  if (el && el.classList.contains('active')) { closeNoteImagePreview(); return 'note-image-preview'; }
++
+   // Note sub-pages.
+   el = document.getElementById('folderSidebar');
+   if (el && (el.classList.contains('folder-sidebar--open') || el.style.display !== 'none')) {
+@@ -6992,9 +7205,10 @@
+       btn.classList.remove('toolbar-active');
+     }
+   }
+-  // B button: pure manual toggle
++  // B button mirrors the actual caret formatting. Default text remains normal weight.
+   var boldBtn = document.querySelector('#noteFormatBar button[data-cmd="bold"]');
+   if (boldBtn) {
++    _boldActive = !!document.queryCommandState('bold');
+     if (_boldActive) { boldBtn.classList.add('toolbar-active'); }
+     else { boldBtn.classList.remove('toolbar-active'); }
+   }
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=V1.17-to-V1.18.patch' /mnt/data/todo_v117_baseline_for_v118/android/app/src/main/java/com/todolist/app/MainActivity.kt ./android/app/src/main/java/com/todolist/app/MainActivity.kt
+--- /mnt/data/todo_v117_baseline_for_v118/android/app/src/main/java/com/todolist/app/MainActivity.kt	2026-08-11 19:05:46.000000000 +0000
++++ ./android/app/src/main/java/com/todolist/app/MainActivity.kt	2026-08-12 06:11:25.697336463 +0000
+@@ -12,9 +12,14 @@
+ import android.os.Bundle
+ import android.provider.Settings
+ import android.webkit.JavascriptInterface
++import android.webkit.MimeTypeMap
+ import android.webkit.WebChromeClient
++import android.webkit.WebResourceRequest
++import android.webkit.WebResourceResponse
+ import android.webkit.WebView
+ import android.webkit.WebViewClient
++import androidx.activity.result.PickVisualMediaRequest
++import androidx.activity.result.contract.ActivityResultContracts
+ import androidx.appcompat.app.AppCompatActivity
+ import androidx.core.app.ActivityCompat
+ import androidx.core.content.ContextCompat
+@@ -28,6 +33,10 @@
+ import com.todolist.app.reminder.ReminderStore
+ import com.todolist.app.service.FloatWindowService
+ import org.json.JSONArray
++import org.json.JSONObject
++import java.io.File
++import java.io.FileInputStream
++import java.util.UUID
+ 
+ class MainActivity : AppCompatActivity() {
+ 
+@@ -42,6 +51,13 @@
+     private var backDispatchInFlight = false
+     private var pendingFocusTodoId: Long = -1L
+     private var pendingFocusDailyTaskId: Long = -1L
++    private var pendingNoteImageNoteId: Long = -1L
++
++    private val noteImagePicker = registerForActivityResult(
++        ActivityResultContracts.PickMultipleVisualMedia(20)
++    ) { uris ->
++        handlePickedNoteImages(uris)
++    }
+ 
+     private var permissionFlowActive = false
+     private var notificationAttempted = false
+@@ -73,6 +89,22 @@
+             }
+ 
+             webViewClient = object : WebViewClient() {
++                override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
++                    val uri = request?.url
++                    if (uri?.scheme == "https" && uri.host == "note.local" && uri.path?.startsWith("/image/") == true) {
++                        val fileName = uri.lastPathSegment?.takeIf { isSafeNoteImageName(it) } ?: return emptyImageResponse()
++                        val file = File(noteImageDir(), fileName)
++                        if (!file.exists() || !file.isFile) return emptyImageResponse()
++                        val mime = guessImageMime(fileName)
++                        return try {
++                            WebResourceResponse(mime, null, FileInputStream(file))
++                        } catch (_: Exception) {
++                            emptyImageResponse()
++                        }
++                    }
++                    return super.shouldInterceptRequest(view, request)
++                }
++
+                 override fun onPageFinished(view: WebView?, url: String?) {
+                     super.onPageFinished(view, url)
+                     pageReady = true
+@@ -298,8 +330,103 @@
+         }
+     }
+ 
++    private fun noteImageDir(): File = File(filesDir, "note_images").apply { mkdirs() }
++
++    private fun isSafeNoteImageName(name: String): Boolean =
++        name.matches(Regex("[A-Za-z0-9._-]{1,180}")) && !name.contains("..")
++
++    private fun guessImageMime(fileName: String): String {
++        val ext = fileName.substringAfterLast('.', "").lowercase()
++        return MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "image/*"
++    }
++
++    private fun emptyImageResponse(): WebResourceResponse =
++        WebResourceResponse("image/png", null, java.io.ByteArrayInputStream(ByteArray(0)))
++
++    private fun copyPickedImage(noteId: Long, source: Uri, index: Int): JSONObject? {
++        return try {
++            val resolver = contentResolver
++            val mime = resolver.getType(source) ?: "image/jpeg"
++            val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mime)
++                ?.lowercase()
++                ?.takeIf { it.matches(Regex("[a-z0-9]{2,8}")) }
++                ?: "jpg"
++            val fileName = "note_${noteId}_${System.currentTimeMillis()}_${index}_${UUID.randomUUID().toString().take(8)}.$extension"
++            val destination = File(noteImageDir(), fileName)
++            resolver.openInputStream(source)?.use { input ->
++                destination.outputStream().buffered().use { output -> input.copyTo(output) }
++            } ?: return null
++            if (destination.length() <= 0L) {
++                destination.delete()
++                return null
++            }
++            JSONObject()
++                .put("name", fileName)
++                .put("url", "https://note.local/image/$fileName")
++        } catch (_: Exception) {
++            null
++        }
++    }
++
++    private fun handlePickedNoteImages(uris: List<Uri>) {
++        val noteId = pendingNoteImageNoteId
++        pendingNoteImageNoteId = -1L
++        // Copying several screenshots can be expensive; keep it off the UI thread.
++        Thread {
++            val payload = JSONArray()
++            if (noteId > 0L) {
++                uris.take(20).forEachIndexed { index, uri ->
++                    copyPickedImage(noteId, uri, index)?.let { payload.put(it) }
++                }
++            }
++            if (!pageReady) return@Thread
++            val json = payload.toString()
++            webView.post {
++                webView.evaluateJavascript(
++                    "window.__onNoteImagesPicked && window.__onNoteImagesPicked($json);",
++                    null
++                )
++            }
++        }.start()
++    }
++
+     inner class AndroidBridge {
+         @JavascriptInterface
++        fun pickNoteImages(noteIdRaw: String): String {
++            val noteId = noteIdRaw.toLongOrNull() ?: return "invalid"
++            if (noteId <= 0L) return "invalid"
++            pendingNoteImageNoteId = noteId
++            runOnUiThread {
++                try {
++                    noteImagePicker.launch(
++                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
++                    )
++                } catch (_: Exception) {
++                    pendingNoteImageNoteId = -1L
++                    if (pageReady) {
++                        webView.evaluateJavascript(
++                            "window.__onNoteImagesPicked && window.__onNoteImagesPicked([]);",
++                            null
++                        )
++                    }
++                }
++            }
++            return "ok"
++        }
++
++        @JavascriptInterface
++        fun deleteNoteImage(fileName: String): String {
++            if (!isSafeNoteImageName(fileName)) return "invalid"
++            return try {
++                val file = File(noteImageDir(), fileName)
++                if (file.exists()) file.delete()
++                "ok"
++            } catch (_: Exception) {
++                "failed"
++            }
++        }
++
++        @JavascriptInterface
+         fun syncDailyData(
+             percent: Float,
+             completed: Int,
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=V1.17-to-V1.18.patch' /mnt/data/todo_v117_baseline_for_v118/android/app/src/main/java/com/todolist/app/ui/BannerView.kt ./android/app/src/main/java/com/todolist/app/ui/BannerView.kt
+--- /mnt/data/todo_v117_baseline_for_v118/android/app/src/main/java/com/todolist/app/ui/BannerView.kt	2026-07-06 14:45:06.000000000 +0000
++++ ./android/app/src/main/java/com/todolist/app/ui/BannerView.kt	2026-08-12 06:13:45.685346506 +0000
+@@ -27,6 +27,7 @@
+     private val expandLayout: LinearLayout
+     private var isExpanded = false
+     private var autoDismissRunnable: Runnable? = null
++    private var exitCommitted = false
+     private val handler = Handler(Looper.getMainLooper())
+     var onOpenApp: (() -> Unit)? = null
+     var onDismiss: (() -> Unit)? = null
+@@ -84,11 +85,11 @@
+ 
+         // × close button
+         expandHeader.addView(makeIconBtn("✕", "#b0a090") {
+-            onDismiss?.invoke()
++            fadeOutForAction { onDismiss?.invoke() }
+         })
+         // □ open app button
+         expandHeader.addView(makeIconBtn("⤢", "#00d4aa") {
+-            onOpenApp?.invoke()
++            fadeOutForAction(durationMs = 170L) { onOpenApp?.invoke() }
+         })
+ 
+         expandLayout.addView(expandHeader)
+@@ -185,13 +186,32 @@
+     fun scheduleAutoDismiss() {
+         cancelAutoDismiss()
+         autoDismissRunnable = Runnable {
+-            animate().translationY(-height.toFloat()).alpha(0f).setDuration(300)
+-                .withEndAction { onDismiss?.invoke() }
+-                .start()
++            fadeOutForAction(durationMs = 220L) { onDismiss?.invoke() }
+         }
+         handler.postDelayed(autoDismissRunnable!!, 5000)
+     }
+ 
++    private fun fadeOutForAction(durationMs: Long = 200L, action: () -> Unit) {
++        if (exitCommitted) return
++        exitCommitted = true
++        cancelAutoDismiss()
++        animate().cancel()
++        setLayerType(View.LAYER_TYPE_HARDWARE, null)
++        animate()
++            .alpha(0f)
++            .setDuration(durationMs)
++            .withLayer()
++            .withEndAction {
++                alpha = 0f
++                visibility = View.INVISIBLE
++                postOnAnimation {
++                    action()
++                    setLayerType(View.LAYER_TYPE_NONE, null)
++                }
++            }
++            .start()
++    }
++
+     fun cancelAutoDismiss() { autoDismissRunnable?.let { handler.removeCallbacks(it) } }
+ 
+     fun slideIn() {
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=V1.17-to-V1.18.patch' /mnt/data/todo_v117_baseline_for_v118/android/app/src/main/java/com/todolist/app/ui/DailyTaskBannerView.kt ./android/app/src/main/java/com/todolist/app/ui/DailyTaskBannerView.kt
+--- /mnt/data/todo_v117_baseline_for_v118/android/app/src/main/java/com/todolist/app/ui/DailyTaskBannerView.kt	2026-08-12 05:50:12.000000000 +0000
++++ ./android/app/src/main/java/com/todolist/app/ui/DailyTaskBannerView.kt	2026-08-12 06:07:43.105150344 +0000
+@@ -49,14 +49,10 @@
+                 isClickable = false
+                 renderCompletedCheck(animated = true)
+ 
+-                // Let the user actually see the green check before the banner leaves.
++                // Let the user see the green check, then use the same opacity-only exit
++                // as every swipe action so the overlay never flashes on detach.
+                 this@DailyTaskBannerView.postDelayed({
+-                    this@DailyTaskBannerView.animate()
+-                        .alpha(0f)
+-                        .translationY(-dpf(10f))
+-                        .setDuration(180)
+-                        .withEndAction { onComplete?.invoke() }
+-                        .start()
++                    fadeOutForAction(durationMs = 180L) { onComplete?.invoke() }
+                 }, 320L)
+             }
+         }
+@@ -69,7 +65,7 @@
+             setTextColor(Color.parseColor("#2E2925"))
+             maxLines = 1
+             ellipsize = TextUtils.TruncateAt.END
+-            setOnClickListener { onOpenApp?.invoke() }
++            setOnClickListener { fadeOutForAction(durationMs = 165L) { onOpenApp?.invoke() } }
+         }
+         row.addView(title, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+ 
+@@ -78,7 +74,7 @@
+             textSize = 11.5f
+             setTextColor(Color.parseColor("#8D8278"))
+             setPadding(dp(8f), 0, dp(3f), 0)
+-            setOnClickListener { onOpenApp?.invoke() }
++            setOnClickListener { fadeOutForAction(durationMs = 165L) { onOpenApp?.invoke() } }
+         }
+         row.addView(meta)
+ 
+@@ -87,12 +83,12 @@
+             textSize = 17f
+             gravity = Gravity.CENTER
+             setTextColor(Color.parseColor("#A0958B"))
+-            setOnClickListener { onDismiss?.invoke() }
++            setOnClickListener { fadeOutForAction(durationMs = 175L) { onDismiss?.invoke() } }
+         }
+         row.addView(close, LinearLayout.LayoutParams(dp(38f), dp(38f)))
+ 
+         cardSurface.addView(row, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT))
+-        cardSurface.setOnClickListener { onOpenApp?.invoke() }
++        cardSurface.setOnClickListener { fadeOutForAction(durationMs = 165L) { onOpenApp?.invoke() } }
+     }
+ 
+     override fun showSwipeCompletedState() {
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=V1.17-to-V1.18.patch' /mnt/data/todo_v117_baseline_for_v118/android/app/src/main/java/com/todolist/app/ui/SnoozeSwipeBannerView.kt ./android/app/src/main/java/com/todolist/app/ui/SnoozeSwipeBannerView.kt
+--- /mnt/data/todo_v117_baseline_for_v118/android/app/src/main/java/com/todolist/app/ui/SnoozeSwipeBannerView.kt	2026-08-12 05:49:52.000000000 +0000
++++ ./android/app/src/main/java/com/todolist/app/ui/SnoozeSwipeBannerView.kt	2026-08-12 06:07:29.036193183 +0000
+@@ -7,6 +7,7 @@
+ import android.view.Gravity
+ import android.view.HapticFeedbackConstants
+ import android.view.MotionEvent
++import android.view.View
+ import android.view.ViewConfiguration
+ import android.widget.FrameLayout
+ import android.widget.TextView
+@@ -373,67 +374,65 @@
+         }
+     }
+ 
+-    private fun commitSnooze(minutes: Int) {
++    /**
++     * Every user-triggered disappearance uses one path: opacity only.
++     * We freeze the card at the exact finger-release position, fade the whole overlay,
++     * hold one fully transparent compositor frame, then let the manager detach it.
++     */
++    protected fun fadeOutForAction(
++        startDelayMs: Long = 0L,
++        durationMs: Long = 190L,
++        action: () -> Unit
++    ) {
+         if (committed) return
+         committed = true
+-        val w = width.takeIf { it > 0 }?.toFloat() ?: dpf(360f)
++        cardSurface.animate().cancel()
++        gestureHint.animate().cancel()
++        animate().cancel()
++        setLayerType(View.LAYER_TYPE_HARDWARE, null)
++        animate()
++            .alpha(0f)
++            .setStartDelay(startDelayMs)
++            .setDuration(durationMs)
++            .withLayer()
++            .withEndAction {
++                alpha = 0f
++                visibility = View.INVISIBLE
++                postOnAnimation {
++                    action()
++                    setLayerType(View.LAYER_TYPE_NONE, null)
++                }
++            }
++            .start()
++    }
++
++    private fun commitSnooze(minutes: Int) {
++        if (committed) return
+         gestureHint.text = "+$minutes min  ✓"
+         gestureHint.alpha = 1f
+-        cardSurface.animate()
+-            .translationX(w * 1.04f)
+-            .alpha(0.16f)
+-            .setDuration(190L)
+-            .withEndAction { onSnooze?.invoke(minutes) }
+-            .start()
++        fadeOutForAction(durationMs = 190L) { onSnooze?.invoke(minutes) }
+     }
+ 
+     private fun commitDismiss() {
+         if (committed) return
+-        committed = true
+-        val w = width.takeIf { it > 0 }?.toFloat() ?: dpf(360f)
+         gestureHint.text = "关闭提醒  ✓"
+         gestureHint.alpha = 1f
+-        cardSurface.animate()
+-            .translationX(-w * 1.04f)
+-            .alpha(0.14f)
+-            .setDuration(185L)
+-            .withEndAction { onSwipeDismiss?.invoke() }
+-            .start()
++        fadeOutForAction(durationMs = 185L) { onSwipeDismiss?.invoke() }
+     }
+ 
+     private fun commitComplete() {
+         if (committed) return
+-        committed = true
+         showSwipeCompletedState()
+         gestureHint.text = "✓  已完成"
+         gestureHint.alpha = 1f
+-        // Do not add another translation on release: fade from the exact finger-released position.
+-        // A tiny hold lets the real checkbox/checkmark visibly land before the opacity-only exit.
+-        animate()
+-            .alpha(0f)
+-            .setStartDelay(70L)
+-            .setDuration(190L)
+-            .withLayer()
+-            .withEndAction { onSwipeComplete?.invoke() }
+-            .start()
++        fadeOutForAction(startDelayMs = 70L, durationMs = 190L) { onSwipeComplete?.invoke() }
+     }
+ 
+     private fun commitOpen() {
+         if (committed) return
+-        committed = true
+         gestureHint.text = "打开应用  ✓"
+         gestureHint.alpha = 1f
+-        cardSurface.animate()
+-            .translationY(0f)
+-            .translationX(0f)
+-            .alpha(1f)
+-            .setDuration(120L)
+-            .withEndAction {
+-                committed = false
+-                resetVisuals(false)
+-                onSwipeOpen?.invoke()
+-            }
+-            .start()
++        fadeOutForAction(durationMs = 165L) { onSwipeOpen?.invoke() }
+     }
+ 
+     private fun resetVisuals(animated: Boolean) {
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=V1.17-to-V1.18.patch' /mnt/data/todo_v117_baseline_for_v118/android/app/src/main/java/com/todolist/app/ui/TodoReminderBannerView.kt ./android/app/src/main/java/com/todolist/app/ui/TodoReminderBannerView.kt
+--- /mnt/data/todo_v117_baseline_for_v118/android/app/src/main/java/com/todolist/app/ui/TodoReminderBannerView.kt	2026-08-12 05:49:52.000000000 +0000
++++ ./android/app/src/main/java/com/todolist/app/ui/TodoReminderBannerView.kt	2026-08-12 06:07:43.105559350 +0000
+@@ -65,7 +65,7 @@
+             orientation = LinearLayout.HORIZONTAL
+             gravity = Gravity.TOP
+             setPadding(0, dp(1f), dp(4f), dp(1f))
+-            setOnClickListener { onOpenApp?.invoke() }
++            setOnClickListener { fadeOutForAction(durationMs = 165L) { onOpenApp?.invoke() } }
+         }
+ 
+         statusDot = TextView(context).apply {
+@@ -96,7 +96,7 @@
+             ellipsize = TextUtils.TruncateAt.END
+             gravity = Gravity.CENTER_VERTICAL
+             setPadding(dp(8f), 0, dp(2f), 0)
+-            setOnClickListener { onOpenApp?.invoke() }
++            setOnClickListener { fadeOutForAction(durationMs = 165L) { onOpenApp?.invoke() } }
+         }
+         row.addView(metaText, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+             gravity = Gravity.TOP
+@@ -108,7 +108,7 @@
+             gravity = Gravity.CENTER
+             setTextColor(Color.parseColor("#9D9186"))
+             setPadding(dp(8f), dp(2f), dp(8f), dp(2f))
+-            setOnClickListener { onDismiss?.invoke() }
++            setOnClickListener { fadeOutForAction(durationMs = 175L) { onDismiss?.invoke() } }
+         }, LinearLayout.LayoutParams(dp(42f), dp(42f)).apply {
+             gravity = Gravity.TOP
+         })
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=V1.17-to-V1.18.patch' /mnt/data/todo_v117_baseline_for_v118/build-apk.bat ./build-apk.bat
+--- /mnt/data/todo_v117_baseline_for_v118/build-apk.bat	2026-08-12 05:44:33.000000000 +0000
++++ ./build-apk.bat	2026-08-12 06:10:32.195687717 +0000
+@@ -10,9 +10,9 @@
+ )
+ if not exist "dist" mkdir "dist"
+ for %%F in ("android\app\build\outputs\apk\debug\*.apk") do (
+-  copy /Y "%%~fF" "dist\To-Do-v1.17.apk" >nul
++  copy /Y "%%~fF" "dist\To-Do-v1.18.apk" >nul
+   echo.
+-  echo APK: %CD%\dist\To-Do-v1.17.apk
++  echo APK: %CD%\dist\To-Do-v1.18.apk
+   exit /b 0
+ )
+ echo Build finished but no APK was found under android\app\build\outputs\apk\debug
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=V1.17-to-V1.18.patch' /mnt/data/todo_v117_baseline_for_v118/changes/CHANGELOG_V1.18.md ./changes/CHANGELOG_V1.18.md
+--- /mnt/data/todo_v117_baseline_for_v118/changes/CHANGELOG_V1.18.md	1970-01-01 00:00:00.000000000 +0000
++++ ./changes/CHANGELOG_V1.18.md	2026-08-12 06:18:27.673515739 +0000
+@@ -0,0 +1,50 @@
++# CHANGELOG V1.18
++
++Base: To-Do V1.17 Full
++Target: To-Do V1.18 Full
++
++## 本轮需求
++
++1. 不增加 Note 指纹/锁屏密码；继续保持个人本地使用逻辑。
++2. 检查悬浮 Banner / Toast 退出动画，尤其修复手势后消失时的末帧闪烁；所有原生 WindowManager 临时悬浮层退出改为纯透明渐隐。
++3. Note 编辑器工具栏在“+子”右侧增加图片按钮，可调用系统相册并多选图片，插入当前正文位置。
++4. 修复 Note 编辑器 B 粗体状态：默认正常字重；B 开启才粗体+蓝色选中，再按恢复正常。
++5. 保持现有 To-Do / Note / Daily 本地数据兼容和覆盖升级安全。
++
++## 实现
++
++### Native Overlay Fade Pipeline
++- `SnoozeSwipeBannerView` 新增统一 `fadeOutForAction()`：只改变整个 Overlay 的 alpha，不在松手后追加 X/Y 位移。
++- Fade 完成后先将 View 置为完全透明/不可见，再等待一个 `postOnAnimation` 帧，最后由回调触发 WindowManager detach。
++- Todo / Daily 四向手势、`×`、点击正文打开 APP、Daily 点击复选框完成均复用该退出路径。
++- `BannerView`（每日总结悬浮层）的自动退出、关闭、打开 APP 同步改为 opacity-only，并加入单次退出 guard。
++- WebView `.toast` 去掉退出位移，只保留 opacity transition。
++
++### Note 图片
++- Note 工具栏新增 `▧+` 图片按钮（位于 `+子` 右侧）。
++- Android Native 使用 `PickMultipleVisualMedia(20)` + `ImageOnly` 调用系统 Photo Picker。
++- 选图复制在后台线程完成，避免多张截图复制时阻塞 UI。
++- 图片写入 `files/note_images/` 私有目录；Note 的 `todo_glass_notes` 内容只保存内部虚拟 URL 引用，不保存 Base64 大图。
++- WebView 通过 `https://note.local/image/<filename>` + `shouldInterceptRequest()` 安全读取私有图片。
++- 图片按光标位置插入：单图大图、多图双列网格；支持点图全屏预览、单图删除。
++- 删除 Note / 子 Note 时同步清理该 Note 引用的私有图片。
++- 仅图片笔记的自动标题为“图片笔记”，避免删除按钮 `✕` 被误识别为标题。
++
++### Note B 粗体修复
++- 正文 CSS 显式默认 `font-weight: 400`。
++- 删除 selectionchange 中原先会反向执行 `execCommand('bold')` 的逻辑。
++- B 按钮状态改为读取真实 `queryCommandState('bold')`：默认关闭；点击一次开启；再次点击关闭。
++- 光标/选区变化只同步工具栏状态，不再修改正文格式。
++
++## 数据兼容
++
++原业务 key 未改变：
++- `todo_glass_data`
++- `todo_glass_recycle`
++- `todo_glass_history`
++- `todo_glass_notes`
++- `todo_glass_daily_tasks_v1`
++- `todo_glass_onboarding_v1`
++- `banner_reminder_time`
++
++图片是新增的 APP 私有附件文件，不要求迁移旧 Note；旧纯文字 Note 继续按原 HTML 内容读取。
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=V1.17-to-V1.18.patch' /mnt/data/todo_v117_baseline_for_v118/changes/LOCKED_CORE_GUARD_V1.18.txt ./changes/LOCKED_CORE_GUARD_V1.18.txt
+--- /mnt/data/todo_v117_baseline_for_v118/changes/LOCKED_CORE_GUARD_V1.18.txt	1970-01-01 00:00:00.000000000 +0000
++++ ./changes/LOCKED_CORE_GUARD_V1.18.txt	2026-08-12 06:24:26.902318036 +0000
+@@ -0,0 +1,34 @@
++Locked Core Guard — V1.17 -> V1.18
++
++This round explicitly authorizes changes to:
++- MainActivity.kt: Note system Photo Picker + private image serving only.
++- ui/todo.html: Note image UI/data attachment cleanup + B formatting fix + Web Toast fade.
++- SnoozeSwipeBannerView / TodoReminderBannerView / DailyTaskBannerView / BannerView: disappearance animation cleanup only.
++- version/release metadata.
++
++Reminder scheduling, snooze timing semantics, stores, receivers, service logic, notification resources, launcher identity, and manifest are NOT authorized for behavior changes and remain byte-identical to V1.17.
++
++Unchanged byte-level core files (V1.17 hash == V1.18 hash):
++- PASS  android/app/src/main/AndroidManifest.xml  e9317227a42827799cbae115dc32ba9c6a7de1be776f4dca490845eb69ede8a8
++- PASS  android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt  49dbbad17f11d7109eb4d82a55857e01b219e22b2d68c91289e801f2f6d9468f
++- PASS  android/app/src/main/java/com/todolist/app/receiver/BootReceiver.kt  5c749c6186e9ba2e9226e29e93856753879c898e8b2dcbe5d7a9922c4d27ca7d
++- PASS  android/app/src/main/java/com/todolist/app/receiver/DailyTaskActionReceiver.kt  9bd9bb60566ee86da41ce282cf3b1b845f4f4caa05b34567cc5612ac33c092de
++- PASS  android/app/src/main/java/com/todolist/app/receiver/DailyTaskReminderReceiver.kt  26928a47fd1f97f7ab9b51500f5c58f20333e2c1d1cc72edd4cc6a3ed9907292
++- PASS  android/app/src/main/java/com/todolist/app/receiver/MidnightReceiver.kt  49ebf2634854cd20c6d03656d4c1da7de3a6c0a30f542cdf23e7b0c9b9f1219e
++- PASS  android/app/src/main/java/com/todolist/app/receiver/ReminderActionReceiver.kt  ba2b57ee965759555fe4913827b2aa4fdeb1499854fb40c298efeb2bcfc3e361
++- PASS  android/app/src/main/java/com/todolist/app/receiver/TodoReminderReceiver.kt  36b242a80eaa2a9d4f4cd1aad3d8ff7105027e68ce0f166efd1b8aea495cb207
++- PASS  android/app/src/main/java/com/todolist/app/reminder/DailyTaskStore.kt  5770232c61f413fa8e88dadd07182f1a3a81d04a8758d9e3b4e37d43d417162e
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderDiagnostics.kt  445283809d9ecbafd08e80e8cd882444372127ef7aebea8d38c30a9857be4898
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderScheduler.kt  4d58be9846178a49e45ca62d69368be10190512599c19e5aeac5431e9bd79a1e
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderStore.kt  f2e941bc491f4d743697136e135888e98c14324236abb8814b9632669a183df6
++- PASS  android/app/src/main/java/com/todolist/app/reminder/SnoozeStore.kt  87f3a0ee2af0af3bf1d43453a24b2d4429de4b653b9faf4482f616a9da574b6d
++- PASS  android/app/src/main/java/com/todolist/app/reminder/TodoSnapshotStore.kt  74ea806ecddc1680c3e7cb5f7e0abb9db8ba1a69ab9a4b3ac2e90a7cd5e9c1b3
++- PASS  android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt  be35d5eff3dd8067f0596d13055b9dda7f8d77204fe4ff1015c7f57499a58ca4
++- PASS  android/app/src/main/java/com/todolist/app/util/Dp.kt  4076197dac4258610e66978ffa4d4347ba1c1eb75ec364ddca9344c99ee617e8
++
++Full pre-existing-file guard:
++- PASS  141/141 V1.17 files outside the authorized diff remain byte-identical.
++- PASS  Existing business storage key set remains identical to V1.17.
++- PASS  ui/todo.html == android/app/src/main/assets/todo.html.
++
++V1.18 establishes a new Golden Baseline for the explicitly changed Note editor/image and overlay-animation files.
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=V1.17-to-V1.18.patch' /mnt/data/todo_v117_baseline_for_v118/docs/NOTE_IMAGES_V1.18.md ./docs/NOTE_IMAGES_V1.18.md
+--- /mnt/data/todo_v117_baseline_for_v118/docs/NOTE_IMAGES_V1.18.md	1970-01-01 00:00:00.000000000 +0000
++++ ./docs/NOTE_IMAGES_V1.18.md	2026-08-12 06:18:27.681055605 +0000
+@@ -0,0 +1,45 @@
++# Note 图片附件设计（V1.18）
++
++## 目标
++
++为现有 Note 纯文本/富文本编辑器增加轻量图片能力，不把图片二进制写入 localStorage，不破坏旧 Note 数据结构。
++
++## 选图
++
++- 工具栏最右侧 `▧+`。
++- Android 系统 Photo Picker。
++- Image Only。
++- 单次最多 20 张。
++- 不要求读取整个媒体库权限。
++
++## 存储
++
++选中的 URI 立即复制到：
++
++```text
++/files/note_images/
++```
++
++文件名包含 Note id、时间戳、序号和随机短 UUID。
++
++Note 正文只保存：
++
++```text
++https://note.local/image/<safe-file-name>
++```
++
++WebViewClient 拦截 `note.local` 请求并从 APP 私有目录读取对应文件。
++
++## 编辑体验
++
++- 在调用相册前记录当前光标 Range，并插入临时 marker。
++- 选图完成后在 marker 位置插入图片组。
++- 1 张：正文宽图。
++- 多张：两列网格。
++- 点图片：全屏预览。
++- 图片右上角 `✕`：删除该附件并立即保存 Note。
++- 删除 Note / 子 Note：级联清理其附件文件。
++
++## 兼容性
++
++没有改变 `todo_glass_notes` key，也没有强制给旧 Note 增加新字段。图片块只是新增 HTML 内容，因此旧纯文字笔记不需要迁移。
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=V1.17-to-V1.18.patch' /mnt/data/todo_v117_baseline_for_v118/ui/todo.html ./ui/todo.html
+--- /mnt/data/todo_v117_baseline_for_v118/ui/todo.html	2026-08-12 05:47:01.000000000 +0000
++++ ./ui/todo.html	2026-08-12 06:16:46.997515739 +0000
+@@ -1219,17 +1219,18 @@
+ 
+ /* ===== Toast ===== */
+ .toast {
+-  position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px);
++  position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+   background: rgba(92,77,60,0.88);
+   backdrop-filter: blur(12px);
+   -webkit-backdrop-filter: blur(12px);
+   color: #fff; font-size: 13px; font-weight: 500;
+   padding: 10px 20px; border-radius: 20px;
+   z-index: 400; opacity: 0; pointer-events: none;
+-  transition: var(--transition);
++  transition: opacity 180ms ease-out;
++  will-change: opacity;
+ }
+ .toast.show {
+-  opacity: 1; transform: translateX(-50%) translateY(0);
++  opacity: 1; transform: translateX(-50%);
+   pointer-events: auto;
+ }
+ .toast__undo {
+@@ -2046,6 +2047,7 @@
+   padding: 4px 16px 40vh;
+   overflow-y: auto;
+   font-size: 15px;
++  font-weight: 400;
+   line-height: 1.7;
+   color: var(--text-primary);
+   outline: none;
+@@ -2073,6 +2075,46 @@
+   margin: 4px 0;
+ }
+ .note-editor__body li { margin: 2px 0; }
++
++/* ===== Note inline images ===== */
++.note-image-grid {
++  display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px;
++  margin:10px 0 12px; padding:0; width:100%;
++  user-select:none; -webkit-user-select:none;
++}
++.note-image-grid.note-image-grid--single { grid-template-columns:1fr; }
++.note-image-item {
++  position:relative; overflow:hidden; min-width:0; border-radius:16px;
++  background:rgba(255,255,255,.46); border:1px solid rgba(255,255,255,.72);
++  box-shadow:0 5px 18px rgba(91,76,61,.10);
++}
++.note-image-grid--single .note-image-item { max-height:380px; }
++.note-image-item img {
++  display:block; width:100%; height:100%; max-height:300px; object-fit:cover;
++  background:#efe9df; cursor:pointer;
++}
++.note-image-grid--single .note-image-item img { height:auto; max-height:380px; object-fit:contain; }
++.note-image-remove {
++  position:absolute; top:7px; right:7px; width:28px!important; min-width:28px!important; height:28px!important;
++  border:1px solid rgba(255,255,255,.7)!important; border-radius:50%!important;
++  background:rgba(52,46,41,.58)!important; color:#fff!important; font-size:13px!important;
++  display:flex; align-items:center; justify-content:center; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
++  box-shadow:0 3px 10px rgba(0,0,0,.12);
++}
++.note-image-picker-marker { display:inline-block; width:2px; height:1em; vertical-align:middle; }
++.note-image-preview {
++  position:fixed; inset:0; z-index:16020; display:none; align-items:center; justify-content:center;
++  padding:24px 18px max(24px,env(safe-area-inset-bottom)); background:rgba(38,34,31,.72);
++  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); opacity:0; transition:opacity 180ms ease-out;
++}
++.note-image-preview.active { display:flex; opacity:1; }
++.note-image-preview img { max-width:100%; max-height:82vh; object-fit:contain; border-radius:18px; box-shadow:0 18px 60px rgba(0,0,0,.28); }
++.note-image-preview__close {
++  position:absolute; top:max(20px,env(safe-area-inset-top)); right:18px; width:38px; height:38px; border:0;
++  border-radius:50%; background:rgba(255,255,255,.88); color:#62584f; font-size:18px;
++  box-shadow:0 5px 18px rgba(0,0,0,.13);
++}
++.note-add-image-btn { color:#3b9e8a!important; }
+ .note-editor__children {
+   border-top: 1px solid var(--glass-border);
+   background: rgba(255,255,255,0.4);
+@@ -2363,6 +2405,7 @@
+       <span class="note-format-bar__sep"></span>
+       <button onclick="insertCheckbox()" title="待办勾选">☐</button>
+       <button onclick="moreAddChild()" title="添加子笔记">+子</button>
++      <button class="note-add-image-btn" id="noteAddImageBtn" title="添加图片" aria-label="添加图片">▧+</button>
+     </div>
+     <div class="note-editor__children" id="noteEditorChildren">
+       <div class="note-editor__children-header">子笔记</div>
+@@ -2370,6 +2413,11 @@
+     </div>
+   </div>
+ 
++  <div class="note-image-preview" id="noteImagePreview" aria-hidden="true">
++    <button class="note-image-preview__close" id="noteImagePreviewClose" aria-label="关闭图片预览">✕</button>
++    <img id="noteImagePreviewImg" alt="笔记图片预览">
++  </div>
++
+   <!-- Folder Sidebar -->
+   <div class="folder-sidebar-backdrop" id="folderSidebarBackdrop" style="display:none" onclick="closeFolderSidebar()"></div>
+   <div class="folder-sidebar" id="folderSidebar" style="display:none">
+@@ -3309,6 +3357,21 @@
+   return note;
+ }
+ 
++function extractNoteImageNames(content) {
++  var names = [];
++  var re = /data-note-image-name=["']([A-Za-z0-9._-]{1,180})["']/g;
++  var match;
++  while ((match = re.exec(String(content || ''))) !== null) names.push(match[1]);
++  return names;
++}
++
++function deleteNativeNoteImagesFromContent(content) {
++  if (typeof AndroidBridge === 'undefined' || !AndroidBridge.deleteNoteImage) return;
++  extractNoteImageNames(content).forEach(function(name) {
++    try { AndroidBridge.deleteNoteImage(name); } catch(e) {}
++  });
++}
++
+ function deleteNote(id) {
+   var note = getNoteById(id);
+   if (!note) return;
+@@ -3327,6 +3390,7 @@
+     for (var j = notes.length - 1; j >= 0; j--) {
+       if (notes[j].parentId === toDelete[di]) {
+         toDelete.push(notes[j].id);
++        deleteNativeNoteImagesFromContent(notes[j].content || '');
+         notes.splice(j, 1);
+       }
+     }
+@@ -3334,7 +3398,10 @@
+   }
+   // Re-find and delete the note itself (array may have shifted)
+   for (var k = notes.length - 1; k >= 0; k--) {
+-    if (notes[k].id === id) { notes.splice(k, 1); break; }
++    if (notes[k].id === id) {
++      deleteNativeNoteImagesFromContent(notes[k].content || '');
++      notes.splice(k, 1); break;
++    }
+   }
+   saveNotes();
+ }
+@@ -3658,6 +3725,8 @@
+   if (editor) editor.style.display = '';
+   if (titleInput) titleInput.value = note.title;
+   if (bodyEl) bodyEl.innerHTML = note.content;
++  _boldActive = false;
++  _highlightActive = false;
+   if (searchInput) searchInput.value = '';
+ 
+   // Render children in editor
+@@ -3671,7 +3740,11 @@
+     }).join('');
+   }
+ 
+-  if (bodyEl) setTimeout(function() { bodyEl.focus(); }, 100);
++  if (bodyEl) setTimeout(function() {
++    bodyEl.focus();
++    _boldActive = !!document.queryCommandState('bold');
++    updateToolbarState();
++  }, 100);
+ }
+ 
+ function closeNoteEditor() {
+@@ -6410,7 +6483,10 @@
+ 
+ // Resolve title: user input, or first line of body
+ function firstLineOfBody(bodyEl) {
+-  var text = (bodyEl.textContent || '').replace(/\n/g, ' ').trim();
++  var clone = bodyEl.cloneNode(true);
++  clone.querySelectorAll('.note-image-grid,.note-image-picker-marker,.note-image-remove').forEach(function(el) { el.remove(); });
++  var text = (clone.textContent || '').replace(/\n/g, ' ').trim();
++  if (!text && bodyEl.querySelector('.note-image-item')) return '图片笔记';
+   if (text.length > 50) text = text.substring(0, 50) + '…';
+   return text;
+ }
+@@ -6530,6 +6606,143 @@
+   document.execCommand('insertHTML', false, html);
+ }
+ 
++// ===== Note image picker / inline image blocks =====
++var noteImagePendingMarkerId = '';
++var noteImageMarkerSeq = 0;
++var noteLastSelectionRange = null;
++
++function rememberNoteSelection() {
++  var bodyEl = document.getElementById('noteEditorBody');
++  var sel = window.getSelection();
++  if (!bodyEl || !sel || !sel.rangeCount) return;
++  var range = sel.getRangeAt(0);
++  if (bodyEl.contains(range.commonAncestorContainer)) noteLastSelectionRange = range.cloneRange();
++}
++
++function insertImageMarkerAtCaret() {
++  var bodyEl = document.getElementById('noteEditorBody');
++  if (!bodyEl) return null;
++  var marker = document.createElement('span');
++  marker.id = 'noteImageMarker_' + Date.now() + '_' + (++noteImageMarkerSeq);
++  marker.className = 'note-image-picker-marker';
++  marker.setAttribute('contenteditable', 'false');
++
++  var range = noteLastSelectionRange && bodyEl.contains(noteLastSelectionRange.commonAncestorContainer)
++    ? noteLastSelectionRange.cloneRange() : null;
++  if (!range) {
++    range = document.createRange();
++    range.selectNodeContents(bodyEl);
++    range.collapse(false);
++  }
++  range.deleteContents();
++  range.insertNode(marker);
++  return marker;
++}
++
++function requestNoteImages() {
++  if (!currentNoteId) return showToast('请先打开一条笔记');
++  if (typeof AndroidBridge === 'undefined' || !AndroidBridge.pickNoteImages) {
++    return showToast('添加图片仅支持 Android APP');
++  }
++  rememberNoteSelection();
++  var oldMarker = noteImagePendingMarkerId ? document.getElementById(noteImagePendingMarkerId) : null;
++  if (oldMarker) oldMarker.remove();
++  var marker = insertImageMarkerAtCaret();
++  if (!marker) return;
++  noteImagePendingMarkerId = marker.id;
++  try {
++    var result = String(AndroidBridge.pickNoteImages(String(currentNoteId)));
++    if (result !== 'ok') { marker.remove(); noteImagePendingMarkerId = ''; showToast('无法打开系统相册'); }
++  } catch(e) {
++    marker.remove(); noteImagePendingMarkerId = ''; showToast('无法打开系统相册');
++  }
++}
++
++window.__onNoteImagesPicked = function(items) {
++  items = Array.isArray(items) ? items : [];
++  var bodyEl = document.getElementById('noteEditorBody');
++  if (!bodyEl) return;
++  var marker = noteImagePendingMarkerId ? document.getElementById(noteImagePendingMarkerId) : null;
++  noteImagePendingMarkerId = '';
++  if (!items.length) { if (marker) marker.remove(); return; }
++
++  var grid = document.createElement('div');
++  grid.className = 'note-image-grid' + (items.length === 1 ? ' note-image-grid--single' : '');
++  grid.setAttribute('contenteditable', 'false');
++  items.forEach(function(item) {
++    if (!item || !item.url || !item.name) return;
++    var fig = document.createElement('div');
++    fig.className = 'note-image-item';
++    fig.setAttribute('data-note-image-name', String(item.name));
++    var img = document.createElement('img');
++    img.src = String(item.url);
++    img.alt = '笔记图片';
++    img.setAttribute('data-note-image-preview', '1');
++    var remove = document.createElement('button');
++    remove.type = 'button';
++    remove.className = 'note-image-remove';
++    remove.setAttribute('data-note-image-remove', '1');
++    remove.setAttribute('aria-label', '删除图片');
++    remove.textContent = '✕';
++    fig.appendChild(img);
++    fig.appendChild(remove);
++    grid.appendChild(fig);
++  });
++  if (!grid.children.length) { if (marker) marker.remove(); return; }
++
++  var spacer = document.createElement('div');
++  spacer.innerHTML = '<br>';
++  if (marker && marker.parentNode) {
++    marker.parentNode.insertBefore(grid, marker);
++    marker.parentNode.insertBefore(spacer, marker);
++    marker.remove();
++  } else {
++    bodyEl.appendChild(grid); bodyEl.appendChild(spacer);
++  }
++  saveCurrentNote();
++  showToast(items.length === 1 ? '已添加图片' : ('已添加 ' + items.length + ' 张图片'));
++};
++
++function openNoteImagePreview(src) {
++  var overlay = document.getElementById('noteImagePreview');
++  var img = document.getElementById('noteImagePreviewImg');
++  if (!overlay || !img || !src) return;
++  img.src = src;
++  overlay.style.display = 'flex';
++  requestAnimationFrame(function() { overlay.classList.add('active'); });
++  overlay.setAttribute('aria-hidden', 'false');
++}
++function closeNoteImagePreview() {
++  var overlay = document.getElementById('noteImagePreview');
++  var img = document.getElementById('noteImagePreviewImg');
++  if (!overlay) return;
++  overlay.classList.remove('active');
++  overlay.setAttribute('aria-hidden', 'true');
++  setTimeout(function() { if (!overlay.classList.contains('active')) { overlay.style.display = 'none'; if (img) img.removeAttribute('src'); } }, 190);
++}
++
++document.getElementById('noteAddImageBtn')?.addEventListener('click', requestNoteImages);
++document.getElementById('noteImagePreviewClose')?.addEventListener('click', closeNoteImagePreview);
++document.getElementById('noteImagePreview')?.addEventListener('click', function(e) { if (e.target === e.currentTarget) closeNoteImagePreview(); });
++document.getElementById('noteEditorBody')?.addEventListener('click', function(e) {
++  var remove = e.target.closest('[data-note-image-remove]');
++  if (remove) {
++    e.preventDefault(); e.stopPropagation();
++    var fig = remove.closest('.note-image-item');
++    var grid = remove.closest('.note-image-grid');
++    var name = fig ? fig.getAttribute('data-note-image-name') : '';
++    if (name && typeof AndroidBridge !== 'undefined' && AndroidBridge.deleteNoteImage) { try { AndroidBridge.deleteNoteImage(name); } catch(err) {} }
++    if (fig) fig.remove();
++    if (grid && !grid.querySelector('.note-image-item')) grid.remove();
++    saveCurrentNote();
++    showToast('图片已删除');
++    return;
++  }
++  var img = e.target.closest('img[data-note-image-preview]');
++  if (img) { e.preventDefault(); e.stopPropagation(); openNoteImagePreview(img.src); }
++});
++
++
+ // ===== Keyboard-aware: shrink editor so toolbar (in flow) stays above keyboard =====
+ if (window.visualViewport) {
+   window.visualViewport.addEventListener('resize', function() {
+@@ -6622,8 +6835,8 @@
+   if (cmd === 'hiliteColor') {
+     toggleHighlight();
+   } else if (cmd === 'bold') {
+-    _boldActive = !_boldActive;
+     document.execCommand('bold', false, null);
++    _boldActive = !!document.queryCommandState('bold');
+     updateToolbarState();
+   } else if (cmd === 'indent') {
+     document.execCommand('insertHTML', false, '&emsp;');
+@@ -6810,20 +7023,16 @@
+   });
+ })();
+ 
+-// Update H button state when selection changes in editor
++// Selection changes must never mutate the note. They only mirror the caret's real formatting state.
+ document.addEventListener('selectionchange', function() {
+   var editor = document.getElementById('noteEditor');
+   if (!editor || editor.style.display === 'none') return;
+   var bodyEl = document.getElementById('noteEditorBody');
+   if (!bodyEl) return;
+-  if (bodyEl.contains(document.activeElement) || document.activeElement === bodyEl) {
+-    // If H/B are off, clear formatting so typing at cursor doesn't inherit it
+-    if (!_highlightActive) {
+-      try { document.execCommand('backColor', false, '#f5ecd8'); } catch(e) {}
+-    }
+-    if (!_boldActive) {
+-      try { document.execCommand('bold', false, null); } catch(e) {}
+-    }
++  var sel = window.getSelection();
++  if (sel && sel.rangeCount && bodyEl.contains(sel.getRangeAt(0).commonAncestorContainer)) {
++    noteLastSelectionRange = sel.getRangeAt(0).cloneRange();
++    _boldActive = !!document.queryCommandState('bold');
+     updateToolbarState();
+   }
+ });
+@@ -6871,6 +7080,10 @@
+   el = document.getElementById('noteEditorMoreMenu');
+   if (el && el.style.display !== 'none') { el.style.display = 'none'; return 'note-more'; }
+ 
++  // Note image preview sits above the editor.
++  el = document.getElementById('noteImagePreview');
++  if (el && el.classList.contains('active')) { closeNoteImagePreview(); return 'note-image-preview'; }
++
+   // Note sub-pages.
+   el = document.getElementById('folderSidebar');
+   if (el && (el.classList.contains('folder-sidebar--open') || el.style.display !== 'none')) {
+@@ -6992,9 +7205,10 @@
+       btn.classList.remove('toolbar-active');
+     }
+   }
+-  // B button: pure manual toggle
++  // B button mirrors the actual caret formatting. Default text remains normal weight.
+   var boldBtn = document.querySelector('#noteFormatBar button[data-cmd="bold"]');
+   if (boldBtn) {
++    _boldActive = !!document.queryCommandState('bold');
+     if (_boldActive) { boldBtn.classList.add('toolbar-active'); }
+     else { boldBtn.classList.remove('toolbar-active'); }
+   }
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=V1.17-to-V1.18.patch' /mnt/data/todo_v117_baseline_for_v118/v118_gradle_build.log ./v118_gradle_build.log
+--- /mnt/data/todo_v117_baseline_for_v118/v118_gradle_build.log	1970-01-01 00:00:00.000000000 +0000
++++ ./v118_gradle_build.log	2026-08-12 06:27:06.685515739 +0000
+@@ -0,0 +1,22 @@
++Downloading https://services.gradle.org/distributions/gradle-8.11.1-bin.zip
++
++Exception in thread "main" java.net.UnknownHostException: services.gradle.org
++	at java.base/sun.nio.ch.NioSocketImpl.connect(NioSocketImpl.java:567)
++	at java.base/java.net.SocksSocketImpl.connect(SocksSocketImpl.java:327)
++	at java.base/java.net.Socket.connect(Socket.java:751)
++	at java.base/sun.security.ssl.SSLSocketImpl.connect(SSLSocketImpl.java:304)
++	at java.base/sun.net.NetworkClient.doConnect(NetworkClient.java:178)
++	at java.base/sun.net.www.http.HttpClient.openServer(HttpClient.java:531)
++	at java.base/sun.net.www.http.HttpClient.openServer(HttpClient.java:636)
++	at java.base/sun.net.www.protocol.https.HttpsClient.<init>(HttpsClient.java:264)
++	at java.base/sun.net.www.protocol.https.HttpsClient.New(HttpsClient.java:377)
++	at java.base/sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection.getNewHttpClient(AbstractDelegateHttpsURLConnection.java:193)
++	at java.base/sun.net.www.protocol.http.HttpURLConnection.plainConnect0(HttpURLConnection.java:1257)
++	at java.base/sun.net.www.protocol.http.HttpURLConnection.plainConnect(HttpURLConnection.java:1143)
++	at java.base/sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection.connect(AbstractDelegateHttpsURLConnection.java:179)
++	at java.base/sun.net.www.protocol.http.HttpURLConnection.getInputStream0(HttpURLConnection.java:1705)
++	at java.base/sun.net.www.protocol.http.HttpURLConnection.getInputStream(HttpURLConnection.java:1629)
++	at java.base/sun.net.www.protocol.https.HttpsURLConnectionImpl.getInputStream(HttpsURLConnectionImpl.java:223)
++	at org.gradle.wrapper.Install.forceFetch(SourceFile:2)
++	at org.gradle.wrapper.Install$1.call(SourceFile:8)
++	at org.gradle.wrapper.GradleWrapperMain.main(SourceFile:67)

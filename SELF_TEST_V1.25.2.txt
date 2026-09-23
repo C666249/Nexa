@@ -1,0 +1,31 @@
+STABLE V1.25.2 SELF TEST
+
+Scope
+- Root-fix Topic Rename/Delete Action Rail flicker.
+- Replace whole-tree collapse/expand rerender with node-local branch updates.
+- Remove the V1.2.1 Drawer-specific rail suppression workaround.
+- Upgrade Note Header Undo/Redo visual weight without changing verified editor geometry.
+
+PASS
+- Stable identity: namespace/applicationId com.todolist.app / versionCode 50 / versionName 1.25.2.
+- Android runtime diff vs V1.25.1: only assets/todo.html changed.
+- Native Kotlin/Java: 23/23 byte-identical to V1.25.1.
+- ui/todo.html == android/app/src/main/assets/todo.html.
+- Runtime JS node --check PASS.
+- Android XML parse: 5/5 PASS.
+- V1.25.1 Drawer patch removed: no body.note-tree-drawer-open rail display:none suppression remains.
+- Closed Topic rail state: visibility hidden / opacity 0 / pointer-events none / will-change auto.
+- Real left-drag state: rail-active visible / pointer-events auto / foreground will-change transform.
+- Animated close keeps rail active through the 200ms settle and hides it afterward; synthetic 260ms post-close state PASS.
+- Main Knowledge Tree Topic collapse/expand preserves sibling Topic DOM identity (no whole-tree reconstruction) PASS.
+- Main Knowledge Tree branch remove/reinsert for only the touched Topic PASS.
+- Drawer Topic collapse/expand preserves sibling Topic DOM identity PASS.
+- Virtual Unclassified collapse/expand preserves unrelated Topic DOM identity PASS.
+- Note/Topic swipe constants remain 124px action width / 48px reveal threshold / 200ms settle.
+- Golden Note IME/caret functions exact-text unchanged vs V1.25.1: measureVisualImeSpace, resolveNoteImeSpace, getNoteCaretRect, revealNoteCaretAboveIme, scheduleNoteCaretReveal, applyNoteImeSpace, syncResolvedNoteImeSpace, syncNoteViewportOffset, syncNoteImeLayout.
+- window.__onNativeImeInset exact-text unchanged vs V1.25.1.
+- B/S/H format state helpers sampled unchanged: syncCollapsedNoteTypingFormat, updateToolbarState.
+- 432x900 browser geometry: edit Header height remains 106px, exactly matching V1.25.1. Undo/Redo are 22x22 SVG with 2.6px rounded stroke inside the same 28px action row; Done remains 28px high with a 22px check.
+
+Gradle
+- :app:assembleDebug was attempted. This execution environment still cannot resolve services.gradle.org, so Gradle 8.11.1 cannot be downloaded here. Final compilation must be performed in Android Studio / normal network environment.

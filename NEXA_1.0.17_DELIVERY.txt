@@ -1,0 +1,6 @@
+Nexa 1.0.17 Stable source delivery
+
+Fix: MainActivity.kt no longer references unresolved getNoteFileUri; external Note file opening uses getShareableFileUri.
+Regression: stale getNoteFileUri symbol is explicitly rejected by tests.
+Identity: com.nexa.app / Nexa / 1.0.17 / code 22
+Android compile attempt in this environment is blocked before project compilation because services.gradle.org is not resolvable; see dev-logs/nexa-1.0.17-gradle-compile.log.

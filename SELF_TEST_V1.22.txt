@@ -1,0 +1,53 @@
+To-Do V1.22 Self Test
+=====================
+
+Base: To-Do-v1.21-Full.zip
+Target: To-Do-v1.22-Full.zip
+applicationId / namespace: com.todolist.app
+versionCode / versionName: 33 / 1.22
+
+Requirements review
+-------------------
+PASS  Note input architecture no longer restores/corrects body scrollTop on beforeinput/input; ordinary typing/deleting leaves body scrolling to WebView/contenteditable.
+PASS  Note keyboard geometry comes from Android IME WindowInsets and is delivered through window.__onNativeImeInset; visualViewport is not used for Note scrolling/tool-bar placement.
+PASS  Note toolbar remains fixed and uses the native IME inset while the body receives only bottom breathing room.
+PASS  New ImportReceiverActivity receives SEND / SEND_MULTIPLE / content VIEW externally and is excluded from Recents/no-history.
+PASS  MainActivity no longer declares SEND/SEND_MULTIPLE/VIEW share filters; external import is queued back to the single main workspace.
+PASS  External share target label is "添加到 To-Do".
+PASS  External imports with no valid/open Note clean copied private files instead of leaving orphan attachments.
+PASS  Attachment import sheet is compact: 微信 / QQ / 文件 / 最近; long explanatory copy and backdrop blur are removed.
+PASS  File-card ellipsis is a transparent ~40dp hit target with a vertically centered SVG three-dot glyph.
+PASS  File cards remain contenteditable=false; card tap opens/preview routes without intentionally focusing the text editor.
+PASS  More apps/professional-app fallback remains available for internally previewable formats.
+PASS  APK / APKS / XAPK / AAB / PK, PPT/PPTX, archives, executable/binary/pro formats skip internal parsing and route directly to an external ACTION_VIEW chooser.
+PASS  Audio/video decode failure falls back to the external/professional-app path.
+PASS  PDF viewer is vertical continuous scroll with viewport-near lazy render and far-page Bitmap recycle.
+PASS  Smart Icon 1x1 Widget is intentionally NOT implemented in V1.22.
+
+Compatibility / regression guards
+---------------------------------
+PASS  Existing Web localStorage business key set identical to V1.21 (9 literal keys compared by guard script).
+PASS  Note core data-layer region byte-identical to V1.21.
+PASS  ui/todo.html and android/app/src/main/assets/todo.html byte-identical.
+PASS  Inline HTML main script and script_0.js byte-equivalent after extraction.
+PASS  Reminder/Daily/Banner/Snooze locked Native core: 20/20 SHA-256 PASS.
+PASS  applicationId / namespace remain com.todolist.app.
+PASS  No broad storage permission added.
+
+Static / structural checks
+--------------------------
+PASS  node --check script_0.js.
+PASS  AndroidManifest.xml XML parse.
+PASS  res/xml/file_paths.xml XML parse.
+PASS  strings.xml / styles.xml XML parse.
+PASS  Static HTML DOM IDs: 178, no duplicate static IDs.
+PASS  Source assertions verify: native IME bridge, transient ImportReceiver, compact import UI, unsupported-format external fallback, vertical PDF lazy rendering.
+PASS  Standalone kotlinc parser/diagnostic run contains no "syntax error", "Unexpected tokens", "expecting", "cannot be reassigned", "unclosed", or "missing '" diagnostics. Android/AndroidX/JSON unresolved references are expected because this standalone invocation has no Android SDK classpath; this is NOT a full compile.
+
+Full Android build attempt
+--------------------------
+ATTEMPTED  ./gradlew :app:assembleDebug --no-daemon
+BLOCKED    Gradle wrapper cannot download Gradle 8.11.1 because the sandbox cannot resolve services.gradle.org (UnknownHostException).
+NOT CLAIMED  Full Android build / APK runtime / real-device test.
+
+Final package checks are recorded in PROJECT_FILE_MANIFEST_V1.22.txt, SHA256SUMS.txt and ZIP integrity verification at delivery time.

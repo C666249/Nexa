@@ -1,0 +1,61 @@
+To-Do V1.10 Locked Core Guard
+Base: To-Do V1.9 Full
+Target: To-Do V1.10 Full
+
+Authorized shared-core changes in V1.10: MainActivity / FloatWindowService / ReminderScheduler / ReminderNotifier / FloatWindowManager / AndroidManifest were extended only to add the new Daily recurring-reminder path. They are therefore not claimed byte-identical. Existing Todo reminder classes below remain locked.
+
+[PASS] android/app/src/main/java/com/todolist/app/reminder/ReminderStore.kt
+  V1.9 f2e941bc491f4d743697136e135888e98c14324236abb8814b9632669a183df6
+  V1.10 f2e941bc491f4d743697136e135888e98c14324236abb8814b9632669a183df6
+[PASS] android/app/src/main/java/com/todolist/app/reminder/ReminderDiagnostics.kt
+  V1.9 445283809d9ecbafd08e80e8cd882444372127ef7aebea8d38c30a9857be4898
+  V1.10 445283809d9ecbafd08e80e8cd882444372127ef7aebea8d38c30a9857be4898
+[PASS] android/app/src/main/java/com/todolist/app/reminder/TodoSnapshotStore.kt
+  V1.9 74ea806ecddc1680c3e7cb5f7e0abb9db8ba1a69ab9a4b3ac2e90a7cd5e9c1b3
+  V1.10 74ea806ecddc1680c3e7cb5f7e0abb9db8ba1a69ab9a4b3ac2e90a7cd5e9c1b3
+[PASS] android/app/src/main/java/com/todolist/app/ui/BannerView.kt
+  V1.9 5d6a1a7bd5b1731c21b3a611244448d87657540b0e2abda19a0bf71517abbe49
+  V1.10 5d6a1a7bd5b1731c21b3a611244448d87657540b0e2abda19a0bf71517abbe49
+[PASS] android/app/src/main/java/com/todolist/app/ui/TodoReminderBannerView.kt
+  V1.9 cf00985b9e122cb81594e2b7178b2807205ca5ee792d226e56395f1097e94d69
+  V1.10 cf00985b9e122cb81594e2b7178b2807205ca5ee792d226e56395f1097e94d69
+[PASS] android/app/src/main/java/com/todolist/app/receiver/MidnightReceiver.kt
+  V1.9 49ebf2634854cd20c6d03656d4c1da7de3a6c0a30f542cdf23e7b0c9b9f1219e
+  V1.10 49ebf2634854cd20c6d03656d4c1da7de3a6c0a30f542cdf23e7b0c9b9f1219e
+[PASS] android/app/src/main/java/com/todolist/app/receiver/TodoReminderReceiver.kt
+  V1.9 461c22942251cc352333f433629df785c7dca51d5e64a2700450d33fae04bc50
+  V1.10 461c22942251cc352333f433629df785c7dca51d5e64a2700450d33fae04bc50
+[PASS] android/app/src/main/java/com/todolist/app/receiver/ReminderActionReceiver.kt
+  V1.9 ba2b57ee965759555fe4913827b2aa4fdeb1499854fb40c298efeb2bcfc3e361
+  V1.10 ba2b57ee965759555fe4913827b2aa4fdeb1499854fb40c298efeb2bcfc3e361
+[PASS] android/app/src/main/java/com/todolist/app/receiver/BootReceiver.kt
+  V1.9 5c749c6186e9ba2e9226e29e93856753879c898e8b2dcbe5d7a9922c4d27ca7d
+  V1.10 5c749c6186e9ba2e9226e29e93856753879c898e8b2dcbe5d7a9922c4d27ca7d
+[PASS] android/app/src/main/res/values/styles.xml
+  V1.9 aa1b5e31d2cb19b6b4f53b693f4592a148b04100c57144ff909831cbcd28693f
+  V1.10 aa1b5e31d2cb19b6b4f53b693f4592a148b04100c57144ff909831cbcd28693f
+[PASS] android/app/src/main/res/values/strings.xml
+  V1.9 20be4c9bf8f96e337aa098ca14420083c2c1866866431645a6696af1e542d5da
+  V1.10 20be4c9bf8f96e337aa098ca14420083c2c1866866431645a6696af1e542d5da
+
+Locked Note regions (mode shell excluded):
+[PASS] Note CSS core
+  V1.9 53900b33019fea58cca9c7ea881d33e88cf9043203d8ce447e9af2f6973436c0
+  V1.10 53900b33019fea58cca9c7ea881d33e88cf9043203d8ce447e9af2f6973436c0
+[PASS] Notes HTML/editor/folder core
+  V1.9 c3ddacd86d33dfe81a545fa5f3c43a54418888ec45b2da0686f4384b8dadb757
+  V1.10 c3ddacd86d33dfe81a545fa5f3c43a54418888ec45b2da0686f4384b8dadb757
+[PASS] Notes Data/CRUD core
+  V1.9 e93fade1b13bad2541f8dfb9293fe0f68d82728f9aecc606308939769e57d5f9
+  V1.10 e93fade1b13bad2541f8dfb9293fe0f68d82728f9aecc606308939769e57d5f9
+[PASS] Note editor/folder event core
+  V1.9 dfddbdcea248cafb17a22ee8f83267be9a8b29e861f6eec6f6f16dd79a9be9b5
+  V1.10 dfddbdcea248cafb17a22ee8f83267be9a8b29e861f6eec6f6f16dd79a9be9b5
+
+[PASS] App identity remains com.todolist.app
+[PASS] Existing To-Do / Note localStorage keys unchanged
+
+New isolated product key:
+  DAILY_TASKS_KEY = 'todo_glass_daily_tasks_v1'
+
+Result: 17/17 locked checks PASS

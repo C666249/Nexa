@@ -1,0 +1,72 @@
+List-Note V1.7 SELF TEST
+========================
+Base: V1.6 Full
+Target: V1.7 Full
+Date: 2026-08-11
+
+1. Requirements review
+----------------------
+PASS - V1.6 is the direct development base; no fallback to older project branch.
+PASS - User explicitly authorized full refactor of the previously failing reminder subsystem.
+PASS - Daily reminder retains user-selected repeating time semantics.
+PASS - 10-second reminder test is still available.
+PASS - Per-item reminder supports explicit year/month/day/hour/minute scheduling.
+PASS - Per-item overlay remains persistent until its X is pressed.
+PASS - Per-item overlay status remains: todo -> in-progress -> completed and syncs to native mutation queue/WebView.
+PASS - Left swipe remains two discrete buttons on a transparent action area: green reminder + red delete.
+PASS - Note mode is unchanged (see LOCKED_CORE_GUARD_V1.7.txt).
+PASS - applicationId remains com.listnote.app, so this test app stays isolated from the stable app.
+PASS - Android Studio Gradle root remains at the outer project folder.
+
+2. Reminder architecture checks
+-------------------------------
+PASS - AlarmManager durable schedule uses setAlarmClock() when exact-alarm capability is available.
+PASS - setAndAllowWhileIdle() fallback remains when exact capability is unavailable.
+PASS - Reminder Keeper foreground service is armed from foreground app interactions while reminders exist.
+PASS - Keeper uses START_STICKY when reminder work/overlay/test fallback exists.
+PASS - In-process Handler fallback is armed for daily, todo, and 10-second test reminders.
+PASS - Alarm BroadcastReceivers post notification safety signal before overlay dispatch.
+PASS - Alarm receivers use a short timeout PARTIAL_WAKE_LOCK.
+PASS - Per-item confirm/cancel explicitly invoke native schedule/cancel bridge methods.
+PASS - Overlay uses application WindowManager + TYPE_APPLICATION_OVERLAY + status-bar/display-cutout safe inset.
+PASS - No AccessibilityService or NotificationListenerService was added to List-Note.
+
+3. Locked Core
+--------------
+PASS - 14/14 locked checks byte-identical to V1.6.
+See changes/LOCKED_CORE_GUARD_V1.7.txt for SHA-256 values.
+
+4. Static checks actually executed
+----------------------------------
+PASS - ui/todo.html inline JavaScript: node --check.
+PASS - AndroidManifest.xml parses as XML.
+PASS - strings.xml parses as XML.
+PASS - styles.xml parses as XML.
+PASS - ui/todo.html and android/app/src/main/assets/todo.html are byte-identical.
+PASS - Manifest activity/service/receiver class files all exist.
+PASS - Root Gradle files exist: settings.gradle.kts, build.gradle.kts, gradlew.bat, gradle/wrapper/*.
+PASS - android/settings.gradle.kts does not exist; there is only one Gradle root.
+PASS - Gradle wrapper JAR can be listed by jar tool.
+PASS - Kotlin source parse attempt produced no syntax-like diagnostics; unresolved Android/AndroidX references are expected because Android SDK/dependency classpath is absent in this container.
+
+5. Full Android build
+---------------------
+ATTEMPTED - ./gradlew :app:assembleDebug --no-daemon
+NOT COMPLETED - Gradle wrapper could not download Gradle 8.11.1 because this environment cannot resolve services.gradle.org (UnknownHostException).
+Environment also has no adb, sdkmanager, or system Gradle executable.
+Therefore this report DOES NOT claim a successful APK compile or a real-device test.
+
+6. Real-device validation still required
+----------------------------------------
+NOT EXECUTED - HONOR Magic6 Pro / MagicOS test cannot be performed in this environment.
+Recommended first device check after build:
+A. Set the 10-second test, go Home, and verify the low/silent "List-Note reminder keeper" foreground notification exists immediately.
+B. Around 10 seconds later verify the designed floating daily Banner appears without reopening the app.
+C. Set one todo 1-2 minutes ahead, go Home, and verify its persistent todo Banner appears.
+D. Toggle the todo checkbox twice and confirm APP state sync; press X and confirm the overlay/reminder clears.
+
+7. Packaging
+------------
+PASS - Final ZIP was packaged and checked with `unzip -t`; no CRC/compressed-data errors were detected.
+PASS - ZIP root is `List-Note/` and directly contains settings.gradle.kts, build.gradle.kts, gradlew.bat, gradle/, and android/.
+PASS - ZIP contains this report, V1.6-to-V1.7 patch, changelog, Locked Core guard, project manifest, and SHA256SUMS.

@@ -1,0 +1,38 @@
+--- a/android/app/src/main/java/com/todolist/app/ui/DailyTaskBannerView.kt
++++ b/android/app/src/main/java/com/todolist/app/ui/DailyTaskBannerView.kt
+@@ -73,7 +73,7 @@
+         row.addView(meta)
+ 
+         val close = TextView(context).apply {
+-            text = "✕"
++            this.text = "✕"
+             textSize = 17f
+             gravity = Gravity.CENTER
+             setTextColor(Color.parseColor("#A0958B"))
+--- a/android/app/build.gradle.kts
++++ b/android/app/build.gradle.kts
+@@ -11,8 +11,8 @@
+         applicationId = "com.todolist.app"
+         minSdk = 26
+         targetSdk = 35
+-        versionCode = 20
+-        versionName = "1.10"
++        versionCode = 21
++        versionName = "1.10.1"
+     }
+ 
+     buildTypes {
+--- a/build-apk.bat
++++ b/build-apk.bat
+@@ -10,9 +10,9 @@
+ )
+ if not exist "dist" mkdir "dist"
+ for %%F in ("android\app\build\outputs\apk\debug\*.apk") do (
+-  copy /Y "%%~fF" "dist\To-Do-v1.10.apk" >nul
++  copy /Y "%%~fF" "dist\To-Do-v1.10.1.apk" >nul
+   echo.
+-  echo APK: %CD%\dist\To-Do-v1.10.apk
++  echo APK: %CD%\dist\To-Do-v1.10.1.apk
+   exit /b 0
+ )
+ echo Build finished but no APK was found under android\app\build\outputs\apk\debug

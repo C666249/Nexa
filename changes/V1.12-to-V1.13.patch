@@ -1,0 +1,1055 @@
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.13.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.13.txt' todo_v112_baseline_zip/README.md todo_v112_work/README.md
+--- todo_v112_baseline_zip/README.md	2026-08-11 17:36:36.000000000 +0000
++++ todo_v112_work/README.md	2026-08-11 19:12:05.302959397 +0000
+@@ -1,7 +1,17 @@
+-# To-Do V1.10
++# To-Do V1.13
+ 
+ 本地优先的 To-Do + Note Android 应用。UI 使用 HTML/CSS/Vanilla JS，Android 原生层使用 Kotlin WebView，并负责精确定时、后台提醒守护与悬浮 Banner。
+ 
++
++## V1.13 首次使用引导 + V1.12 构建修复
++
++- 修复 V1.12 `MainActivity.kt` 返回键判断中的 Kotlin 字符串转义错误，避免 `Unexpected tokens` 导致 `:app:compileDebugKotlin` 失败。
++- 新增首次启动欢迎动画与 5 步可视化主教程：工作台、三态待办、左滑隐藏功能、To-Do/Note 切换、日期/每日总结/Daily 工具。
++- 三态与左滑步骤使用教程专用虚拟事项，完全不写入真实 `todos / notes / dailyTasks` 数据。
++- 新增情境式一次性教学：第一次打开单条提醒、Daily 总体历史、单项 Daily 日历、AI 助手时出现局部 Spotlight 提示。
++- 右上角新增低干扰 `?` 教程入口，任何时候都可以重新观看；教程状态单独保存在 `todo_glass_onboarding_v1` / `todo_glass_coach_v1_*`，不改变业务数据 key。
++- 旧用户覆盖升级时原 To-Do / Note / Daily 本地数据继续沿用；由于新教程 key 第一次不存在，会看到欢迎页一次，可以直接点“我已经会用 · 跳过”。
++
+ ## V1.9 恢复稳定版安装身份
+ 
+ - Launcher 名称：`To-Do`
+@@ -96,7 +106,7 @@
+ 成功后 APK 会复制到：
+ 
+ ```text
+-dist/To-Do-v1.10.apk
++dist/To-Do-v1.13.apk
+ ```
+ 
+ ## 技术栈
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.13.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.13.txt' todo_v112_baseline_zip/android/app/build.gradle.kts todo_v112_work/android/app/build.gradle.kts
+--- todo_v112_baseline_zip/android/app/build.gradle.kts	2026-08-11 18:50:56.000000000 +0000
++++ todo_v112_work/android/app/build.gradle.kts	2026-08-11 19:08:24.333968770 +0000
+@@ -11,8 +11,8 @@
+         applicationId = "com.todolist.app"
+         minSdk = 26
+         targetSdk = 35
+-        versionCode = 23
+-        versionName = "1.12"
++        versionCode = 24
++        versionName = "1.13"
+     }
+ 
+     buildTypes {
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.13.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.13.txt' todo_v112_baseline_zip/android/app/src/main/assets/todo.html todo_v112_work/android/app/src/main/assets/todo.html
+--- todo_v112_baseline_zip/android/app/src/main/assets/todo.html	2026-08-11 18:51:11.000000000 +0000
++++ todo_v112_work/android/app/src/main/assets/todo.html	2026-08-11 19:10:59.320943189 +0000
+@@ -188,6 +188,14 @@
+ .daily-entry-btn svg { width: 16px; height: 16px; display:block; overflow:visible; }
+ .daily-entry-btn path { fill:none; stroke:currentColor; stroke-width:1.85; stroke-linecap:round; stroke-linejoin:round; }
+ .daily-entry-btn:active { background: rgba(224,247,240,.98); box-shadow:none; }
++.help-entry-btn {
++  background: rgba(255,255,255,.30);
++  border-color: rgba(255,255,255,.38);
++  color: rgba(102,90,80,.72);
++  font-size:13px; font-weight:850;
++}
++.help-entry-btn:active { background:rgba(255,255,255,.58); transform:scale(.92); }
++
+ 
+ /* ===== Search ===== */
+ .search-wrap {
+@@ -1226,6 +1234,93 @@
+ }
+ .toast__undo:active { opacity: 0.7; }
+ 
++/* ===== First-run onboarding / contextual coach marks ===== */
++.onboarding-welcome {
++  position:fixed; inset:0; z-index:15080; display:none; align-items:center; justify-content:center;
++  padding:28px; background:linear-gradient(145deg,rgba(250,246,240,.92),rgba(235,249,246,.90) 48%,rgba(239,244,255,.90));
++  backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
++}
++.onboarding-welcome.active { display:flex; animation:onboardFadeIn .34s ease both; }
++@keyframes onboardFadeIn { from{opacity:0} to{opacity:1} }
++.onboarding-welcome__inner { width:min(86vw,340px); text-align:center; }
++.onboarding-welcome__mark {
++  width:74px; height:74px; margin:0 auto 18px; border-radius:25px;
++  display:flex; align-items:center; justify-content:center; color:#fff; font-size:34px; font-weight:900;
++  background:linear-gradient(145deg,#32cfad,#30afd7 65%,#7c7be9);
++  box-shadow:0 20px 48px rgba(49,177,177,.24); transform:translateY(10px) scale(.88); opacity:0;
++  animation:onboardMark .72s cubic-bezier(.2,.86,.25,1) .10s forwards;
++}
++@keyframes onboardMark { to{transform:translateY(0) scale(1);opacity:1} }
++.onboarding-welcome__title { font-size:29px; font-weight:900; letter-spacing:-1px; color:#493f36; opacity:0; transform:translateY(8px); animation:onboardRise .50s ease .38s forwards; }
++.onboarding-welcome__sub { margin-top:9px; color:#897c70; font-size:14px; line-height:1.7; opacity:0; transform:translateY(8px); animation:onboardRise .50s ease .52s forwards; }
++@keyframes onboardRise { to{opacity:1;transform:translateY(0)} }
++.onboarding-welcome__start { margin-top:28px; width:100%; border:0; border-radius:18px; padding:14px 16px; color:#fff; font-size:15px; font-weight:850; background:linear-gradient(135deg,#2bc9ac,#27b7d6); box-shadow:0 12px 28px rgba(39,183,214,.20); opacity:0; transform:translateY(10px); animation:onboardRise .50s ease .72s forwards; }
++.onboarding-welcome__skip { margin-top:12px; border:0; background:transparent; color:#9c8f83; font-size:12px; padding:8px 14px; opacity:0; animation:onboardFadeIn .4s ease .84s forwards; }
++
++.onboarding-overlay { position:fixed; inset:0; z-index:15070; display:none; pointer-events:none; }
++.onboarding-overlay.active { display:block; }
++.onboarding-overlay.no-focus { background:rgba(53,46,41,.36); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); }
++.onboarding-spotlight {
++  position:fixed; left:20px; top:80px; width:120px; height:60px; border-radius:20px;
++  box-shadow:0 0 0 9999px rgba(49,43,38,.43),0 0 0 2px rgba(255,255,255,.92),0 12px 35px rgba(38,31,26,.18);
++  transition:left .32s cubic-bezier(.2,.8,.2,1),top .32s cubic-bezier(.2,.8,.2,1),width .32s cubic-bezier(.2,.8,.2,1),height .32s cubic-bezier(.2,.8,.2,1),border-radius .32s ease;
++  pointer-events:none;
++}
++.onboarding-overlay.no-focus .onboarding-spotlight { opacity:0; }
++.onboarding-pulse { position:fixed; border:1.5px solid rgba(47,200,171,.58); border-radius:22px; pointer-events:none; opacity:0; animation:onboardPulse 1.8s ease-out infinite; }
++@keyframes onboardPulse { 0%{transform:scale(.96);opacity:0} 25%{opacity:.8} 100%{transform:scale(1.08);opacity:0} }
++.onboarding-overlay.no-focus .onboarding-pulse { display:none; }
++.onboarding-card {
++  position:fixed; left:18px; right:18px; bottom:max(24px,env(safe-area-inset-bottom));
++  pointer-events:auto; padding:17px 17px 14px; border-radius:26px;
++  background:linear-gradient(145deg,rgba(255,255,255,.93),rgba(255,250,244,.91));
++  border:1px solid rgba(255,255,255,.86); box-shadow:0 22px 58px rgba(63,50,40,.24);
++  backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
++  transform:translateY(18px) scale(.98); opacity:0;
++  transition:transform .30s cubic-bezier(.2,.86,.24,1),opacity .24s ease,top .25s ease,bottom .25s ease;
++}
++.onboarding-overlay.active .onboarding-card { transform:translateY(0) scale(1); opacity:1; }
++.onboarding-card.above { bottom:auto; top:max(70px,env(safe-area-inset-top)); }
++.onboarding-card__head { display:flex; align-items:center; gap:10px; }
++.onboarding-step { padding:5px 9px; border-radius:999px; background:rgba(43,201,172,.10); color:#269d85; font-size:11px; font-weight:800; }
++.onboarding-skip { margin-left:auto; border:0; background:transparent; color:#a09286; font-size:12px; padding:6px 3px 6px 10px; }
++.onboarding-title { margin-top:10px; color:#463c34; font-size:19px; font-weight:900; letter-spacing:-.35px; }
++.onboarding-text { margin-top:6px; color:#776a5f; font-size:13px; line-height:1.65; }
++.onboarding-actions { display:flex; align-items:center; gap:10px; margin-top:14px; }
++.onboarding-dots { display:flex; gap:5px; margin-right:auto; }
++.onboarding-dots i { width:6px; height:6px; border-radius:999px; background:#ddd3ca; transition:width .2s ease,background .2s ease; }
++.onboarding-dots i.active { width:18px; background:linear-gradient(90deg,#2bc9ac,#27b7d6); }
++.onboarding-next { min-width:92px; border:0; border-radius:14px; padding:10px 15px; color:#fff; font-size:13px; font-weight:850; background:linear-gradient(135deg,#2bc9ac,#27b7d6); box-shadow:0 7px 16px rgba(39,183,214,.16); }
++.onboarding-next:disabled { filter:grayscale(.35); opacity:.42; box-shadow:none; }
++.onboarding-demo { margin-top:14px; border-radius:20px; padding:12px; background:linear-gradient(145deg,rgba(248,251,250,.96),rgba(255,248,242,.96)); border:1px solid rgba(227,218,208,.62); overflow:hidden; }
++.onboarding-demo-row { position:relative; height:62px; border-radius:16px; overflow:hidden; background:#fffefa; border:1px solid #eee7de; box-shadow:0 5px 18px rgba(125,105,89,.07); }
++.onboarding-demo-actions { position:absolute; right:0; top:0; bottom:0; display:flex; align-items:center; gap:6px; padding:0 8px; }
++.onboarding-demo-action { width:52px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:800; }
++.onboarding-demo-action.remind { background:#50b98c; }.onboarding-demo-action.delete { background:#ee7374; }
++.onboarding-demo-inner { position:absolute; inset:0; z-index:2; display:flex; align-items:center; gap:10px; padding:0 12px; background:#fffefa; transform:translateX(0); transition:transform .22s cubic-bezier(.22,.82,.28,1); touch-action:none; }
++.onboarding-demo-check { width:28px; height:28px; flex:0 0 28px; border:2px solid #d3d8df; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:900; color:#fff; transition:all .22s cubic-bezier(.2,.8,.2,1); }
++.onboarding-demo-check.progress { background:#f3b24e; border-color:#f3b24e; transform:scale(1.04); }.onboarding-demo-check.done { background:#28c09a; border-color:#28c09a; transform:scale(1.04); }
++.onboarding-demo-check.done::after { content:'✓'; }.onboarding-demo-check.progress::after { content:'•'; font-size:20px; line-height:1; }
++.onboarding-demo-copy { min-width:0; }.onboarding-demo-copy b { display:block; color:#3f3730; font-size:14px; }.onboarding-demo-copy span { display:block; margin-top:3px; color:#a09387; font-size:11px; }
++.onboarding-demo-note { margin-top:9px; text-align:center; font-size:11px; color:#998b80; }
++.onboarding-mini-switch { margin-top:14px; overflow:hidden; height:78px; border-radius:19px; background:linear-gradient(90deg,#fff9f4 0 50%,#f2fbf8 50%); border:1px solid #ebe2d9; position:relative; }
++.onboarding-mini-track { position:absolute; inset:10px; display:flex; width:calc(200% - 20px); animation:onboardPanels 2.4s cubic-bezier(.22,.82,.28,1) infinite; }
++.onboarding-mini-panel { width:50%; display:flex; align-items:center; justify-content:center; gap:8px; color:#66594e; font-size:14px; font-weight:850; }
++@keyframes onboardPanels { 0%,30%{transform:translateX(0)} 55%,82%{transform:translateX(-50%)} 100%{transform:translateX(0)} }
++.onboarding-tools { margin-top:13px; display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
++.onboarding-tool { border-radius:16px; padding:11px 7px; text-align:center; background:rgba(255,255,255,.76); border:1px solid #eee5dc; }
++.onboarding-tool b { display:block; font-size:17px; }.onboarding-tool span { display:block; margin-top:5px; color:#776a5f; font-size:11px; font-weight:750; }.onboarding-tool small { display:block; margin-top:3px; color:#a29488; font-size:9.5px; line-height:1.35; }
++.onboarding-hand { position:fixed; z-index:15079; pointer-events:none; font-size:24px; filter:drop-shadow(0 5px 8px rgba(50,40,33,.18)); animation:onboardHand 1.55s ease-in-out infinite; }
++@keyframes onboardHand { 0%,100%{transform:translate3d(0,0,0) rotate(-12deg);opacity:.55} 50%{transform:translate3d(-15px,3px,0) rotate(-12deg);opacity:1} }
++
++.context-coach { position:fixed; inset:0; z-index:15120; display:none; pointer-events:none; }
++.context-coach.active { display:block; }
++.context-coach__ring { position:fixed; border-radius:20px; box-shadow:0 0 0 9999px rgba(49,43,38,.30),0 0 0 2px rgba(255,255,255,.92); pointer-events:none; }
++.context-coach__card { position:fixed; left:18px; right:18px; bottom:max(22px,env(safe-area-inset-bottom)); pointer-events:auto; padding:15px 16px; border-radius:22px; background:rgba(255,253,250,.94); border:1px solid rgba(255,255,255,.88); box-shadow:0 18px 48px rgba(63,50,40,.22); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); }
++.context-coach__title { color:#493f36; font-size:15px; font-weight:900; }.context-coach__text { margin-top:5px; color:#7f7267; font-size:12px; line-height:1.6; }
++.context-coach__ok { margin-top:11px; width:100%; border:0; border-radius:13px; padding:10px; background:linear-gradient(135deg,#2bc9ac,#27b7d6); color:#fff; font-weight:850; font-size:12px; }
++@media (prefers-reduced-motion: reduce) { .onboarding-welcome__mark,.onboarding-welcome__title,.onboarding-welcome__sub,.onboarding-welcome__start,.onboarding-welcome__skip,.onboarding-pulse,.onboarding-hand,.onboarding-mini-track { animation:none!important; opacity:1!important; transform:none!important; } }
++
+ /* ===== Confirm Dialog ===== */
+ .confirm-overlay {
+   position: fixed; inset: 0; z-index: 12060;
+@@ -2164,6 +2259,7 @@
+               <path d="m10 12.2 1.35 1.35 2.7-2.7"/>
+             </svg>
+           </button>
++          <button class="test-banner-btn help-entry-btn" id="helpBtn" title="新手教程" aria-label="新手教程">?</button>
+         </div>
+       </div>
+       <div class="search-wrap">
+@@ -2258,6 +2354,40 @@
+ <div class="category-picker" id="categoryPicker"></div>
+ <button class="fab fab--recycle" id="fabRecycle" aria-label="回收站">🗑️</button>
+ <button class="fab fab--ai" id="fabAi" aria-label="AI助手">🤖</button>
++<!-- First-run visual onboarding; demo data lives only in this overlay and never touches real To-Do/Note/Daily storage. -->
++<div class="onboarding-welcome" id="onboardingWelcome">
++  <div class="onboarding-welcome__inner">
++    <div class="onboarding-welcome__mark">✓</div>
++    <div class="onboarding-welcome__title">To-Do</div>
++    <div class="onboarding-welcome__sub">把要做的、想记的、每天重复的小事<br>放进一个更轻松的空间。</div>
++    <button class="onboarding-welcome__start" id="onboardingWelcomeStart">开始认识它</button>
++    <button class="onboarding-welcome__skip" id="onboardingWelcomeSkip">我已经会用 · 跳过</button>
++  </div>
++</div>
++<div class="onboarding-overlay" id="onboardingOverlay">
++  <div class="onboarding-spotlight" id="onboardingSpotlight"></div>
++  <div class="onboarding-pulse" id="onboardingPulse"></div>
++  <div class="onboarding-hand" id="onboardingHand">☝🏻</div>
++  <section class="onboarding-card" id="onboardingCard" aria-live="polite">
++    <div class="onboarding-card__head"><span class="onboarding-step" id="onboardingStep">1 / 5</span><button class="onboarding-skip" id="onboardingSkip">跳过</button></div>
++    <div class="onboarding-title" id="onboardingTitle"></div>
++    <div class="onboarding-text" id="onboardingText"></div>
++    <div id="onboardingDemo"></div>
++    <div class="onboarding-actions">
++      <div class="onboarding-dots" id="onboardingDots"></div>
++      <button class="onboarding-next" id="onboardingNext">下一步</button>
++    </div>
++  </section>
++</div>
++<div class="context-coach" id="contextCoach">
++  <div class="context-coach__ring" id="contextCoachRing"></div>
++  <div class="context-coach__card">
++    <div class="context-coach__title" id="contextCoachTitle">小提示</div>
++    <div class="context-coach__text" id="contextCoachText"></div>
++    <button class="context-coach__ok" id="contextCoachOk">知道了</button>
++  </div>
++</div>
++
+ <div class="calendar-modal" id="calendarModal">
+   <div class="calendar-modal__backdrop" id="calendarBackdrop"></div>
+   <div class="calendar-modal__content">
+@@ -2542,6 +2672,236 @@
+ const categoryScroll = document.getElementById('categoryScroll');
+ const categoryPicker = document.getElementById('categoryPicker');
+ 
++
++// ===== First-run onboarding =====
++const ONBOARDING_KEY = 'todo_glass_onboarding_v1';
++const COACH_PREFIX = 'todo_glass_coach_v1_';
++let onboardingIndex = 0;
++let onboardingDemoState = 0;
++let onboardingSwipeUnlocked = false;
++let contextCoachKey = '';
++
++const onboardingSteps = [
++  {
++    title: '先认识你的工作台',
++    text: 'To-Do 放要完成的事。底部 ＋ 新建，垃圾桶看删除内容，🤖 可以用自然语言帮你管理待办。',
++    target: null,
++    demo: 'home'
++  },
++  {
++    title: '一个待办，有三个状态',
++    text: '下面是教程里的虚拟事项，不会写进你的真实数据。亲手点两次复选框试试。',
++    target: null,
++    demo: 'states',
++    interactive: 'states'
++  },
++  {
++    title: '更多功能藏在左滑里',
++    text: '试着把下面这条虚拟待办向左拖。拖到一半可以退回，继续滑就会露出提醒与删除。',
++    target: null,
++    demo: 'swipe',
++    interactive: 'swipe'
++  },
++  {
++    title: 'To-Do ↔ Note，左右切换',
++    text: '顶部可以左右跟手滑动，也可以点 📝。Note 用来长期记录，不参与待办完成统计。',
++    target: '#modeToggle',
++    demo: 'mode'
++  },
++  {
++    title: '三个时间工具，各司其职',
++    text: '📅 看待办日期；🕐 设置每天固定时间的总结提醒；Daily 管喝水、吃药这类每天重新开始的事项。以后点 ? 可以随时重看教程。',
++    target: '.header__stats',
++    demo: 'tools'
++  }
++];
++
++function onboardingValue() {
++  try { return localStorage.getItem(ONBOARDING_KEY) || ''; } catch(e) { return ''; }
++}
++function setOnboardingValue(value) {
++  try { localStorage.setItem(ONBOARDING_KEY, value); } catch(e) {}
++}
++function maybeStartOnboarding() {
++  if (onboardingValue()) return;
++  const welcome = document.getElementById('onboardingWelcome');
++  if (welcome) welcome.classList.add('active');
++}
++function startOnboarding(showWelcome) {
++  closeContextCoach(false);
++  if (typeof applyMode === 'function' && currentMode !== 'todo') applyMode('todo');
++  const welcome = document.getElementById('onboardingWelcome');
++  if (welcome) welcome.classList.toggle('active', !!showWelcome);
++  if (showWelcome) return;
++  onboardingIndex = 0;
++  onboardingDemoState = 0;
++  onboardingSwipeUnlocked = false;
++  document.getElementById('onboardingOverlay').classList.add('active');
++  renderOnboardingStep();
++}
++function finishOnboarding(skipped) {
++  document.getElementById('onboardingWelcome')?.classList.remove('active');
++  document.getElementById('onboardingOverlay')?.classList.remove('active');
++  setOnboardingValue(skipped ? 'skipped' : 'done');
++  if (!skipped) showToast('教程完成 · 以后点右上角 ? 可重新观看');
++}
++function positionOnboardingTarget(selector) {
++  const overlay = document.getElementById('onboardingOverlay');
++  const spot = document.getElementById('onboardingSpotlight');
++  const pulse = document.getElementById('onboardingPulse');
++  const hand = document.getElementById('onboardingHand');
++  const card = document.getElementById('onboardingCard');
++  if (!selector) {
++    overlay.classList.add('no-focus');
++    card.classList.remove('above');
++    hand.style.display = 'none';
++    return;
++  }
++  const target = document.querySelector(selector);
++  if (!target) {
++    overlay.classList.add('no-focus');
++    hand.style.display = 'none';
++    return;
++  }
++  overlay.classList.remove('no-focus');
++  const r = target.getBoundingClientRect();
++  const padX = selector === '.header__stats' ? 8 : 10;
++  const padY = selector === '.header__stats' ? 7 : 9;
++  const left = Math.max(8, r.left - padX);
++  const top = Math.max(8, r.top - padY);
++  const width = Math.min(window.innerWidth - left - 8, r.width + padX * 2);
++  const height = r.height + padY * 2;
++  const radius = selector === '.header__stats' ? 22 : Math.max(16, Math.min(26, height / 2));
++  [spot,pulse].forEach(el => {
++    el.style.left = `${left}px`; el.style.top = `${top}px`; el.style.width = `${width}px`; el.style.height = `${height}px`; el.style.borderRadius = `${radius}px`;
++  });
++  const targetCenter = top + height / 2;
++  const cardAbove = targetCenter > window.innerHeight * .58;
++  card.classList.toggle('above', cardAbove);
++  hand.style.display = 'block';
++  hand.style.left = `${Math.min(window.innerWidth - 42, Math.max(12, left + width - 28))}px`;
++  hand.style.top = `${cardAbove ? Math.min(window.innerHeight - 90, top + height + 8) : Math.max(10, top - 44)}px`;
++}
++function renderOnboardingDots() {
++  const dots = document.getElementById('onboardingDots');
++  dots.innerHTML = onboardingSteps.map((_,i)=>`<i class="${i===onboardingIndex?'active':''}"></i>`).join('');
++}
++function onboardingDemoHtml(type) {
++  if (type === 'home') return `<div class="onboarding-tools"><div class="onboarding-tool"><b>＋</b><span>新建待办</span><small>最快的入口</small></div><div class="onboarding-tool"><b>🗑️</b><span>回收站</span><small>找回误删内容</small></div><div class="onboarding-tool"><b>🤖</b><span>AI 助手</span><small>自然语言管理</small></div></div>`;
++  if (type === 'states') return `<div class="onboarding-demo"><div class="onboarding-demo-row"><div class="onboarding-demo-inner"><div class="onboarding-demo-check" id="onboardingStateCheck"></div><div class="onboarding-demo-copy"><b>点击我试试看</b><span id="onboardingStateLabel">未完成 · 第一次点击进入进行中</span></div></div></div><div class="onboarding-demo-note">这是虚拟演示，不会加入你的待办。</div></div>`;
++  if (type === 'swipe') return `<div class="onboarding-demo"><div class="onboarding-demo-row" id="onboardingSwipeRow"><div class="onboarding-demo-actions"><span class="onboarding-demo-action remind">提醒</span><span class="onboarding-demo-action delete">删除</span></div><div class="onboarding-demo-inner" id="onboardingSwipeInner"><div class="onboarding-demo-check"></div><div class="onboarding-demo-copy"><b>向左拖动我</b><span>拖一半松手，会自然回弹</span></div></div></div><div class="onboarding-demo-note" id="onboardingSwipeHint">👈 用手指向左滑</div></div>`;
++  if (type === 'mode') return `<div class="onboarding-mini-switch"><div class="onboarding-mini-track"><div class="onboarding-mini-panel">✓ To-Do · 做完一件事</div><div class="onboarding-mini-panel">📝 Note · 留下一段内容</div></div></div>`;
++  if (type === 'tools') return `<div class="onboarding-tools"><div class="onboarding-tool"><b>📅</b><span>日期</span><small>按天查看待办</small></div><div class="onboarding-tool"><b>🕐</b><span>每日总结</span><small>每天固定时间提醒</small></div><div class="onboarding-tool"><b>↻</b><span>Daily</span><small>每天重新开始</small></div></div>`;
++  return '';
++}
++function renderOnboardingStep() {
++  const step = onboardingSteps[onboardingIndex];
++  if (!step) return finishOnboarding(false);
++  document.getElementById('onboardingStep').textContent = `${onboardingIndex + 1} / ${onboardingSteps.length}`;
++  document.getElementById('onboardingTitle').textContent = step.title;
++  document.getElementById('onboardingText').textContent = step.text;
++  document.getElementById('onboardingDemo').innerHTML = onboardingDemoHtml(step.demo);
++  renderOnboardingDots();
++  const next = document.getElementById('onboardingNext');
++  next.textContent = onboardingIndex === onboardingSteps.length - 1 ? '开始使用' : '下一步';
++  next.disabled = !!step.interactive;
++  positionOnboardingTarget(step.target);
++  if (step.interactive === 'states') bindOnboardingStateDemo();
++  if (step.interactive === 'swipe') bindOnboardingSwipeDemo();
++}
++function bindOnboardingStateDemo() {
++  onboardingDemoState = 0;
++  const check = document.getElementById('onboardingStateCheck');
++  const label = document.getElementById('onboardingStateLabel');
++  check?.addEventListener('click', () => {
++    onboardingDemoState = Math.min(2, onboardingDemoState + 1);
++    check.classList.toggle('progress', onboardingDemoState === 1);
++    check.classList.toggle('done', onboardingDemoState === 2);
++    if (onboardingDemoState === 1) label.textContent = '进行中 · 再点一次就完成';
++    if (onboardingDemoState === 2) {
++      label.textContent = '已完成 ✓ · 这就是三态待办';
++      document.getElementById('onboardingNext').disabled = false;
++      try { if (navigator.vibrate) navigator.vibrate(18); } catch(e) {}
++    }
++  });
++}
++function bindOnboardingSwipeDemo() {
++  onboardingSwipeUnlocked = false;
++  const inner = document.getElementById('onboardingSwipeInner');
++  const row = document.getElementById('onboardingSwipeRow');
++  if (!inner || !row) return;
++  let startX=0, dx=0, dragging=false;
++  const finish = () => {
++    if (!dragging) return;
++    dragging=false;
++    const open = dx < -58;
++    inner.style.transition='transform .22s cubic-bezier(.22,.82,.28,1)';
++    inner.style.transform = open ? 'translateX(-116px)' : 'translateX(0)';
++    if (open) {
++      onboardingSwipeUnlocked = true;
++      document.getElementById('onboardingSwipeHint').textContent = '就是这样 · 提醒与删除只在需要时出现';
++      document.getElementById('onboardingNext').disabled = false;
++    }
++  };
++  const move = x => {
++    if (!dragging) return;
++    dx = Math.max(-116, Math.min(0, x-startX));
++    inner.style.transform=`translateX(${dx}px)`;
++  };
++  inner.addEventListener('touchstart',e=>{ if(!e.touches.length)return; startX=e.touches[0].clientX;dx=0;dragging=true;inner.style.transition='none'; },{passive:true});
++  inner.addEventListener('touchmove',e=>{ if(!dragging||!e.touches.length)return; e.preventDefault();move(e.touches[0].clientX); },{passive:false});
++  inner.addEventListener('touchend',finish,{passive:true});
++  inner.addEventListener('pointerdown',e=>{ startX=e.clientX;dx=0;dragging=true;inner.style.transition='none'; inner.setPointerCapture?.(e.pointerId); });
++  inner.addEventListener('pointermove',e=>move(e.clientX));
++  inner.addEventListener('pointerup',finish);
++}
++function nextOnboardingStep() {
++  if (document.getElementById('onboardingNext').disabled) return;
++  if (onboardingIndex >= onboardingSteps.length - 1) return finishOnboarding(false);
++  onboardingIndex++;
++  renderOnboardingStep();
++}
++function replayOnboarding() {
++  startOnboarding(false);
++}
++
++function showContextCoach(key, target, title, text) {
++  if (onboardingValue() !== 'done') return;
++  try { if (localStorage.getItem(COACH_PREFIX + key)) return; } catch(e) {}
++  const coach = document.getElementById('contextCoach');
++  if (!coach || coach.classList.contains('active')) return;
++  const el = typeof target === 'string' ? document.querySelector(target) : target;
++  if (!el) return;
++  const r = el.getBoundingClientRect();
++  const pad = 7;
++  const ring = document.getElementById('contextCoachRing');
++  ring.style.left = `${Math.max(7,r.left-pad)}px`;
++  ring.style.top = `${Math.max(7,r.top-pad)}px`;
++  ring.style.width = `${Math.min(window.innerWidth-14,r.width+pad*2)}px`;
++  ring.style.height = `${r.height+pad*2}px`;
++  document.getElementById('contextCoachTitle').textContent = title;
++  document.getElementById('contextCoachText').textContent = text;
++  contextCoachKey = key;
++  coach.classList.add('active');
++}
++function closeContextCoach(markSeen=true) {
++  const coach = document.getElementById('contextCoach');
++  if (!coach) return;
++  if (markSeen && contextCoachKey) { try { localStorage.setItem(COACH_PREFIX + contextCoachKey, '1'); } catch(e) {} }
++  contextCoachKey='';
++  coach.classList.remove('active');
++}
++
++document.getElementById('onboardingWelcomeStart')?.addEventListener('click', () => startOnboarding(false));
++document.getElementById('onboardingWelcomeSkip')?.addEventListener('click', () => finishOnboarding(true));
++document.getElementById('onboardingSkip')?.addEventListener('click', () => finishOnboarding(true));
++document.getElementById('onboardingNext')?.addEventListener('click', nextOnboardingStep);
++document.getElementById('helpBtn')?.addEventListener('click', replayOnboarding);
++document.getElementById('contextCoachOk')?.addEventListener('click', () => closeContextCoach(true));
++window.addEventListener('resize', () => {
++  if (document.getElementById('onboardingOverlay')?.classList.contains('active')) positionOnboardingTarget(onboardingSteps[onboardingIndex]?.target || null);
++});
++
+ // ===== Toast =====
+ let toastTimer;
+ function showToast(msg) {
+@@ -4156,6 +4516,7 @@
+   renderDailyHistoryCalendar();
+   renderDailyHistorySheet();
+   document.getElementById('dailyHistoryOverlay').classList.add('active');
++  setTimeout(() => showContextCoach('daily_history', '.daily-history-card', '读懂 Daily 的完成轨迹', '绿点代表完成度高，黄点代表部分完成，红点代表完成较少。点任意一天，底部会展开这一天每项 Daily 的具体情况。'), 220);
+ }
+ function closeDailyHistory() {
+   document.getElementById('dailyHistoryOverlay').classList.remove('active');
+@@ -4219,6 +4580,7 @@
+   dailyCalendarCursor.setDate(1); dailyCalendarCursor.setHours(12,0,0,0);
+   renderDailyCalendar();
+   document.getElementById('dailyCalendarOverlay').classList.add('active');
++  setTimeout(() => showContextCoach('daily_item_calendar', '.daily-calendar', '看一件事坚持了多久', '每个日期正下方的 ✓、×、● 分别代表完成、过去未完成和今天待完成。切换月份就能回看这件 Daily 的长期记录。'), 180);
+ }
+ function closeDailyCalendar() { document.getElementById('dailyCalendarOverlay').classList.remove('active'); dailyCalendarTaskId = null; }
+ function renderDailyCalendar() {
+@@ -4367,6 +4729,7 @@
+   setReminderFields(base);
+   document.getElementById('reminderCancelExisting').classList.toggle('visible', existing > 0);
+   document.getElementById('reminderPickerOverlay').classList.add('active');
++  setTimeout(() => showContextCoach('todo_reminder', '#reminderPickerOverlay .reminder-picker', '这是单条待办提醒', '设置具体日期和时间后，到点会在桌面持续显示 Todo Banner。复选框可切换未完成、进行中、已完成，只有 × 会直接关闭。'), 180);
+ }
+ function closeTodoReminderPicker() {
+   document.getElementById('reminderPickerOverlay').classList.remove('active');
+@@ -4698,6 +5061,7 @@
+ // ===== AI Chat =====
+ function openAiChat() {
+   document.getElementById('aiChatModal').classList.add('active');
++  setTimeout(() => showContextCoach('ai', '#aiChatModal .ai-chat-modal__content', '可以直接说人话', '例如“明天下午三点提醒我交材料”或“把今天完成的清掉”。它适合用一句话快速创建、查询和整理待办。'), 180);
+   // Don't auto-focus — keyboard only when user taps input
+ }
+ 
+@@ -6255,6 +6619,13 @@
+ function handleBackPress() {
+   var el;
+ 
++  el = document.getElementById('onboardingWelcome');
++  if (el && el.classList.contains('active')) { finishOnboarding(true); return 'onboarding-welcome'; }
++  el = document.getElementById('onboardingOverlay');
++  if (el && el.classList.contains('active')) { finishOnboarding(true); return 'onboarding'; }
++  el = document.getElementById('contextCoach');
++  if (el && el.classList.contains('active')) { closeContextCoach(true); return 'context-coach'; }
++
+   // Highest-priority second-level dialogs.
+   el = document.getElementById('confirmOverlay');
+   if (el && el.style.display !== 'none') { hideConfirm(); return 'confirm'; }
+@@ -6427,6 +6798,7 @@
+ }
+ // Load notes on init
+ loadNotes();
++setTimeout(maybeStartOnboarding, 650);
+ </script>
+ </body>
+ </html>
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.13.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.13.txt' todo_v112_baseline_zip/android/app/src/main/java/com/todolist/app/MainActivity.kt todo_v112_work/android/app/src/main/java/com/todolist/app/MainActivity.kt
+--- todo_v112_baseline_zip/android/app/src/main/java/com/todolist/app/MainActivity.kt	2026-08-11 18:51:25.000000000 +0000
++++ todo_v112_work/android/app/src/main/java/com/todolist/app/MainActivity.kt	2026-08-11 19:05:46.087631474 +0000
+@@ -138,7 +138,7 @@
+             "(function(){return !!(window.__handleSystemBack && window.__handleSystemBack());})()"
+         ) { raw ->
+             backDispatchInFlight = false
+-            val handledByWeb = raw == "true" || raw == ""true""
++            val handledByWeb = raw.trim('"') == "true"
+             if (!handledByWeb) {
+                 if (webView.canGoBack()) webView.goBack() else finish()
+             }
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.13.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.13.txt' todo_v112_baseline_zip/android/app/src/main/java/com/todolist/app/ui/TodoReminderBannerView.kt todo_v112_work/android/app/src/main/java/com/todolist/app/ui/TodoReminderBannerView.kt
+--- todo_v112_baseline_zip/android/app/src/main/java/com/todolist/app/ui/TodoReminderBannerView.kt	2026-08-11 18:50:25.000000000 +0000
++++ todo_v112_work/android/app/src/main/java/com/todolist/app/ui/TodoReminderBannerView.kt	2026-08-11 19:08:45.879847540 +0000
+@@ -92,8 +92,8 @@
+             ellipsize = TextUtils.TruncateAt.END
+             setLineSpacing(0f, 1.08f)
+         }
+-        content.addView(todoText, LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
+-        row.addView(content, LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
++        content.addView(todoText, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
++        row.addView(content, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+ 
+         metaText = TextView(context).apply {
+             this.text = buildMeta(reminderAt)
+@@ -106,7 +106,7 @@
+             setPadding(dp(8f), 0, dp(2f), 0)
+             setOnClickListener { onOpenApp?.invoke() }
+         }
+-        row.addView(metaText, LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
++        row.addView(metaText, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+             gravity = Gravity.TOP
+         })
+ 
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.13.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.13.txt' todo_v112_baseline_zip/build-apk.bat todo_v112_work/build-apk.bat
+--- todo_v112_baseline_zip/build-apk.bat	2026-08-11 17:43:19.000000000 +0000
++++ todo_v112_work/build-apk.bat	2026-08-11 19:08:33.171161459 +0000
+@@ -10,9 +10,9 @@
+ )
+ if not exist "dist" mkdir "dist"
+ for %%F in ("android\app\build\outputs\apk\debug\*.apk") do (
+-  copy /Y "%%~fF" "dist\To-Do-v1.10.1.apk" >nul
++  copy /Y "%%~fF" "dist\To-Do-v1.13.apk" >nul
+   echo.
+-  echo APK: %CD%\dist\To-Do-v1.10.1.apk
++  echo APK: %CD%\dist\To-Do-v1.13.apk
+   exit /b 0
+ )
+ echo Build finished but no APK was found under android\app\build\outputs\apk\debug
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.13.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.13.txt' todo_v112_baseline_zip/docs/ONBOARDING_V1.13.md todo_v112_work/docs/ONBOARDING_V1.13.md
+--- todo_v112_baseline_zip/docs/ONBOARDING_V1.13.md	1970-01-01 00:00:00.000000000 +0000
++++ todo_v112_work/docs/ONBOARDING_V1.13.md	2026-08-11 19:12:32.593276490 +0000
+@@ -0,0 +1,52 @@
++# V1.13 新手引导设计说明
++
++## 数据兼容
++
++新手教程不使用真实 To-Do / Note / Daily 数据进行演示。
++
++教程只新增：
++
++- `todo_glass_onboarding_v1`
++- `todo_glass_coach_v1_*`
++
++现有业务 key 保持不变，包括：
++
++- `todo_glass_data`
++- `todo_glass_notes`
++- `todo_glass_daily_tasks_v1`
++- `todo_glass_recycle`
++- `todo_glass_history`
++
++因此同包名、同签名覆盖升级时，旧数据继续由原 WebView localStorage 读取。
++
++## 首次打开行为
++
++如果 `todo_glass_onboarding_v1` 不存在：
++
++1. 显示欢迎动画；
++2. 用户可以进入 5 步主教程，也可以直接跳过；
++3. 完成写入 `done`，跳过写入 `skipped`；
++4. 右上角 `?` 可随时重新播放主教程，不会清空数据。
++
++旧用户升级后也会看到欢迎页一次，因为这是新加入的独立 key；可以直接点“我已经会用 · 跳过”。
++
++## 5 步主教程
++
++1. 工作台：To-Do + 底部新增 / 回收站 / AI。
++2. 三态待办：虚拟复选框，要求实际点两次体验“未完成 → 进行中 → 已完成”。
++3. 左滑隐藏功能：虚拟待办支持手指拖动，展示提醒 / 删除。
++4. To-Do ↔ Note：Spotlight 高亮模式切换入口，并演示抽屉式左右切换。
++5. 顶部时间工具：日历、每日总结、Daily，并告知 `?` 可重播教程。
++
++教程中的虚拟事项只存在 DOM，引导结束即消失，不写入 localStorage / Native mirror。
++
++## 情境式教学
++
++只有完整完成主教程（`done`）后才会触发，跳过教程不会继续弹这些提示：
++
++- 第一次打开单条待办提醒；
++- 第一次打开 Daily 总体历史；
++- 第一次打开单个 Daily 的统计日历；
++- 第一次打开 AI 助手。
++
++每个情境只显示一次，状态保存在 `todo_glass_coach_v1_*`。
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=SELF_TEST_V1.13.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.13.txt' todo_v112_baseline_zip/ui/todo.html todo_v112_work/ui/todo.html
+--- todo_v112_baseline_zip/ui/todo.html	2026-08-11 18:49:54.000000000 +0000
++++ todo_v112_work/ui/todo.html	2026-08-11 19:10:59.197292374 +0000
+@@ -188,6 +188,14 @@
+ .daily-entry-btn svg { width: 16px; height: 16px; display:block; overflow:visible; }
+ .daily-entry-btn path { fill:none; stroke:currentColor; stroke-width:1.85; stroke-linecap:round; stroke-linejoin:round; }
+ .daily-entry-btn:active { background: rgba(224,247,240,.98); box-shadow:none; }
++.help-entry-btn {
++  background: rgba(255,255,255,.30);
++  border-color: rgba(255,255,255,.38);
++  color: rgba(102,90,80,.72);
++  font-size:13px; font-weight:850;
++}
++.help-entry-btn:active { background:rgba(255,255,255,.58); transform:scale(.92); }
++
+ 
+ /* ===== Search ===== */
+ .search-wrap {
+@@ -1226,6 +1234,93 @@
+ }
+ .toast__undo:active { opacity: 0.7; }
+ 
++/* ===== First-run onboarding / contextual coach marks ===== */
++.onboarding-welcome {
++  position:fixed; inset:0; z-index:15080; display:none; align-items:center; justify-content:center;
++  padding:28px; background:linear-gradient(145deg,rgba(250,246,240,.92),rgba(235,249,246,.90) 48%,rgba(239,244,255,.90));
++  backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
++}
++.onboarding-welcome.active { display:flex; animation:onboardFadeIn .34s ease both; }
++@keyframes onboardFadeIn { from{opacity:0} to{opacity:1} }
++.onboarding-welcome__inner { width:min(86vw,340px); text-align:center; }
++.onboarding-welcome__mark {
++  width:74px; height:74px; margin:0 auto 18px; border-radius:25px;
++  display:flex; align-items:center; justify-content:center; color:#fff; font-size:34px; font-weight:900;
++  background:linear-gradient(145deg,#32cfad,#30afd7 65%,#7c7be9);
++  box-shadow:0 20px 48px rgba(49,177,177,.24); transform:translateY(10px) scale(.88); opacity:0;
++  animation:onboardMark .72s cubic-bezier(.2,.86,.25,1) .10s forwards;
++}
++@keyframes onboardMark { to{transform:translateY(0) scale(1);opacity:1} }
++.onboarding-welcome__title { font-size:29px; font-weight:900; letter-spacing:-1px; color:#493f36; opacity:0; transform:translateY(8px); animation:onboardRise .50s ease .38s forwards; }
++.onboarding-welcome__sub { margin-top:9px; color:#897c70; font-size:14px; line-height:1.7; opacity:0; transform:translateY(8px); animation:onboardRise .50s ease .52s forwards; }
++@keyframes onboardRise { to{opacity:1;transform:translateY(0)} }
++.onboarding-welcome__start { margin-top:28px; width:100%; border:0; border-radius:18px; padding:14px 16px; color:#fff; font-size:15px; font-weight:850; background:linear-gradient(135deg,#2bc9ac,#27b7d6); box-shadow:0 12px 28px rgba(39,183,214,.20); opacity:0; transform:translateY(10px); animation:onboardRise .50s ease .72s forwards; }
++.onboarding-welcome__skip { margin-top:12px; border:0; background:transparent; color:#9c8f83; font-size:12px; padding:8px 14px; opacity:0; animation:onboardFadeIn .4s ease .84s forwards; }
++
++.onboarding-overlay { position:fixed; inset:0; z-index:15070; display:none; pointer-events:none; }
++.onboarding-overlay.active { display:block; }
++.onboarding-overlay.no-focus { background:rgba(53,46,41,.36); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); }
++.onboarding-spotlight {
++  position:fixed; left:20px; top:80px; width:120px; height:60px; border-radius:20px;
++  box-shadow:0 0 0 9999px rgba(49,43,38,.43),0 0 0 2px rgba(255,255,255,.92),0 12px 35px rgba(38,31,26,.18);
++  transition:left .32s cubic-bezier(.2,.8,.2,1),top .32s cubic-bezier(.2,.8,.2,1),width .32s cubic-bezier(.2,.8,.2,1),height .32s cubic-bezier(.2,.8,.2,1),border-radius .32s ease;
++  pointer-events:none;
++}
++.onboarding-overlay.no-focus .onboarding-spotlight { opacity:0; }
++.onboarding-pulse { position:fixed; border:1.5px solid rgba(47,200,171,.58); border-radius:22px; pointer-events:none; opacity:0; animation:onboardPulse 1.8s ease-out infinite; }
++@keyframes onboardPulse { 0%{transform:scale(.96);opacity:0} 25%{opacity:.8} 100%{transform:scale(1.08);opacity:0} }
++.onboarding-overlay.no-focus .onboarding-pulse { display:none; }
++.onboarding-card {
++  position:fixed; left:18px; right:18px; bottom:max(24px,env(safe-area-inset-bottom));
++  pointer-events:auto; padding:17px 17px 14px; border-radius:26px;
++  background:linear-gradient(145deg,rgba(255,255,255,.93),rgba(255,250,244,.91));
++  border:1px solid rgba(255,255,255,.86); box-shadow:0 22px 58px rgba(63,50,40,.24);
++  backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
++  transform:translateY(18px) scale(.98); opacity:0;
++  transition:transform .30s cubic-bezier(.2,.86,.24,1),opacity .24s ease,top .25s ease,bottom .25s ease;
++}
++.onboarding-overlay.active .onboarding-card { transform:translateY(0) scale(1); opacity:1; }
++.onboarding-card.above { bottom:auto; top:max(70px,env(safe-area-inset-top)); }
++.onboarding-card__head { display:flex; align-items:center; gap:10px; }
++.onboarding-step { padding:5px 9px; border-radius:999px; background:rgba(43,201,172,.10); color:#269d85; font-size:11px; font-weight:800; }
++.onboarding-skip { margin-left:auto; border:0; background:transparent; color:#a09286; font-size:12px; padding:6px 3px 6px 10px; }
++.onboarding-title { margin-top:10px; color:#463c34; font-size:19px; font-weight:900; letter-spacing:-.35px; }
++.onboarding-text { margin-top:6px; color:#776a5f; font-size:13px; line-height:1.65; }
++.onboarding-actions { display:flex; align-items:center; gap:10px; margin-top:14px; }
++.onboarding-dots { display:flex; gap:5px; margin-right:auto; }
++.onboarding-dots i { width:6px; height:6px; border-radius:999px; background:#ddd3ca; transition:width .2s ease,background .2s ease; }
++.onboarding-dots i.active { width:18px; background:linear-gradient(90deg,#2bc9ac,#27b7d6); }
++.onboarding-next { min-width:92px; border:0; border-radius:14px; padding:10px 15px; color:#fff; font-size:13px; font-weight:850; background:linear-gradient(135deg,#2bc9ac,#27b7d6); box-shadow:0 7px 16px rgba(39,183,214,.16); }
++.onboarding-next:disabled { filter:grayscale(.35); opacity:.42; box-shadow:none; }
++.onboarding-demo { margin-top:14px; border-radius:20px; padding:12px; background:linear-gradient(145deg,rgba(248,251,250,.96),rgba(255,248,242,.96)); border:1px solid rgba(227,218,208,.62); overflow:hidden; }
++.onboarding-demo-row { position:relative; height:62px; border-radius:16px; overflow:hidden; background:#fffefa; border:1px solid #eee7de; box-shadow:0 5px 18px rgba(125,105,89,.07); }
++.onboarding-demo-actions { position:absolute; right:0; top:0; bottom:0; display:flex; align-items:center; gap:6px; padding:0 8px; }
++.onboarding-demo-action { width:52px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:800; }
++.onboarding-demo-action.remind { background:#50b98c; }.onboarding-demo-action.delete { background:#ee7374; }
++.onboarding-demo-inner { position:absolute; inset:0; z-index:2; display:flex; align-items:center; gap:10px; padding:0 12px; background:#fffefa; transform:translateX(0); transition:transform .22s cubic-bezier(.22,.82,.28,1); touch-action:none; }
++.onboarding-demo-check { width:28px; height:28px; flex:0 0 28px; border:2px solid #d3d8df; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:900; color:#fff; transition:all .22s cubic-bezier(.2,.8,.2,1); }
++.onboarding-demo-check.progress { background:#f3b24e; border-color:#f3b24e; transform:scale(1.04); }.onboarding-demo-check.done { background:#28c09a; border-color:#28c09a; transform:scale(1.04); }
++.onboarding-demo-check.done::after { content:'✓'; }.onboarding-demo-check.progress::after { content:'•'; font-size:20px; line-height:1; }
++.onboarding-demo-copy { min-width:0; }.onboarding-demo-copy b { display:block; color:#3f3730; font-size:14px; }.onboarding-demo-copy span { display:block; margin-top:3px; color:#a09387; font-size:11px; }
++.onboarding-demo-note { margin-top:9px; text-align:center; font-size:11px; color:#998b80; }
++.onboarding-mini-switch { margin-top:14px; overflow:hidden; height:78px; border-radius:19px; background:linear-gradient(90deg,#fff9f4 0 50%,#f2fbf8 50%); border:1px solid #ebe2d9; position:relative; }
++.onboarding-mini-track { position:absolute; inset:10px; display:flex; width:calc(200% - 20px); animation:onboardPanels 2.4s cubic-bezier(.22,.82,.28,1) infinite; }
++.onboarding-mini-panel { width:50%; display:flex; align-items:center; justify-content:center; gap:8px; color:#66594e; font-size:14px; font-weight:850; }
++@keyframes onboardPanels { 0%,30%{transform:translateX(0)} 55%,82%{transform:translateX(-50%)} 100%{transform:translateX(0)} }
++.onboarding-tools { margin-top:13px; display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
++.onboarding-tool { border-radius:16px; padding:11px 7px; text-align:center; background:rgba(255,255,255,.76); border:1px solid #eee5dc; }
++.onboarding-tool b { display:block; font-size:17px; }.onboarding-tool span { display:block; margin-top:5px; color:#776a5f; font-size:11px; font-weight:750; }.onboarding-tool small { display:block; margin-top:3px; color:#a29488; font-size:9.5px; line-height:1.35; }
++.onboarding-hand { position:fixed; z-index:15079; pointer-events:none; font-size:24px; filter:drop-shadow(0 5px 8px rgba(50,40,33,.18)); animation:onboardHand 1.55s ease-in-out infinite; }
++@keyframes onboardHand { 0%,100%{transform:translate3d(0,0,0) rotate(-12deg);opacity:.55} 50%{transform:translate3d(-15px,3px,0) rotate(-12deg);opacity:1} }
++
++.context-coach { position:fixed; inset:0; z-index:15120; display:none; pointer-events:none; }
++.context-coach.active { display:block; }
++.context-coach__ring { position:fixed; border-radius:20px; box-shadow:0 0 0 9999px rgba(49,43,38,.30),0 0 0 2px rgba(255,255,255,.92); pointer-events:none; }
++.context-coach__card { position:fixed; left:18px; right:18px; bottom:max(22px,env(safe-area-inset-bottom)); pointer-events:auto; padding:15px 16px; border-radius:22px; background:rgba(255,253,250,.94); border:1px solid rgba(255,255,255,.88); box-shadow:0 18px 48px rgba(63,50,40,.22); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); }
++.context-coach__title { color:#493f36; font-size:15px; font-weight:900; }.context-coach__text { margin-top:5px; color:#7f7267; font-size:12px; line-height:1.6; }
++.context-coach__ok { margin-top:11px; width:100%; border:0; border-radius:13px; padding:10px; background:linear-gradient(135deg,#2bc9ac,#27b7d6); color:#fff; font-weight:850; font-size:12px; }
++@media (prefers-reduced-motion: reduce) { .onboarding-welcome__mark,.onboarding-welcome__title,.onboarding-welcome__sub,.onboarding-welcome__start,.onboarding-welcome__skip,.onboarding-pulse,.onboarding-hand,.onboarding-mini-track { animation:none!important; opacity:1!important; transform:none!important; } }
++
+ /* ===== Confirm Dialog ===== */
+ .confirm-overlay {
+   position: fixed; inset: 0; z-index: 12060;
+@@ -2164,6 +2259,7 @@
+               <path d="m10 12.2 1.35 1.35 2.7-2.7"/>
+             </svg>
+           </button>
++          <button class="test-banner-btn help-entry-btn" id="helpBtn" title="新手教程" aria-label="新手教程">?</button>
+         </div>
+       </div>
+       <div class="search-wrap">
+@@ -2258,6 +2354,40 @@
+ <div class="category-picker" id="categoryPicker"></div>
+ <button class="fab fab--recycle" id="fabRecycle" aria-label="回收站">🗑️</button>
+ <button class="fab fab--ai" id="fabAi" aria-label="AI助手">🤖</button>
++<!-- First-run visual onboarding; demo data lives only in this overlay and never touches real To-Do/Note/Daily storage. -->
++<div class="onboarding-welcome" id="onboardingWelcome">
++  <div class="onboarding-welcome__inner">
++    <div class="onboarding-welcome__mark">✓</div>
++    <div class="onboarding-welcome__title">To-Do</div>
++    <div class="onboarding-welcome__sub">把要做的、想记的、每天重复的小事<br>放进一个更轻松的空间。</div>
++    <button class="onboarding-welcome__start" id="onboardingWelcomeStart">开始认识它</button>
++    <button class="onboarding-welcome__skip" id="onboardingWelcomeSkip">我已经会用 · 跳过</button>
++  </div>
++</div>
++<div class="onboarding-overlay" id="onboardingOverlay">
++  <div class="onboarding-spotlight" id="onboardingSpotlight"></div>
++  <div class="onboarding-pulse" id="onboardingPulse"></div>
++  <div class="onboarding-hand" id="onboardingHand">☝🏻</div>
++  <section class="onboarding-card" id="onboardingCard" aria-live="polite">
++    <div class="onboarding-card__head"><span class="onboarding-step" id="onboardingStep">1 / 5</span><button class="onboarding-skip" id="onboardingSkip">跳过</button></div>
++    <div class="onboarding-title" id="onboardingTitle"></div>
++    <div class="onboarding-text" id="onboardingText"></div>
++    <div id="onboardingDemo"></div>
++    <div class="onboarding-actions">
++      <div class="onboarding-dots" id="onboardingDots"></div>
++      <button class="onboarding-next" id="onboardingNext">下一步</button>
++    </div>
++  </section>
++</div>
++<div class="context-coach" id="contextCoach">
++  <div class="context-coach__ring" id="contextCoachRing"></div>
++  <div class="context-coach__card">
++    <div class="context-coach__title" id="contextCoachTitle">小提示</div>
++    <div class="context-coach__text" id="contextCoachText"></div>
++    <button class="context-coach__ok" id="contextCoachOk">知道了</button>
++  </div>
++</div>
++
+ <div class="calendar-modal" id="calendarModal">
+   <div class="calendar-modal__backdrop" id="calendarBackdrop"></div>
+   <div class="calendar-modal__content">
+@@ -2542,6 +2672,236 @@
+ const categoryScroll = document.getElementById('categoryScroll');
+ const categoryPicker = document.getElementById('categoryPicker');
+ 
++
++// ===== First-run onboarding =====
++const ONBOARDING_KEY = 'todo_glass_onboarding_v1';
++const COACH_PREFIX = 'todo_glass_coach_v1_';
++let onboardingIndex = 0;
++let onboardingDemoState = 0;
++let onboardingSwipeUnlocked = false;
++let contextCoachKey = '';
++
++const onboardingSteps = [
++  {
++    title: '先认识你的工作台',
++    text: 'To-Do 放要完成的事。底部 ＋ 新建，垃圾桶看删除内容，🤖 可以用自然语言帮你管理待办。',
++    target: null,
++    demo: 'home'
++  },
++  {
++    title: '一个待办，有三个状态',
++    text: '下面是教程里的虚拟事项，不会写进你的真实数据。亲手点两次复选框试试。',
++    target: null,
++    demo: 'states',
++    interactive: 'states'
++  },
++  {
++    title: '更多功能藏在左滑里',
++    text: '试着把下面这条虚拟待办向左拖。拖到一半可以退回，继续滑就会露出提醒与删除。',
++    target: null,
++    demo: 'swipe',
++    interactive: 'swipe'
++  },
++  {
++    title: 'To-Do ↔ Note，左右切换',
++    text: '顶部可以左右跟手滑动，也可以点 📝。Note 用来长期记录，不参与待办完成统计。',
++    target: '#modeToggle',
++    demo: 'mode'
++  },
++  {
++    title: '三个时间工具，各司其职',
++    text: '📅 看待办日期；🕐 设置每天固定时间的总结提醒；Daily 管喝水、吃药这类每天重新开始的事项。以后点 ? 可以随时重看教程。',
++    target: '.header__stats',
++    demo: 'tools'
++  }
++];
++
++function onboardingValue() {
++  try { return localStorage.getItem(ONBOARDING_KEY) || ''; } catch(e) { return ''; }
++}
++function setOnboardingValue(value) {
++  try { localStorage.setItem(ONBOARDING_KEY, value); } catch(e) {}
++}
++function maybeStartOnboarding() {
++  if (onboardingValue()) return;
++  const welcome = document.getElementById('onboardingWelcome');
++  if (welcome) welcome.classList.add('active');
++}
++function startOnboarding(showWelcome) {
++  closeContextCoach(false);
++  if (typeof applyMode === 'function' && currentMode !== 'todo') applyMode('todo');
++  const welcome = document.getElementById('onboardingWelcome');
++  if (welcome) welcome.classList.toggle('active', !!showWelcome);
++  if (showWelcome) return;
++  onboardingIndex = 0;
++  onboardingDemoState = 0;
++  onboardingSwipeUnlocked = false;
++  document.getElementById('onboardingOverlay').classList.add('active');
++  renderOnboardingStep();
++}
++function finishOnboarding(skipped) {
++  document.getElementById('onboardingWelcome')?.classList.remove('active');
++  document.getElementById('onboardingOverlay')?.classList.remove('active');
++  setOnboardingValue(skipped ? 'skipped' : 'done');
++  if (!skipped) showToast('教程完成 · 以后点右上角 ? 可重新观看');
++}
++function positionOnboardingTarget(selector) {
++  const overlay = document.getElementById('onboardingOverlay');
++  const spot = document.getElementById('onboardingSpotlight');
++  const pulse = document.getElementById('onboardingPulse');
++  const hand = document.getElementById('onboardingHand');
++  const card = document.getElementById('onboardingCard');
++  if (!selector) {
++    overlay.classList.add('no-focus');
++    card.classList.remove('above');
++    hand.style.display = 'none';
++    return;
++  }
++  const target = document.querySelector(selector);
++  if (!target) {
++    overlay.classList.add('no-focus');
++    hand.style.display = 'none';
++    return;
++  }
++  overlay.classList.remove('no-focus');
++  const r = target.getBoundingClientRect();
++  const padX = selector === '.header__stats' ? 8 : 10;
++  const padY = selector === '.header__stats' ? 7 : 9;
++  const left = Math.max(8, r.left - padX);
++  const top = Math.max(8, r.top - padY);
++  const width = Math.min(window.innerWidth - left - 8, r.width + padX * 2);
++  const height = r.height + padY * 2;
++  const radius = selector === '.header__stats' ? 22 : Math.max(16, Math.min(26, height / 2));
++  [spot,pulse].forEach(el => {
++    el.style.left = `${left}px`; el.style.top = `${top}px`; el.style.width = `${width}px`; el.style.height = `${height}px`; el.style.borderRadius = `${radius}px`;
++  });
++  const targetCenter = top + height / 2;
++  const cardAbove = targetCenter > window.innerHeight * .58;
++  card.classList.toggle('above', cardAbove);
++  hand.style.display = 'block';
++  hand.style.left = `${Math.min(window.innerWidth - 42, Math.max(12, left + width - 28))}px`;
++  hand.style.top = `${cardAbove ? Math.min(window.innerHeight - 90, top + height + 8) : Math.max(10, top - 44)}px`;
++}
++function renderOnboardingDots() {
++  const dots = document.getElementById('onboardingDots');
++  dots.innerHTML = onboardingSteps.map((_,i)=>`<i class="${i===onboardingIndex?'active':''}"></i>`).join('');
++}
++function onboardingDemoHtml(type) {
++  if (type === 'home') return `<div class="onboarding-tools"><div class="onboarding-tool"><b>＋</b><span>新建待办</span><small>最快的入口</small></div><div class="onboarding-tool"><b>🗑️</b><span>回收站</span><small>找回误删内容</small></div><div class="onboarding-tool"><b>🤖</b><span>AI 助手</span><small>自然语言管理</small></div></div>`;
++  if (type === 'states') return `<div class="onboarding-demo"><div class="onboarding-demo-row"><div class="onboarding-demo-inner"><div class="onboarding-demo-check" id="onboardingStateCheck"></div><div class="onboarding-demo-copy"><b>点击我试试看</b><span id="onboardingStateLabel">未完成 · 第一次点击进入进行中</span></div></div></div><div class="onboarding-demo-note">这是虚拟演示，不会加入你的待办。</div></div>`;
++  if (type === 'swipe') return `<div class="onboarding-demo"><div class="onboarding-demo-row" id="onboardingSwipeRow"><div class="onboarding-demo-actions"><span class="onboarding-demo-action remind">提醒</span><span class="onboarding-demo-action delete">删除</span></div><div class="onboarding-demo-inner" id="onboardingSwipeInner"><div class="onboarding-demo-check"></div><div class="onboarding-demo-copy"><b>向左拖动我</b><span>拖一半松手，会自然回弹</span></div></div></div><div class="onboarding-demo-note" id="onboardingSwipeHint">👈 用手指向左滑</div></div>`;
++  if (type === 'mode') return `<div class="onboarding-mini-switch"><div class="onboarding-mini-track"><div class="onboarding-mini-panel">✓ To-Do · 做完一件事</div><div class="onboarding-mini-panel">📝 Note · 留下一段内容</div></div></div>`;
++  if (type === 'tools') return `<div class="onboarding-tools"><div class="onboarding-tool"><b>📅</b><span>日期</span><small>按天查看待办</small></div><div class="onboarding-tool"><b>🕐</b><span>每日总结</span><small>每天固定时间提醒</small></div><div class="onboarding-tool"><b>↻</b><span>Daily</span><small>每天重新开始</small></div></div>`;
++  return '';
++}
++function renderOnboardingStep() {
++  const step = onboardingSteps[onboardingIndex];
++  if (!step) return finishOnboarding(false);
++  document.getElementById('onboardingStep').textContent = `${onboardingIndex + 1} / ${onboardingSteps.length}`;
++  document.getElementById('onboardingTitle').textContent = step.title;
++  document.getElementById('onboardingText').textContent = step.text;
++  document.getElementById('onboardingDemo').innerHTML = onboardingDemoHtml(step.demo);
++  renderOnboardingDots();
++  const next = document.getElementById('onboardingNext');
++  next.textContent = onboardingIndex === onboardingSteps.length - 1 ? '开始使用' : '下一步';
++  next.disabled = !!step.interactive;
++  positionOnboardingTarget(step.target);
++  if (step.interactive === 'states') bindOnboardingStateDemo();
++  if (step.interactive === 'swipe') bindOnboardingSwipeDemo();
++}
++function bindOnboardingStateDemo() {
++  onboardingDemoState = 0;
++  const check = document.getElementById('onboardingStateCheck');
++  const label = document.getElementById('onboardingStateLabel');
++  check?.addEventListener('click', () => {
++    onboardingDemoState = Math.min(2, onboardingDemoState + 1);
++    check.classList.toggle('progress', onboardingDemoState === 1);
++    check.classList.toggle('done', onboardingDemoState === 2);
++    if (onboardingDemoState === 1) label.textContent = '进行中 · 再点一次就完成';
++    if (onboardingDemoState === 2) {
++      label.textContent = '已完成 ✓ · 这就是三态待办';
++      document.getElementById('onboardingNext').disabled = false;
++      try { if (navigator.vibrate) navigator.vibrate(18); } catch(e) {}
++    }
++  });
++}
++function bindOnboardingSwipeDemo() {
++  onboardingSwipeUnlocked = false;
++  const inner = document.getElementById('onboardingSwipeInner');
++  const row = document.getElementById('onboardingSwipeRow');
++  if (!inner || !row) return;
++  let startX=0, dx=0, dragging=false;
++  const finish = () => {
++    if (!dragging) return;
++    dragging=false;
++    const open = dx < -58;
++    inner.style.transition='transform .22s cubic-bezier(.22,.82,.28,1)';
++    inner.style.transform = open ? 'translateX(-116px)' : 'translateX(0)';
++    if (open) {
++      onboardingSwipeUnlocked = true;
++      document.getElementById('onboardingSwipeHint').textContent = '就是这样 · 提醒与删除只在需要时出现';
++      document.getElementById('onboardingNext').disabled = false;
++    }
++  };
++  const move = x => {
++    if (!dragging) return;
++    dx = Math.max(-116, Math.min(0, x-startX));
++    inner.style.transform=`translateX(${dx}px)`;
++  };
++  inner.addEventListener('touchstart',e=>{ if(!e.touches.length)return; startX=e.touches[0].clientX;dx=0;dragging=true;inner.style.transition='none'; },{passive:true});
++  inner.addEventListener('touchmove',e=>{ if(!dragging||!e.touches.length)return; e.preventDefault();move(e.touches[0].clientX); },{passive:false});
++  inner.addEventListener('touchend',finish,{passive:true});
++  inner.addEventListener('pointerdown',e=>{ startX=e.clientX;dx=0;dragging=true;inner.style.transition='none'; inner.setPointerCapture?.(e.pointerId); });
++  inner.addEventListener('pointermove',e=>move(e.clientX));
++  inner.addEventListener('pointerup',finish);
++}
++function nextOnboardingStep() {
++  if (document.getElementById('onboardingNext').disabled) return;
++  if (onboardingIndex >= onboardingSteps.length - 1) return finishOnboarding(false);
++  onboardingIndex++;
++  renderOnboardingStep();
++}
++function replayOnboarding() {
++  startOnboarding(false);
++}
++
++function showContextCoach(key, target, title, text) {
++  if (onboardingValue() !== 'done') return;
++  try { if (localStorage.getItem(COACH_PREFIX + key)) return; } catch(e) {}
++  const coach = document.getElementById('contextCoach');
++  if (!coach || coach.classList.contains('active')) return;
++  const el = typeof target === 'string' ? document.querySelector(target) : target;
++  if (!el) return;
++  const r = el.getBoundingClientRect();
++  const pad = 7;
++  const ring = document.getElementById('contextCoachRing');
++  ring.style.left = `${Math.max(7,r.left-pad)}px`;
++  ring.style.top = `${Math.max(7,r.top-pad)}px`;
++  ring.style.width = `${Math.min(window.innerWidth-14,r.width+pad*2)}px`;
++  ring.style.height = `${r.height+pad*2}px`;
++  document.getElementById('contextCoachTitle').textContent = title;
++  document.getElementById('contextCoachText').textContent = text;
++  contextCoachKey = key;
++  coach.classList.add('active');
++}
++function closeContextCoach(markSeen=true) {
++  const coach = document.getElementById('contextCoach');
++  if (!coach) return;
++  if (markSeen && contextCoachKey) { try { localStorage.setItem(COACH_PREFIX + contextCoachKey, '1'); } catch(e) {} }
++  contextCoachKey='';
++  coach.classList.remove('active');
++}
++
++document.getElementById('onboardingWelcomeStart')?.addEventListener('click', () => startOnboarding(false));
++document.getElementById('onboardingWelcomeSkip')?.addEventListener('click', () => finishOnboarding(true));
++document.getElementById('onboardingSkip')?.addEventListener('click', () => finishOnboarding(true));
++document.getElementById('onboardingNext')?.addEventListener('click', nextOnboardingStep);
++document.getElementById('helpBtn')?.addEventListener('click', replayOnboarding);
++document.getElementById('contextCoachOk')?.addEventListener('click', () => closeContextCoach(true));
++window.addEventListener('resize', () => {
++  if (document.getElementById('onboardingOverlay')?.classList.contains('active')) positionOnboardingTarget(onboardingSteps[onboardingIndex]?.target || null);
++});
++
+ // ===== Toast =====
+ let toastTimer;
+ function showToast(msg) {
+@@ -4156,6 +4516,7 @@
+   renderDailyHistoryCalendar();
+   renderDailyHistorySheet();
+   document.getElementById('dailyHistoryOverlay').classList.add('active');
++  setTimeout(() => showContextCoach('daily_history', '.daily-history-card', '读懂 Daily 的完成轨迹', '绿点代表完成度高，黄点代表部分完成，红点代表完成较少。点任意一天，底部会展开这一天每项 Daily 的具体情况。'), 220);
+ }
+ function closeDailyHistory() {
+   document.getElementById('dailyHistoryOverlay').classList.remove('active');
+@@ -4219,6 +4580,7 @@
+   dailyCalendarCursor.setDate(1); dailyCalendarCursor.setHours(12,0,0,0);
+   renderDailyCalendar();
+   document.getElementById('dailyCalendarOverlay').classList.add('active');
++  setTimeout(() => showContextCoach('daily_item_calendar', '.daily-calendar', '看一件事坚持了多久', '每个日期正下方的 ✓、×、● 分别代表完成、过去未完成和今天待完成。切换月份就能回看这件 Daily 的长期记录。'), 180);
+ }
+ function closeDailyCalendar() { document.getElementById('dailyCalendarOverlay').classList.remove('active'); dailyCalendarTaskId = null; }
+ function renderDailyCalendar() {
+@@ -4367,6 +4729,7 @@
+   setReminderFields(base);
+   document.getElementById('reminderCancelExisting').classList.toggle('visible', existing > 0);
+   document.getElementById('reminderPickerOverlay').classList.add('active');
++  setTimeout(() => showContextCoach('todo_reminder', '#reminderPickerOverlay .reminder-picker', '这是单条待办提醒', '设置具体日期和时间后，到点会在桌面持续显示 Todo Banner。复选框可切换未完成、进行中、已完成，只有 × 会直接关闭。'), 180);
+ }
+ function closeTodoReminderPicker() {
+   document.getElementById('reminderPickerOverlay').classList.remove('active');
+@@ -4698,6 +5061,7 @@
+ // ===== AI Chat =====
+ function openAiChat() {
+   document.getElementById('aiChatModal').classList.add('active');
++  setTimeout(() => showContextCoach('ai', '#aiChatModal .ai-chat-modal__content', '可以直接说人话', '例如“明天下午三点提醒我交材料”或“把今天完成的清掉”。它适合用一句话快速创建、查询和整理待办。'), 180);
+   // Don't auto-focus — keyboard only when user taps input
+ }
+ 
+@@ -6255,6 +6619,13 @@
+ function handleBackPress() {
+   var el;
+ 
++  el = document.getElementById('onboardingWelcome');
++  if (el && el.classList.contains('active')) { finishOnboarding(true); return 'onboarding-welcome'; }
++  el = document.getElementById('onboardingOverlay');
++  if (el && el.classList.contains('active')) { finishOnboarding(true); return 'onboarding'; }
++  el = document.getElementById('contextCoach');
++  if (el && el.classList.contains('active')) { closeContextCoach(true); return 'context-coach'; }
++
+   // Highest-priority second-level dialogs.
+   el = document.getElementById('confirmOverlay');
+   if (el && el.style.display !== 'none') { hideConfirm(); return 'confirm'; }
+@@ -6427,6 +6798,7 @@
+ }
+ // Load notes on init
+ loadNotes();
++setTimeout(maybeStartOnboarding, 650);
+ </script>
+ </body>
+ </html>

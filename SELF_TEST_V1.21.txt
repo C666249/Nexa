@@ -1,0 +1,49 @@
+To-Do V1.21 Self Test
+=====================
+
+Base: To-Do-v1.20-Full.zip
+Target: To-Do-v1.21-Full.zip
+applicationId / namespace: com.todolist.app
+versionCode / versionName: 32 / 1.21
+
+Requirements review
+-------------------
+PASS  File toolbar entry opens a custom attachment import sheet instead of immediately entering the system file tree.
+PASS  Import sheet contains WeChat chat import / QQ chat import / phone files / recent imports.
+PASS  WeChat/QQ path remembers the current Note/insertion marker, launches the selected chat app, and accepts ACTION_SEND / ACTION_SEND_MULTIPLE / compatible ACTION_VIEW back into To-Do.
+PASS  Phone files keep SAF OpenMultipleDocuments multi-select.
+PASS  Recent imports can multi-select and clone already-private Note files.
+PASS  File cards are contenteditable=false, tap directly previews, and card ellipsis opens WeChat / QQ / More apps / Delete.
+PASS  More apps uses ACTION_VIEW chooser so professional handlers (WPS / Office / system players, etc.) remain available even for internally previewable formats.
+PASS  Note editor add-note FAB is hidden while a concrete Note editor is open.
+PASS  Built-in viewer added for text/Markdown/code/JSON/XML/CSV, PDF, image, audio, video; DOCX/XLSX have quick preview; unsupported/complex formats use external apps.
+PASS  Built-in viewer keeps an Other apps action at all times.
+PASS  Attachment-card pointer flow suppresses contenteditable focus before opening preview/actions, avoiding the unwanted IME popup.
+PASS  Long-note keyboard architecture separates body keyboard space from toolbar visualViewport translation; viewport scroll does not reflow the Note body.
+PASS  Pathological one-frame upward input jump guard added without overriding normal small caret-follow scrolling.
+PASS  Any nested Note editor can top-left-swipe directly to To-Do and later restore the same Note + editor scroll position.
+
+Compatibility / regression guards
+---------------------------------
+PASS  Existing Web localStorage business key set identical to V1.20.
+PASS  Note core data-layer region byte-identical to V1.20.
+PASS  ui/todo.html and android/app/src/main/assets/todo.html byte-identical.
+PASS  Reminder/Daily/Banner/Snooze locked Native core: 20/20 SHA-256 PASS.
+PASS  No new broad storage permission added.
+
+Static / structural checks
+--------------------------
+PASS  node --check script_0.js.
+PASS  AndroidManifest.xml XML parse.
+PASS  res/xml/file_paths.xml XML parse.
+PASS  strings.xml / styles.xml XML parse.
+PASS  Static HTML DOM IDs: 178, no duplicate static IDs.
+PASS  Standalone kotlinc diagnostic run contains no "syntax error", "Unexpected tokens", "expecting", or "cannot be reassigned" diagnostics. Android/AndroidX unresolved references are expected because the sandbox has no Android SDK classpath; this is NOT a full compile.
+
+Full Android build attempt
+--------------------------
+ATTEMPTED  ./gradlew :app:assembleDebug --no-daemon
+BLOCKED    Gradle wrapper cannot download Gradle 8.11.1 because the sandbox cannot resolve services.gradle.org (UnknownHostException).
+NOT CLAIMED  Full Android build / APK runtime / device test.
+
+Final package checks are recorded separately in SHA256SUMS.txt and ZIP integrity verification at delivery time.

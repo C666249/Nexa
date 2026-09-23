@@ -1,0 +1,11 @@
+Nexa 1.0.12 Stable source delivery
+
+Scope:
+- Todo search history hidden at rest.
+- Focus opens recent searches as a staggered curtain directly below the input.
+- Enter/history selection reverse-closes the curtain and releases keyboard focus; the exit uses the already-painted rows before refreshing hidden history.
+- History never stays as a fixed overlay over filtered Todo results.
+- Route navigation force-closes stale history; Chinese IME composition Enter is not treated as submit.
+- 1.0.11 reminder routing/global search highlighting preserved.
+
+Identity: com.nexa.app / Nexa / 1.0.12 / code 17

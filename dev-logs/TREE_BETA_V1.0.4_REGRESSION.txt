@@ -1,0 +1,81 @@
+Tree Beta V1.0.4 — Golden Editor Geometry Restore
+==================================================
+
+USER VIDEO REVIEW
+PASS | uploaded video readable | /mnt/data/1000164097.mp4 | duration 5.461292s
+PASS | IME closed / early-open frame | format bar exists at bottom
+PASS | IME open frame | format bar disappears entirely in V1.0.3
+PASS | IME close frame | format bar returns
+VERDICT | V1.0.3 visualViewport outer-shell docking rejected
+
+ARCHITECTURE ESCALATION
+PASS | all noteBetaViewportDock/sync/reset/schedule code removed
+PASS | all beta-vv-docked CSS removed
+PASS | no V1.0.3 visualViewport dock listeners remain
+PASS | no new WindowInsets probe/polling patch added
+PASS | Golden editor flex model remains the only Edit Mode layout model
+
+STRUCTURAL ROOT DIFFERENCE
+PASS | Stable V1.22.12 header direct vertical children = 2 rows
+PASS | pre-fix Beta header direct vertical children = 3 rows (extra Breadcrumb)
+PASS | V1.0.4 Edit Mode hides only Breadcrumb; Read Mode keeps it
+PASS | format bar remains in flex flow in Read Mode via visibility:hidden, never display:none
+PASS | History/Done button height 28px restores Edit title-row height
+
+PLAYWRIGHT 432x900 LAYOUT MODEL
+PASS | Stable Edit header height = 105px
+PASS | V1.0.3 pre-fix Edit header height = 133px
+PASS | V1.0.4 Edit header height = 105px
+PASS | simulated IME 260px: V1.0.4 format bar bottom = keyboard top
+PASS | simulated IME 300px: V1.0.4 format bar bottom = keyboard top
+PASS | simulated IME 340px: V1.0.4 format bar bottom = keyboard top
+NOTE | this is a CSS/layout regression test, not a substitute for Honor/MagicOS real-IME validation
+
+GOLDEN V1.22.12 IME CORE EXACT
+PASS | measureVisualImeSpace
+PASS | resolveNoteImeSpace
+PASS | getNoteCaretRect
+PASS | revealNoteCaretAboveIme
+PASS | scheduleNoteCaretReveal
+PASS | applyNoteImeSpace
+PASS | syncResolvedNoteImeSpace
+PASS | syncNoteViewportOffset
+PASS | syncNoteImeLayout
+PASS | window.__onNativeImeInset
+PASS | MainActivity.kt exact
+PASS | NoteFileViewerActivity.kt exact
+PASS | ImportReceiverActivity.kt exact
+
+PROTECTED BETA FUNCTIONS EXACT vs V1.0.3
+PASS | syncCollapsedNoteTypingFormat
+PASS | toggleManualInlineCommand
+PASS | toggleHighlight
+PASS | openNoteImagePreview / close / reset transform
+PASS | createNoteFileCard / insertPickedFileItems / openNoteFileActions
+PASS | applyNoteAutoLinkCandidate / openNoteHttpUrl
+PASS | captureNoteSurfaceContext / restoreNoteSurfaceContext
+PASS | createTopic / createNote / migrateLegacyNotesToSchemaV2
+PASS | insertNoteTimestamp
+PASS | saveCurrentNote
+
+NATIVE LOCKED CORE
+PASS | Reminder/Daily/Banner/Snooze 20/20 exact vs Stable V1.22.12
+
+STATIC / PACKAGE
+PASS | applicationId com.todolist.app.beta
+PASS | versionCode 1004
+PASS | versionName 1.0.4-beta1
+PASS | APK output To-Do-Tree-Beta-V1.0.4.apk
+PASS | fixed Beta signing key unchanged
+PASS | ui/todo.html == Android asset
+PASS | node --check inline runtime script
+PASS | Android XML parse
+PASS | Read Mode format bar display=flex, visibility=hidden, height=45px (geometry retained)
+PASS | Edit Mode format bar display=flex, visibility=visible, height=45px
+PASS | Read Mode Breadcrumb visible; Edit Mode Breadcrumb display=none
+PASS | fixed Beta key alias androiddebugkey readable; certificate SHA-256 F8:44:1C:45:A5:2E:1D:5D:FA:2F:44:12:C4:6C:BE:06:84:41:5E:83:84:D3:DF:71:BB:91:54:E0:40:DD:48:51
+
+GRADLE COMPILER ATTEMPT
+BLOCKED | ./gradlew --no-daemon :app:assembleDebug
+BLOCKED | wrapper cannot resolve services.gradle.org (java.net.UnknownHostException)
+NOTE | do not claim local compiler PASS; GitHub Actions cloud build remains the real compiler gate

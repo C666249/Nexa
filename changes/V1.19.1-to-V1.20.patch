@@ -1,0 +1,3526 @@
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST*' '--exclude=SELF_TEST*' '--exclude=changes/V1.19.1-to-V1.20.patch' todo_v1191_baseline/README.md todo_v120_work/README.md
+--- todo_v1191_baseline/README.md	2026-08-12 09:51:32.000000000 +0000
++++ todo_v120_work/README.md	2026-08-13 11:10:22.153485536 +0000
+@@ -1,4 +1,4 @@
+-# To-Do V1.18
++# To-Do V1.20
+ 
+ 本地优先的 To-Do + Note Android 应用。UI 使用 HTML/CSS/Vanilla JS，Android 原生层使用 Kotlin WebView，并负责精确定时、后台提醒守护与悬浮 Banner。
+ 
+@@ -6,6 +6,16 @@
+ 
+ 
+ 
++
++## V1.20 Note 长文编辑稳定 + 文件附件
++
++- Note 编辑器不再通过缩短整个全屏编辑层来躲避软键盘；编辑层始终覆盖全屏，只让格式工具栏依据 `visualViewport` 键盘上沿移动。长文上下滚动时工具栏持续贴住键盘顶部，避免露出 Note 根目录列表；收起键盘后工具栏回到底部。
++- Note 工具栏的“添加图片”换成标准图库图标，并在最右侧新增“添加文件”按钮。
++- 文件选择使用 Android Storage Access Framework，可多选 PDF / DOCX / MD / TXT / ZIP 等常见文件；选中后复制到 APP 私有 `files/note_files/`，正文只保存轻量附件卡片元数据。
++- 文件以附件卡片插入当前光标位置，显示文件名、格式和大小；删除卡片或删除整条 Note 时会同步清理对应私有附件。
++- 点击附件卡片打开自定义底部操作面板：`文件查看 / 微信发送 / QQ发送 / 更多`。文件查看通过系统兼容应用打开；微信/QQ走定向分享；更多进入 Android 系统 Sharesheet。
++- 外部打开/分享统一通过 `FileProvider content:// URI` 临时授权，不暴露真实私有文件路径，也不新增全盘存储权限。
++
+ ## V1.18 Note 图文编辑 + 原生悬浮层纯渐隐
+ 
+ - Note 编辑器底部工具栏最右侧新增 `▧+` 图片按钮，调用 Android 系统 Photo Picker，最多一次选择 20 张图片；不申请整库相册权限。
+@@ -109,7 +119,7 @@
+ ## 当前功能
+ 
+ - **To-Do 模式**：全部 / 未完成 / 进行中 / 已完成、分类、搜索、日历、回收站、AI 助手等。
+-- **Note 模式**：保留原 Note / 文件夹 / 子笔记 / 编辑器能力，并支持从系统相册多选图片插入正文、私有存储与图片预览。
++- **Note 模式**：保留原 Note / 文件夹 / 子笔记 / 编辑器能力，支持相册多选图片与系统多选文件附件；图片/文件均复制到 APP 私有存储，正文只保存轻量引用/卡片。
+ - **每日总结提醒**：右上角时钟设置每天时间，到点显示今日完成进度悬浮 Banner，可展开并进入 APP。
+ - **Daily 每日事项**：独立半高抽屉管理每天固定重复的小事；今日完成/未完成两态，左滑编辑删除、月历完成统计、到点单行常驻 Banner。
+ - **单条待办提醒**：左滑仍是两个独立按钮：绿色“提醒”、红色“删除”；提醒设置年月日时分。
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST*' '--exclude=SELF_TEST*' '--exclude=changes/V1.19.1-to-V1.20.patch' todo_v1191_baseline/android/app/build.gradle.kts todo_v120_work/android/app/build.gradle.kts
+--- todo_v1191_baseline/android/app/build.gradle.kts	2026-08-12 09:44:51.000000000 +0000
++++ todo_v120_work/android/app/build.gradle.kts	2026-08-13 11:07:27.300189535 +0000
+@@ -11,8 +11,8 @@
+         applicationId = "com.todolist.app"
+         minSdk = 26
+         targetSdk = 35
+-        versionCode = 30
+-        versionName = "1.19"
++        versionCode = 31
++        versionName = "1.20"
+     }
+ 
+     buildTypes {
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST*' '--exclude=SELF_TEST*' '--exclude=changes/V1.19.1-to-V1.20.patch' todo_v1191_baseline/android/app/src/main/AndroidManifest.xml todo_v120_work/android/app/src/main/AndroidManifest.xml
+--- todo_v1191_baseline/android/app/src/main/AndroidManifest.xml	2026-08-12 05:43:47.000000000 +0000
++++ todo_v120_work/android/app/src/main/AndroidManifest.xml	2026-08-13 11:04:15.990430886 +0000
+@@ -11,6 +11,19 @@
+     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+     <uses-permission android:name="android.permission.WAKE_LOCK" />
+ 
++    <queries>
++        <package android:name="com.tencent.mm" />
++        <package android:name="com.tencent.mobileqq" />
++        <intent>
++            <action android:name="android.intent.action.SEND" />
++            <data android:mimeType="*/*" />
++        </intent>
++        <intent>
++            <action android:name="android.intent.action.VIEW" />
++            <data android:mimeType="*/*" />
++        </intent>
++    </queries>
++
+     <application
+         android:allowBackup="true"
+         android:icon="@mipmap/ic_launcher_v2"
+@@ -30,6 +43,16 @@
+             </intent-filter>
+         </activity>
+ 
++        <provider
++            android:name="androidx.core.content.FileProvider"
++            android:authorities="${applicationId}.fileprovider"
++            android:exported="false"
++            android:grantUriPermissions="true">
++            <meta-data
++                android:name="android.support.FILE_PROVIDER_PATHS"
++                android:resource="@xml/file_paths" />
++        </provider>
++
+         <service
+             android:name=".service.FloatWindowService"
+             android:foregroundServiceType="specialUse"
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST*' '--exclude=SELF_TEST*' '--exclude=changes/V1.19.1-to-V1.20.patch' todo_v1191_baseline/android/app/src/main/assets/todo.html todo_v120_work/android/app/src/main/assets/todo.html
+--- todo_v1191_baseline/android/app/src/main/assets/todo.html	2026-08-12 09:53:46.000000000 +0000
++++ todo_v120_work/android/app/src/main/assets/todo.html	2026-08-13 11:11:03.150603360 +0000
+@@ -1946,6 +1946,12 @@
+   z-index: 200;
+   background: #f5ecd8;
+   display: flex; flex-direction: column;
++  --note-keyboard-inset: 0px;
++  overscroll-behavior: none;
++}
++html.note-editor-open, body.note-editor-open {
++  overflow: hidden !important;
++  overscroll-behavior: none;
+ }
+ .note-editor__header {
+   position: relative;
+@@ -2044,7 +2050,7 @@
+ .note-editor__search::placeholder { color: var(--text-tertiary); }
+ .note-editor__body {
+   flex: 1;
+-  padding: 4px 16px 40vh;
++  padding: 4px 16px calc(78px + var(--note-keyboard-inset));
+   overflow-y: auto;
+   font-size: 15px;
+   font-weight: 400;
+@@ -2054,6 +2060,8 @@
+   -webkit-user-select: text;
+   user-select: text;
+   min-height: 80px;
++  overscroll-behavior-y: contain;
++  scroll-padding-bottom: calc(78px + var(--note-keyboard-inset));
+ }
+ .note-editor__body:empty::before {
+   content: '开始写笔记…';
+@@ -2120,22 +2128,30 @@
+   background: rgba(255,255,255,0.4);
+   max-height: 40vh;
+   overflow-y: auto;
++  padding-bottom: calc(54px + var(--note-keyboard-inset));
+ }
+ 
+-/* ===== Format Bar (inside editor flow, at bottom) ===== */
++/* ===== Format Bar: viewport-anchored, always glued to keyboard/top of IME ===== */
+ .note-format-bar {
+-  flex-shrink: 0;
++  position: fixed;
++  left: 0; right: 0; bottom: 0;
++  z-index: 235;
+   display: flex;
+   align-items: center;
+   justify-content: flex-start;
+   gap: 2px;
+-  padding: 6px 8px;
+-  background: rgba(250, 248, 245, 0.97);
+-  backdrop-filter: blur(10px);
+-  -webkit-backdrop-filter: blur(10px);
++  padding: 6px 8px max(6px, env(safe-area-inset-bottom));
++  background: rgba(250, 248, 245, 0.975);
++  backdrop-filter: blur(12px);
++  -webkit-backdrop-filter: blur(12px);
+   border-top: 1px solid rgba(0,0,0,0.08);
++  box-shadow: 0 -4px 18px rgba(84,70,58,.06);
+   overflow-x: auto;
+   -webkit-overflow-scrolling: touch;
++  transform: translate3d(0, calc(-1 * var(--note-keyboard-inset)), 0);
++  will-change: transform;
++  transition: transform 110ms ease-out;
++  backface-visibility: hidden;
+ }
+ .note-format-bar button {
+   flex-shrink: 0;
+@@ -2169,6 +2185,77 @@
+   margin: 0 4px;
+ }
+ 
++.note-format-bar .note-toolbar-icon-btn { color:#3b9e8a; }
++.note-format-bar .note-toolbar-icon-btn svg {
++  width:20px; height:20px; display:block; fill:none; stroke:currentColor; stroke-width:1.8;
++  stroke-linecap:round; stroke-linejoin:round; pointer-events:none;
++}
++.note-add-file-btn { color:#6f87bb!important; }
++
++/* ===== Note inline file attachments ===== */
++.note-file-stack {
++  display:flex; flex-direction:column; gap:8px; margin:10px 0 12px; width:100%;
++  user-select:none; -webkit-user-select:none;
++}
++.note-file-card {
++  display:flex; align-items:center; gap:11px; width:100%; min-width:0; padding:11px 12px;
++  border-radius:16px; background:rgba(255,255,255,.58); border:1px solid rgba(255,255,255,.78);
++  box-shadow:0 5px 18px rgba(91,76,61,.08); cursor:pointer;
++  transition:transform .14s ease, box-shadow .14s ease, background .14s ease;
++}
++.note-file-card:active { transform:scale(.985); background:rgba(255,255,255,.76); }
++.note-file-card__badge {
++  flex:0 0 46px; width:46px; height:46px; border-radius:13px; display:flex; align-items:center; justify-content:center;
++  font-size:11px; font-weight:850; letter-spacing:.2px; color:#fff; background:linear-gradient(135deg,#72cfc0,#5793e7);
++  box-shadow:0 5px 14px rgba(72,126,167,.16);
++}
++.note-file-card__badge.pdf { background:linear-gradient(135deg,#ff8b83,#e95d67); }
++.note-file-card__badge.md,.note-file-card__badge.txt { background:linear-gradient(135deg,#69c9ac,#3aa891); }
++.note-file-card__badge.doc,.note-file-card__badge.docx { background:linear-gradient(135deg,#71aaf5,#4b75dc); }
++.note-file-card__badge.xls,.note-file-card__badge.xlsx,.note-file-card__badge.csv { background:linear-gradient(135deg,#67c58d,#379d68); }
++.note-file-card__badge.ppt,.note-file-card__badge.pptx { background:linear-gradient(135deg,#f7a06e,#e66f48); }
++.note-file-card__badge.zip,.note-file-card__badge.rar,.note-file-card__badge.sevenzip { background:linear-gradient(135deg,#b59ae8,#876ccc); }
++.note-file-card__main { flex:1; min-width:0; }
++.note-file-card__name { font-size:13.5px; font-weight:720; color:#403832; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
++.note-file-card__meta { margin-top:3px; font-size:10.5px; color:#9a8e83; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
++.note-file-card__remove {
++  flex:0 0 30px; width:30px; height:30px; border:0; border-radius:50%; background:rgba(238,111,108,.09);
++  color:#d77673; font-size:14px; display:flex; align-items:center; justify-content:center;
++}
++.note-file-picker-marker { display:inline-block; width:2px; height:1em; vertical-align:middle; }
++
++.note-file-actions-overlay {
++  position:fixed; inset:0; z-index:16030; display:none; align-items:flex-end; justify-content:center;
++  padding:0 12px max(12px,env(safe-area-inset-bottom)); background:rgba(48,43,39,.28);
++  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); opacity:0; transition:opacity 180ms ease-out;
++}
++.note-file-actions-overlay.active { display:flex; opacity:1; }
++.note-file-actions-sheet {
++  width:min(100%,440px); border-radius:26px; padding:10px 14px 14px;
++  background:linear-gradient(180deg,rgba(255,255,253,.98),rgba(251,247,243,.98));
++  border:1px solid rgba(255,255,255,.82); box-shadow:0 24px 70px rgba(74,57,45,.24);
++  transform:translate3d(0,18px,0); opacity:0; transition:transform 200ms cubic-bezier(.22,.82,.28,1),opacity 170ms ease-out;
++}
++.note-file-actions-overlay.active .note-file-actions-sheet { transform:translate3d(0,0,0); opacity:1; }
++.note-file-actions-handle { width:42px; height:4px; border-radius:999px; background:#ded8d1; margin:1px auto 12px; }
++.note-file-actions-head { display:flex; align-items:center; gap:11px; padding:3px 4px 13px; }
++.note-file-actions-head__icon { width:44px; height:44px; border-radius:13px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#e7f7f2,#e9effd); color:#547ca7; }
++.note-file-actions-head__icon svg { width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
++.note-file-actions-copy { flex:1; min-width:0; }
++.note-file-actions-name { font-size:14px; font-weight:800; color:#3f3731; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
++.note-file-actions-meta { margin-top:3px; font-size:11px; color:#9a8e83; }
++.note-file-actions-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
++.note-file-action {
++  border:0; border-radius:17px; padding:12px 5px 10px; background:rgba(247,244,240,.92); color:#554b43;
++  display:flex; flex-direction:column; align-items:center; gap:7px; font-size:11px; font-weight:700; min-width:0;
++}
++.note-file-action:active { transform:scale(.96); }
++.note-file-action__icon { width:36px; height:36px; border-radius:12px; background:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(76,62,52,.07); font-size:17px; }
++.note-file-action__icon svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
++.note-file-action.wechat .note-file-action__icon { color:#21a763; }
++.note-file-action.qq .note-file-action__icon { color:#4f78dc; }
++.note-file-actions-cancel { width:100%; margin-top:10px; padding:12px; border:0; border-radius:15px; background:rgba(242,238,233,.9); color:#81756b; font-size:13px; font-weight:700; }
++
+ /* ===== Color Picker Popup ===== */
+ .color-picker-pop {
+   position: fixed;
+@@ -2405,7 +2492,12 @@
+       <span class="note-format-bar__sep"></span>
+       <button onclick="insertCheckbox()" title="待办勾选">☐</button>
+       <button onclick="moreAddChild()" title="添加子笔记">+子</button>
+-      <button class="note-add-image-btn" id="noteAddImageBtn" title="添加图片" aria-label="添加图片">▧+</button>
++      <button class="note-toolbar-icon-btn note-add-image-btn" id="noteAddImageBtn" title="添加图片" aria-label="添加图片">
++        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"></rect><circle cx="8.2" cy="9" r="1.4"></circle><path d="M5.5 17l4.1-4.2 3.1 3.1 2.1-2.1 3.7 3.2"></path></svg>
++      </button>
++      <button class="note-toolbar-icon-btn note-add-file-btn" id="noteAddFileBtn" title="添加文件" aria-label="添加文件">
++        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h8l4 4V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z"></path><path d="M14 3.5V8h4"></path><path d="M8.5 14h7"></path><path d="M12 10.5v7"></path></svg>
++      </button>
+     </div>
+     <div class="note-editor__children" id="noteEditorChildren">
+       <div class="note-editor__children-header">子笔记</div>
+@@ -2418,6 +2510,23 @@
+     <img id="noteImagePreviewImg" alt="笔记图片预览">
+   </div>
+ 
++  <div class="note-file-actions-overlay" id="noteFileActionsOverlay" aria-hidden="true">
++    <section class="note-file-actions-sheet" role="dialog" aria-modal="true" aria-label="文件操作">
++      <div class="note-file-actions-handle"></div>
++      <div class="note-file-actions-head">
++        <div class="note-file-actions-head__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h8l4 4V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z"></path><path d="M14 3.5V8h4"></path></svg></div>
++        <div class="note-file-actions-copy"><div class="note-file-actions-name" id="noteFileActionsName">附件</div><div class="note-file-actions-meta" id="noteFileActionsMeta"></div></div>
++      </div>
++      <div class="note-file-actions-grid">
++        <button class="note-file-action" data-note-file-action="open"><span class="note-file-action__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5h6l1.8 2H20a1 1 0 0 1 1 1v7.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8.5a1 1 0 0 1 .5-1z"></path><path d="M7 14h10"></path></svg></span><span>文件查看</span></button>
++        <button class="note-file-action wechat" data-note-file-action="wechat"><span class="note-file-action__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 6.5c-3 0-5.5 1.9-5.5 4.3 0 1.4.8 2.7 2.1 3.5l-.5 2 2.1-1.1c.6.2 1.2.3 1.8.3 3 0 5.5-1.9 5.5-4.4S11.5 6.5 8.5 6.5z"></path><path d="M13.5 9.5c4 0 7 2.2 7 5 0 1.5-.8 2.8-2.2 3.7l.4 1.8-2-1c-.9.3-1.7.4-2.6.4-1.4 0-2.7-.3-3.7-.9"></path></svg></span><span>微信发送</span></button>
++        <button class="note-file-action qq" data-note-file-action="qq"><span class="note-file-action__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18.5c1.4 1.2 3.5 2 6 2s4.6-.8 6-2"></path><path d="M7 15c-1.1-1.2-1.7-2.8-1.7-4.5C5.3 6.9 8.1 4 12 4s6.7 2.9 6.7 6.5c0 1.8-.6 3.4-1.7 4.5"></path><path d="M9 9.5h.01M15 9.5h.01"></path></svg></span><span>QQ发送</span></button>
++        <button class="note-file-action" data-note-file-action="more"><span class="note-file-action__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg></span><span>更多</span></button>
++      </div>
++      <button class="note-file-actions-cancel" id="noteFileActionsCancel">取消</button>
++    </section>
++  </div>
++
+   <!-- Folder Sidebar -->
+   <div class="folder-sidebar-backdrop" id="folderSidebarBackdrop" style="display:none" onclick="closeFolderSidebar()"></div>
+   <div class="folder-sidebar" id="folderSidebar" style="display:none">
+@@ -3372,6 +3481,21 @@
+   });
+ }
+ 
++function extractNoteFileNames(content) {
++  var names = [];
++  var re = /data-note-file-name=["']([A-Za-z0-9._-]{1,180})["']/g;
++  var match;
++  while ((match = re.exec(String(content || ''))) !== null) names.push(match[1]);
++  return names;
++}
++
++function deleteNativeNoteFilesFromContent(content) {
++  if (typeof AndroidBridge === 'undefined' || !AndroidBridge.deleteNoteFile) return;
++  extractNoteFileNames(content).forEach(function(name) {
++    try { AndroidBridge.deleteNoteFile(name); } catch(e) {}
++  });
++}
++
+ function deleteNote(id) {
+   var note = getNoteById(id);
+   if (!note) return;
+@@ -3391,6 +3515,7 @@
+       if (notes[j].parentId === toDelete[di]) {
+         toDelete.push(notes[j].id);
+         deleteNativeNoteImagesFromContent(notes[j].content || '');
++        deleteNativeNoteFilesFromContent(notes[j].content || '');
+         notes.splice(j, 1);
+       }
+     }
+@@ -3400,6 +3525,7 @@
+   for (var k = notes.length - 1; k >= 0; k--) {
+     if (notes[k].id === id) {
+       deleteNativeNoteImagesFromContent(notes[k].content || '');
++      deleteNativeNoteFilesFromContent(notes[k].content || '');
+       notes.splice(k, 1); break;
+     }
+   }
+@@ -3722,7 +3848,9 @@
+   var bodyEl = document.getElementById('noteEditorBody');
+   var childrenList = document.getElementById('noteEditorChildrenList');
+   var searchInput = document.getElementById('noteEditorSearch');
+-  if (editor) editor.style.display = '';
++  if (editor) { editor.style.display = ''; editor.style.bottom = '0px'; editor.style.setProperty('--note-keyboard-inset','0px'); }
++  document.documentElement.classList.add('note-editor-open');
++  document.body.classList.add('note-editor-open');
+   if (titleInput) titleInput.value = note.title;
+   if (bodyEl) bodyEl.innerHTML = note.content;
+   _boldActive = false;
+@@ -3744,12 +3872,15 @@
+     bodyEl.focus();
+     _boldActive = !!document.queryCommandState('bold');
+     updateToolbarState();
++    scheduleNoteKeyboardLayout();
+   }, 100);
+ }
+ 
+ function closeNoteEditor() {
+   var editor = document.getElementById('noteEditor');
+-  if (editor) editor.style.display = 'none';
++  if (editor) { editor.style.display = 'none'; editor.style.bottom = '0px'; editor.style.setProperty('--note-keyboard-inset','0px'); }
++  document.documentElement.classList.remove('note-editor-open');
++  document.body.classList.remove('note-editor-open');
+   saveCurrentNote(); // sync save before clearing state
+   currentNoteId = null;
+   renderNoteList();
+@@ -6484,9 +6615,15 @@
+ // Resolve title: user input, or first line of body
+ function firstLineOfBody(bodyEl) {
+   var clone = bodyEl.cloneNode(true);
+-  clone.querySelectorAll('.note-image-grid,.note-image-picker-marker,.note-image-remove').forEach(function(el) { el.remove(); });
++  clone.querySelectorAll('.note-image-grid,.note-image-picker-marker,.note-image-remove,.note-file-stack,.note-file-picker-marker,.note-file-card__remove').forEach(function(el) { el.remove(); });
+   var text = (clone.textContent || '').replace(/\n/g, ' ').trim();
+-  if (!text && bodyEl.querySelector('.note-image-item')) return '图片笔记';
++  if (!text) {
++    var hasImage = !!bodyEl.querySelector('.note-image-item');
++    var hasFile = !!bodyEl.querySelector('.note-file-card');
++    if (hasImage && hasFile) return '附件笔记';
++    if (hasFile) return '文件笔记';
++    if (hasImage) return '图片笔记';
++  }
+   if (text.length > 50) text = text.substring(0, 50) + '…';
+   return text;
+ }
+@@ -6738,21 +6875,210 @@
+     showToast('图片已删除');
+     return;
+   }
++  var fileRemove = e.target.closest('[data-note-file-remove]');
++  if (fileRemove) {
++    e.preventDefault(); e.stopPropagation();
++    var fileCard = fileRemove.closest('.note-file-card');
++    var fileStack = fileRemove.closest('.note-file-stack');
++    var fileName = fileCard ? fileCard.getAttribute('data-note-file-name') : '';
++    if (fileName && typeof AndroidBridge !== 'undefined' && AndroidBridge.deleteNoteFile) { try { AndroidBridge.deleteNoteFile(fileName); } catch(err2) {} }
++    if (fileCard) fileCard.remove();
++    if (fileStack && !fileStack.querySelector('.note-file-card')) fileStack.remove();
++    saveCurrentNote();
++    showToast('文件已移除');
++    return;
++  }
+   var img = e.target.closest('img[data-note-image-preview]');
+-  if (img) { e.preventDefault(); e.stopPropagation(); openNoteImagePreview(img.src); }
++  if (img) { e.preventDefault(); e.stopPropagation(); openNoteImagePreview(img.src); return; }
++  var fileCard = e.target.closest('.note-file-card[data-note-file-name]');
++  if (fileCard) { e.preventDefault(); e.stopPropagation(); openNoteFileActions(fileCard); }
+ });
+ 
++// ===== Note file picker / inline attachment cards =====
++var noteFilePendingMarkerId = '';
++var noteFileMarkerSeq = 0;
++var activeNoteFileMeta = null;
++
++function insertFileMarkerAtCaret() {
++  var bodyEl = document.getElementById('noteEditorBody');
++  if (!bodyEl) return null;
++  var marker = document.createElement('span');
++  marker.id = 'noteFileMarker_' + Date.now() + '_' + (++noteFileMarkerSeq);
++  marker.className = 'note-file-picker-marker';
++  marker.setAttribute('contenteditable','false');
++  var range = noteLastSelectionRange && bodyEl.contains(noteLastSelectionRange.commonAncestorContainer)
++    ? noteLastSelectionRange.cloneRange() : null;
++  if (!range) {
++    range = document.createRange();
++    range.selectNodeContents(bodyEl);
++    range.collapse(false);
++  }
++  range.deleteContents();
++  range.insertNode(marker);
++  return marker;
++}
++
++function requestNoteFiles() {
++  if (!currentNoteId) return showToast('请先打开一条笔记');
++  if (typeof AndroidBridge === 'undefined' || !AndroidBridge.pickNoteFiles) return showToast('添加文件仅支持 Android APP');
++  rememberNoteSelection();
++  var oldMarker = noteFilePendingMarkerId ? document.getElementById(noteFilePendingMarkerId) : null;
++  if (oldMarker) oldMarker.remove();
++  var marker = insertFileMarkerAtCaret();
++  if (!marker) return;
++  noteFilePendingMarkerId = marker.id;
++  try {
++    var result = String(AndroidBridge.pickNoteFiles(String(currentNoteId)));
++    if (result !== 'ok') { marker.remove(); noteFilePendingMarkerId = ''; showToast('无法打开系统文件选择器'); }
++  } catch(e) {
++    marker.remove(); noteFilePendingMarkerId = ''; showToast('无法打开系统文件选择器');
++  }
++}
++
++function noteFileExtension(displayName, mime) {
++  var name = String(displayName || '');
++  var idx = name.lastIndexOf('.');
++  var ext = idx >= 0 ? name.slice(idx + 1).toLowerCase() : '';
++  if (!ext && mime === 'application/pdf') ext = 'pdf';
++  if (!ext && mime && mime.indexOf('text/') === 0) ext = 'txt';
++  return ext || 'file';
++}
++function noteFileBadgeLabel(ext) {
++  var e = String(ext || 'file').toUpperCase();
++  if (e === 'MARKDOWN') e = 'MD';
++  if (e === 'JPEG') e = 'JPG';
++  return e.length > 5 ? 'FILE' : e;
++}
++function noteFileBadgeClass(ext) {
++  var e = String(ext || '').toLowerCase();
++  return e === '7z' ? 'sevenzip' : e.replace(/[^a-z0-9_-]/g,'');
++}
++function noteFileSizeLabel(bytes) {
++  var n = Number(bytes);
++  if (!isFinite(n) || n < 0) return '未知大小';
++  if (n < 1024) return n + ' B';
++  if (n < 1024 * 1024) return (n / 1024).toFixed(n < 10 * 1024 ? 1 : 0) + ' KB';
++  if (n < 1024 * 1024 * 1024) return (n / 1024 / 1024).toFixed(n < 10 * 1024 * 1024 ? 1 : 0) + ' MB';
++  return (n / 1024 / 1024 / 1024).toFixed(1) + ' GB';
++}
++function createNoteFileCard(item) {
++  if (!item || !item.name) return null;
++  var displayName = String(item.displayName || item.name);
++  var mime = String(item.mime || 'application/octet-stream');
++  var size = Number(item.size || 0);
++  var ext = noteFileExtension(displayName, mime);
++  var card = document.createElement('div');
++  card.className = 'note-file-card';
++  card.setAttribute('contenteditable','false');
++  card.setAttribute('data-note-file-name', String(item.name));
++  card.setAttribute('data-note-file-display', displayName);
++  card.setAttribute('data-note-file-mime', mime);
++  card.setAttribute('data-note-file-size', String(size));
++  card.setAttribute('data-note-file-ext', ext);
++
++  var badge = document.createElement('div');
++  badge.className = 'note-file-card__badge ' + noteFileBadgeClass(ext);
++  badge.textContent = noteFileBadgeLabel(ext);
++  var main = document.createElement('div');
++  main.className = 'note-file-card__main';
++  var name = document.createElement('div');
++  name.className = 'note-file-card__name'; name.textContent = displayName;
++  var meta = document.createElement('div');
++  meta.className = 'note-file-card__meta'; meta.textContent = noteFileBadgeLabel(ext) + ' · ' + noteFileSizeLabel(size) + ' · 点击打开/分享';
++  main.appendChild(name); main.appendChild(meta);
++  var remove = document.createElement('button');
++  remove.type = 'button'; remove.className = 'note-file-card__remove'; remove.setAttribute('data-note-file-remove','1'); remove.setAttribute('aria-label','移除文件'); remove.textContent = '✕';
++  card.appendChild(badge); card.appendChild(main); card.appendChild(remove);
++  return card;
++}
+ 
+-// ===== Keyboard-aware: shrink editor so toolbar (in flow) stays above keyboard =====
++window.__onNoteFilesPicked = function(items) {
++  items = Array.isArray(items) ? items : [];
++  var bodyEl = document.getElementById('noteEditorBody');
++  if (!bodyEl) return;
++  var marker = noteFilePendingMarkerId ? document.getElementById(noteFilePendingMarkerId) : null;
++  noteFilePendingMarkerId = '';
++  if (!items.length) { if (marker) marker.remove(); return; }
++  var stack = document.createElement('div');
++  stack.className = 'note-file-stack'; stack.setAttribute('contenteditable','false');
++  items.forEach(function(item) { var card = createNoteFileCard(item); if (card) stack.appendChild(card); });
++  if (!stack.children.length) { if (marker) marker.remove(); return; }
++  var spacer = document.createElement('div'); spacer.innerHTML = '<br>';
++  if (marker && marker.parentNode) {
++    marker.parentNode.insertBefore(stack, marker);
++    marker.parentNode.insertBefore(spacer, marker);
++    marker.remove();
++  } else { bodyEl.appendChild(stack); bodyEl.appendChild(spacer); }
++  saveCurrentNote();
++  showToast(items.length === 1 ? '已添加文件' : ('已添加 ' + items.length + ' 个文件'));
++};
++
++function openNoteFileActions(card) {
++  if (!card) return;
++  activeNoteFileMeta = {
++    name: card.getAttribute('data-note-file-name') || '',
++    displayName: card.getAttribute('data-note-file-display') || '附件',
++    mime: card.getAttribute('data-note-file-mime') || 'application/octet-stream',
++    size: Number(card.getAttribute('data-note-file-size') || 0),
++    ext: card.getAttribute('data-note-file-ext') || 'file'
++  };
++  var overlay = document.getElementById('noteFileActionsOverlay');
++  var nameEl = document.getElementById('noteFileActionsName');
++  var metaEl = document.getElementById('noteFileActionsMeta');
++  if (!overlay) return;
++  if (nameEl) nameEl.textContent = activeNoteFileMeta.displayName;
++  if (metaEl) metaEl.textContent = noteFileBadgeLabel(activeNoteFileMeta.ext) + ' · ' + noteFileSizeLabel(activeNoteFileMeta.size);
++  overlay.style.display = 'flex';
++  requestAnimationFrame(function(){ overlay.classList.add('active'); });
++  overlay.setAttribute('aria-hidden','false');
++}
++function closeNoteFileActions() {
++  var overlay = document.getElementById('noteFileActionsOverlay');
++  if (!overlay) return;
++  overlay.classList.remove('active'); overlay.setAttribute('aria-hidden','true');
++  setTimeout(function(){ if (!overlay.classList.contains('active')) overlay.style.display = 'none'; }, 190);
++}
++function runNoteFileAction(action) {
++  if (!activeNoteFileMeta || !activeNoteFileMeta.name || typeof AndroidBridge === 'undefined') return showToast('文件不可用');
++  var result = 'failed';
++  try {
++    if (action === 'open') result = String(AndroidBridge.openNoteFile(activeNoteFileMeta.name));
++    else result = String(AndroidBridge.shareNoteFile(activeNoteFileMeta.name, action));
++  } catch(e) { result = 'failed'; }
++  closeNoteFileActions();
++  if (result === 'unavailable') showToast(action === 'wechat' ? '未检测到可用的微信' : action === 'qq' ? '未检测到可用的 QQ' : '没有可打开此文件的应用');
++  else if (result !== 'ok') showToast('暂时无法处理这个文件');
++}
++
++document.getElementById('noteAddFileBtn')?.addEventListener('click', requestNoteFiles);
++document.getElementById('noteFileActionsCancel')?.addEventListener('click', closeNoteFileActions);
++document.getElementById('noteFileActionsOverlay')?.addEventListener('click', function(e){ if (e.target === e.currentTarget) closeNoteFileActions(); });
++document.querySelectorAll('[data-note-file-action]').forEach(function(btn){ btn.addEventListener('click', function(){ runNoteFileAction(btn.getAttribute('data-note-file-action')); }); });
++
++// ===== Keyboard-aware Note editor =====
++// Keep the editor itself full-screen. Only the formatting bar moves to the top edge of the IME.
++// This avoids exposing the underlying Note list while the visual viewport pans during long-note scrolling.
++var noteKeyboardLayoutRaf = 0;
++function syncNoteKeyboardLayout() {
++  noteKeyboardLayoutRaf = 0;
++  var editor = document.getElementById('noteEditor');
++  if (!editor || editor.style.display === 'none') return;
++  editor.style.bottom = '0px';
++  var vv = window.visualViewport;
++  var keyboardTop = vv ? (vv.offsetTop + vv.height) : window.innerHeight;
++  var inset = Math.max(0, Math.round(window.innerHeight - keyboardTop));
++  if (inset < 80) inset = 0;
++  editor.style.setProperty('--note-keyboard-inset', inset + 'px');
++}
++function scheduleNoteKeyboardLayout() {
++  if (noteKeyboardLayoutRaf) cancelAnimationFrame(noteKeyboardLayoutRaf);
++  noteKeyboardLayoutRaf = requestAnimationFrame(syncNoteKeyboardLayout);
++}
+ if (window.visualViewport) {
+-  window.visualViewport.addEventListener('resize', function() {
+-    var diff = window.innerHeight - window.visualViewport.height;
+-    var editor = document.getElementById('noteEditor');
+-    if (editor && editor.style.display !== 'none') {
+-      editor.style.bottom = diff > 80 ? diff + 'px' : '0px';
+-    }
+-  });
++  window.visualViewport.addEventListener('resize', scheduleNoteKeyboardLayout);
++  window.visualViewport.addEventListener('scroll', scheduleNoteKeyboardLayout);
+ }
++window.addEventListener('resize', scheduleNoteKeyboardLayout);
+ 
+ // ===== Highlight state =====
+ var highlightColor = '#ffd93d'; // default yellow
+@@ -7080,7 +7406,9 @@
+   el = document.getElementById('noteEditorMoreMenu');
+   if (el && el.style.display !== 'none') { el.style.display = 'none'; return 'note-more'; }
+ 
+-  // Note image preview sits above the editor.
++  // Note attachment actions / image preview sit above the editor.
++  el = document.getElementById('noteFileActionsOverlay');
++  if (el && el.classList.contains('active')) { closeNoteFileActions(); return 'note-file-actions'; }
+   el = document.getElementById('noteImagePreview');
+   if (el && el.classList.contains('active')) { closeNoteImagePreview(); return 'note-image-preview'; }
+ 
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST*' '--exclude=SELF_TEST*' '--exclude=changes/V1.19.1-to-V1.20.patch' todo_v1191_baseline/android/app/src/main/java/com/todolist/app/MainActivity.kt todo_v120_work/android/app/src/main/java/com/todolist/app/MainActivity.kt
+--- todo_v1191_baseline/android/app/src/main/java/com/todolist/app/MainActivity.kt	2026-08-12 06:11:25.000000000 +0000
++++ todo_v120_work/android/app/src/main/java/com/todolist/app/MainActivity.kt	2026-08-13 11:08:55.056252573 +0000
+@@ -4,6 +4,7 @@
+ import android.app.AlarmManager
+ import android.content.BroadcastReceiver
+ import android.content.Context
++import android.content.ClipData
+ import android.content.Intent
+ import android.content.IntentFilter
+ import android.content.pm.PackageManager
+@@ -11,6 +12,7 @@
+ import android.os.Build
+ import android.os.Bundle
+ import android.provider.Settings
++import android.provider.OpenableColumns
+ import android.webkit.JavascriptInterface
+ import android.webkit.MimeTypeMap
+ import android.webkit.WebChromeClient
+@@ -23,6 +25,7 @@
+ import androidx.appcompat.app.AppCompatActivity
+ import androidx.core.app.ActivityCompat
+ import androidx.core.content.ContextCompat
++import androidx.core.content.FileProvider
+ import com.todolist.app.manager.FloatWindowManager
+ import com.todolist.app.receiver.MidnightReceiver
+ import com.todolist.app.reminder.DailyTaskStore
+@@ -52,6 +55,7 @@
+     private var pendingFocusTodoId: Long = -1L
+     private var pendingFocusDailyTaskId: Long = -1L
+     private var pendingNoteImageNoteId: Long = -1L
++    private var pendingNoteFileNoteId: Long = -1L
+ 
+     private val noteImagePicker = registerForActivityResult(
+         ActivityResultContracts.PickMultipleVisualMedia(20)
+@@ -59,6 +63,12 @@
+         handlePickedNoteImages(uris)
+     }
+ 
++    private val noteFilePicker = registerForActivityResult(
++        ActivityResultContracts.OpenMultipleDocuments()
++    ) { uris ->
++        handlePickedNoteFiles(uris)
++    }
++
+     private var permissionFlowActive = false
+     private var notificationAttempted = false
+     private var overlayAttempted = false
+@@ -390,6 +400,139 @@
+         }.start()
+     }
+ 
++    private fun noteFileDir(): File = File(filesDir, "note_files").apply { mkdirs() }
++
++    private fun isSafeNoteFileName(name: String): Boolean =
++        name.matches(Regex("[A-Za-z0-9._-]{1,180}")) && !name.contains("..")
++
++    private fun queryDocumentMeta(uri: Uri): Pair<String, Long> {
++        var displayName = "附件"
++        var size = -1L
++        try {
++            contentResolver.query(
++                uri,
++                arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE),
++                null, null, null
++            )?.use { cursor ->
++                if (cursor.moveToFirst()) {
++                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
++                    val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
++                    if (nameIndex >= 0) displayName = cursor.getString(nameIndex)?.takeIf { it.isNotBlank() } ?: displayName
++                    if (sizeIndex >= 0 && !cursor.isNull(sizeIndex)) size = cursor.getLong(sizeIndex)
++                }
++            }
++        } catch (_: Exception) {}
++        return displayName to size
++    }
++
++    private fun safeDocumentExtension(displayName: String, mime: String): String {
++        val fromName = displayName.substringAfterLast('.', "")
++            .lowercase()
++            .takeIf { it.matches(Regex("[a-z0-9]{1,10}")) }
++        if (fromName != null) return fromName
++        return MimeTypeMap.getSingleton().getExtensionFromMimeType(mime)
++            ?.lowercase()
++            ?.takeIf { it.matches(Regex("[a-z0-9]{1,10}")) }
++            ?: "bin"
++    }
++
++    private fun guessNoteFileMime(fileName: String): String {
++        val ext = fileName.substringAfterLast('.', "").lowercase()
++        return MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: when (ext) {
++            "md", "markdown" -> "text/markdown"
++            "json" -> "application/json"
++            "csv" -> "text/csv"
++            "log" -> "text/plain"
++            else -> "application/octet-stream"
++        }
++    }
++
++    private fun copyPickedNoteFile(noteId: Long, source: Uri, index: Int): JSONObject? {
++        return try {
++            val resolver = contentResolver
++            val mime = resolver.getType(source) ?: "application/octet-stream"
++            val (displayName, reportedSize) = queryDocumentMeta(source)
++            val extension = safeDocumentExtension(displayName, mime)
++            val fileName = "note_file_${noteId}_${System.currentTimeMillis()}_${index}_${UUID.randomUUID().toString().take(8)}.$extension"
++            val destination = File(noteFileDir(), fileName)
++            resolver.openInputStream(source)?.use { input ->
++                destination.outputStream().buffered().use { output -> input.copyTo(output) }
++            } ?: return null
++            if (destination.length() <= 0L) {
++                destination.delete()
++                return null
++            }
++            JSONObject()
++                .put("name", fileName)
++                .put("displayName", displayName)
++                .put("mime", mime)
++                .put("size", if (reportedSize > 0L) reportedSize else destination.length())
++        } catch (_: Exception) {
++            null
++        }
++    }
++
++    private fun handlePickedNoteFiles(uris: List<Uri>) {
++        val noteId = pendingNoteFileNoteId
++        pendingNoteFileNoteId = -1L
++        Thread {
++            val payload = JSONArray()
++            if (noteId > 0L) {
++                uris.take(30).forEachIndexed { index, uri ->
++                    copyPickedNoteFile(noteId, uri, index)?.let { payload.put(it) }
++                }
++            }
++            if (!pageReady) return@Thread
++            val json = payload.toString()
++            webView.post {
++                webView.evaluateJavascript(
++                    "window.__onNoteFilesPicked && window.__onNoteFilesPicked($json);",
++                    null
++                )
++            }
++        }.start()
++    }
++
++    private fun getNoteFile(fileName: String): File? {
++        if (!isSafeNoteFileName(fileName)) return null
++        val file = File(noteFileDir(), fileName)
++        return file.takeIf { it.exists() && it.isFile }
++    }
++
++    private fun getNoteFileUri(file: File): Uri =
++        FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
++
++    private fun buildNoteFileShareIntent(file: File): Intent {
++        val uri = getNoteFileUri(file)
++        return Intent(Intent.ACTION_SEND).apply {
++            type = guessNoteFileMime(file.name)
++            putExtra(Intent.EXTRA_STREAM, uri)
++            clipData = ClipData.newRawUri("note_attachment", uri)
++            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
++        }
++    }
++
++    private fun resolvePreferredSharePackage(intent: Intent, target: String): String? {
++        val directPackage = when (target) {
++            "wechat" -> "com.tencent.mm"
++            "qq" -> "com.tencent.mobileqq"
++            else -> null
++        }
++        if (directPackage != null) {
++            val probe = Intent(intent).setPackage(directPackage)
++            if (probe.resolveActivity(packageManager) != null) return directPackage
++        }
++        val candidates = try { packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY) } catch (_: Exception) { emptyList() }
++        return candidates.firstOrNull { info ->
++            val label = try { info.loadLabel(packageManager).toString() } catch (_: Exception) { "" }
++            when (target) {
++                "wechat" -> label.contains("微信", ignoreCase = true) || label.contains("WeChat", ignoreCase = true)
++                "qq" -> label.equals("QQ", ignoreCase = true) || label.contains("QQ", ignoreCase = true)
++                else -> false
++            }
++        }?.activityInfo?.packageName
++    }
++
+     inner class AndroidBridge {
+         @JavascriptInterface
+         fun pickNoteImages(noteIdRaw: String): String {
+@@ -424,6 +567,81 @@
+             } catch (_: Exception) {
+                 "failed"
+             }
++        }
++
++        @JavascriptInterface
++        fun pickNoteFiles(noteIdRaw: String): String {
++            val noteId = noteIdRaw.toLongOrNull() ?: return "invalid"
++            if (noteId <= 0L) return "invalid"
++            pendingNoteFileNoteId = noteId
++            runOnUiThread {
++                try {
++                    noteFilePicker.launch(arrayOf("*/*"))
++                } catch (_: Exception) {
++                    pendingNoteFileNoteId = -1L
++                    if (pageReady) {
++                        webView.evaluateJavascript(
++                            "window.__onNoteFilesPicked && window.__onNoteFilesPicked([]);",
++                            null
++                        )
++                    }
++                }
++            }
++            return "ok"
++        }
++
++        @JavascriptInterface
++        fun deleteNoteFile(fileName: String): String {
++            val file = getNoteFile(fileName) ?: return "invalid"
++            return try {
++                file.delete()
++                "ok"
++            } catch (_: Exception) {
++                "failed"
++            }
++        }
++
++        @JavascriptInterface
++        fun openNoteFile(fileName: String): String {
++            val file = getNoteFile(fileName) ?: return "missing"
++            return try {
++                val uri = getNoteFileUri(file)
++                val intent = Intent(Intent.ACTION_VIEW).apply {
++                    setDataAndType(uri, guessNoteFileMime(file.name))
++                    clipData = ClipData.newRawUri("note_attachment", uri)
++                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
++                }
++                if (intent.resolveActivity(packageManager) == null) return "unavailable"
++                runOnUiThread {
++                    try { startActivity(Intent.createChooser(intent, "打开文件")) } catch (_: Exception) {}
++                }
++                "ok"
++            } catch (_: Exception) {
++                "failed"
++            }
++        }
++
++        @JavascriptInterface
++        fun shareNoteFile(fileName: String, target: String): String {
++            val file = getNoteFile(fileName) ?: return "missing"
++            return try {
++                val baseIntent = buildNoteFileShareIntent(file)
++                if (target == "more") {
++                    runOnUiThread {
++                        try { startActivity(Intent.createChooser(baseIntent, "分享文件")) } catch (_: Exception) {}
++                    }
++                    "ok"
++                } else {
++                    val packageName = resolvePreferredSharePackage(baseIntent, target) ?: return "unavailable"
++                    val directIntent = Intent(baseIntent).setPackage(packageName)
++                    runOnUiThread {
++                        try { startActivity(directIntent) } catch (_: Exception) {}
++                    }
++                    "ok"
++                }
++            } catch (_: Exception) {
++                "failed"
++            }
+         }
+ 
+         @JavascriptInterface
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST*' '--exclude=SELF_TEST*' '--exclude=changes/V1.19.1-to-V1.20.patch' todo_v1191_baseline/android/app/src/main/res/xml/file_paths.xml todo_v120_work/android/app/src/main/res/xml/file_paths.xml
+--- todo_v1191_baseline/android/app/src/main/res/xml/file_paths.xml	1970-01-01 00:00:00.000000000 +0000
++++ todo_v120_work/android/app/src/main/res/xml/file_paths.xml	2026-08-13 11:04:15.990863479 +0000
+@@ -0,0 +1,4 @@
++<?xml version="1.0" encoding="utf-8"?>
++<paths xmlns:android="http://schemas.android.com/apk/res/android">
++    <files-path name="note_files" path="note_files/" />
++</paths>
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST*' '--exclude=SELF_TEST*' '--exclude=changes/V1.19.1-to-V1.20.patch' todo_v1191_baseline/build-apk.bat todo_v120_work/build-apk.bat
+--- todo_v1191_baseline/build-apk.bat	2026-08-12 09:44:51.000000000 +0000
++++ todo_v120_work/build-apk.bat	2026-08-13 11:07:27.300427474 +0000
+@@ -10,9 +10,9 @@
+ )
+ if not exist "dist" mkdir "dist"
+ for %%F in ("android\app\build\outputs\apk\debug\*.apk") do (
+-  copy /Y "%%~fF" "dist\To-Do-v1.19.apk" >nul
++  copy /Y "%%~fF" "dist\To-Do-v1.20.apk" >nul
+   echo.
+-  echo APK: %CD%\dist\To-Do-v1.19.apk
++  echo APK: %CD%\dist\To-Do-v1.20.apk
+   exit /b 0
+ )
+ echo Build finished but no APK was found under android\app\build\outputs\apk\debug
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST*' '--exclude=SELF_TEST*' '--exclude=changes/V1.19.1-to-V1.20.patch' todo_v1191_baseline/changes/CHANGELOG_V1.20.md todo_v120_work/changes/CHANGELOG_V1.20.md
+--- todo_v1191_baseline/changes/CHANGELOG_V1.20.md	1970-01-01 00:00:00.000000000 +0000
++++ todo_v120_work/changes/CHANGELOG_V1.20.md	2026-08-13 11:12:11.529711840 +0000
+@@ -0,0 +1,32 @@
++# To-Do V1.20 Changelog
++
++## Base / Target
++- Base: `To-Do-v1.19.1-Full.zip`
++- Target: `To-Do-v1.20-Full.zip`
++
++## 1. Note 长文编辑工具栏稳定
++- 不再通过修改整个 `noteEditor.bottom` 来躲避软键盘，避免编辑器缩短后露出底层 Note 根目录。
++- Note 编辑器始终全屏覆盖；格式工具栏改为固定在视口底部，并仅按 `visualViewport` 计算出的键盘高度向上平移。
++- 同时监听 `visualViewport.resize` 与 `visualViewport.scroll`，长文滚动、系统输入法发生 viewport pan 时持续贴住键盘上沿。
++- 正文增加动态底部滚动留白，收起键盘后工具栏自然回落屏幕底部。
++
++## 2. 图片按钮换成标准图库图标
++- 原工具栏最右侧的 `▧+` 替换为简洁 SVG 图库图标。
++- 原有系统 Photo Picker、多选图片、私有图片目录、预览与删除逻辑不变。
++
++## 3. Note 文件附件
++- 图片按钮右侧新增“添加文件”按钮。
++- 调用 Android Storage Access Framework (`OpenMultipleDocuments`) 打开系统文件选择器，可一次多选文件。
++- 选中内容复制到 APP 私有 `files/note_files/`，避免原文件移动/删除后笔记附件立即失效。
++- 正文在当前光标位置插入附件卡片，显示扩展名/格式、文件名、大小；支持 PDF、DOC/DOCX、MD/TXT、XLS/XLSX/CSV、PPT/PPTX、ZIP/RAR/7Z 及其他类型。
++- 单卡片可移除；删除 Note 及其子 Note 时同步删除对应私有文件。
++
++## 4. 商业化文件操作面板
++- 点击附件卡片弹出自定义底部圆角操作面板：`文件查看 / 微信发送 / QQ发送 / 更多`。
++- 文件查看使用 `ACTION_VIEW` + Android chooser；微信/QQ使用定向 `ACTION_SEND`；更多使用系统 Sharesheet。
++- 私有附件通过 AndroidX `FileProvider` 暴露临时 `content://` URI，并授予只读权限；不增加“读取全部存储”权限。
++
++## 版本
++- `versionCode = 31`
++- `versionName = 1.20`
++- `applicationId = com.todolist.app`（保持不变）
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST*' '--exclude=SELF_TEST*' '--exclude=changes/V1.19.1-to-V1.20.patch' todo_v1191_baseline/changes/LOCKED_CORE_GUARD_V1.20.txt todo_v120_work/changes/LOCKED_CORE_GUARD_V1.20.txt
+--- todo_v1191_baseline/changes/LOCKED_CORE_GUARD_V1.20.txt	1970-01-01 00:00:00.000000000 +0000
++++ todo_v120_work/changes/LOCKED_CORE_GUARD_V1.20.txt	2026-08-13 11:13:52.424351652 +0000
+@@ -0,0 +1,48 @@
++Locked Core Guard — V1.19.1 -> V1.20
++
++This round explicitly authorizes changes to:
++- ui/todo.html + Android asset mirror: Note editor keyboard anchoring, image icon, file attachment UI/data hooks.
++- MainActivity.kt: Storage Access Framework file picker, private attachment copy, FileProvider open/share bridge.
++- AndroidManifest.xml + new res/xml/file_paths.xml: package visibility and secure FileProvider.
++- version/release metadata and README.
++
++Reminder scheduling, Daily core, Banner gesture/Snooze behavior, receivers/stores/service, notification behavior are NOT authorized for changes.
++
++- PASS  android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt  49dbbad17f11d7109eb4d82a55857e01b219e22b2d68c91289e801f2f6d9468f
++- PASS  android/app/src/main/java/com/todolist/app/receiver/BootReceiver.kt  5c749c6186e9ba2e9226e29e93856753879c898e8b2dcbe5d7a9922c4d27ca7d
++- PASS  android/app/src/main/java/com/todolist/app/receiver/DailyTaskActionReceiver.kt  9bd9bb60566ee86da41ce282cf3b1b845f4f4caa05b34567cc5612ac33c092de
++- PASS  android/app/src/main/java/com/todolist/app/receiver/DailyTaskReminderReceiver.kt  26928a47fd1f97f7ab9b51500f5c58f20333e2c1d1cc72edd4cc6a3ed9907292
++- PASS  android/app/src/main/java/com/todolist/app/receiver/MidnightReceiver.kt  49ebf2634854cd20c6d03656d4c1da7de3a6c0a30f542cdf23e7b0c9b9f1219e
++- PASS  android/app/src/main/java/com/todolist/app/receiver/ReminderActionReceiver.kt  ba2b57ee965759555fe4913827b2aa4fdeb1499854fb40c298efeb2bcfc3e361
++- PASS  android/app/src/main/java/com/todolist/app/receiver/TodoReminderReceiver.kt  36b242a80eaa2a9d4f4cd1aad3d8ff7105027e68ce0f166efd1b8aea495cb207
++- PASS  android/app/src/main/java/com/todolist/app/reminder/DailyTaskStore.kt  5770232c61f413fa8e88dadd07182f1a3a81d04a8758d9e3b4e37d43d417162e
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderDiagnostics.kt  445283809d9ecbafd08e80e8cd882444372127ef7aebea8d38c30a9857be4898
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderNotifier.kt  2b99868689598268ac27e07ed55385d5e2786ab6c1b9027b80dff2459b5642fc
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderScheduler.kt  4d58be9846178a49e45ca62d69368be10190512599c19e5aeac5431e9bd79a1e
++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderStore.kt  f2e941bc491f4d743697136e135888e98c14324236abb8814b9632669a183df6
++- PASS  android/app/src/main/java/com/todolist/app/reminder/SnoozeStore.kt  87f3a0ee2af0af3bf1d43453a24b2d4429de4b653b9faf4482f616a9da574b6d
++- PASS  android/app/src/main/java/com/todolist/app/reminder/TodoSnapshotStore.kt  74ea806ecddc1680c3e7cb5f7e0abb9db8ba1a69ab9a4b3ac2e90a7cd5e9c1b3
++- PASS  android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt  be35d5eff3dd8067f0596d13055b9dda7f8d77204fe4ff1015c7f57499a58ca4
++- PASS  android/app/src/main/java/com/todolist/app/ui/BannerView.kt  f5e3fb07f5700e148e26cb4c9091f17e5ed06d2f82ad22bf15b9af24c328d68a
++- PASS  android/app/src/main/java/com/todolist/app/ui/DailyTaskBannerView.kt  41aa1e68973d2b77462484c22be00b9b712349c452a4db3c819e534854ea2bb5
++- PASS  android/app/src/main/java/com/todolist/app/ui/SnoozeSwipeBannerView.kt  4b99f2224df38ca6d90b749290174f69291e5f24589af35a58af12720bc829f4
++- PASS  android/app/src/main/java/com/todolist/app/ui/TodoReminderBannerView.kt  c53e279feafaa0b46f470c4e0ee0ab3d0cd48420171ac006079a6988f867c408
++- PASS  android/app/src/main/java/com/todolist/app/util/Dp.kt  4076197dac4258610e66978ffa4d4347ba1c1eb75ec364ddca9344c99ee617e8
++
++Locked reminder/banner core: 20/20 PASS.
++All pre-existing source/runtime files outside the authorized diff remain byte-identical to V1.19.1. Release-generated metadata/checksum files are excluded from this count.
++Changed existing files:
++- README.md
++- android/app/build.gradle.kts
++- android/app/src/main/AndroidManifest.xml
++- android/app/src/main/assets/todo.html
++- android/app/src/main/java/com/todolist/app/MainActivity.kt
++- build-apk.bat
++- script_0.js
++- ui/todo.html
++
++Storage key guard:
++- Existing Web localStorage business key set remains identical to V1.19.1.
++- ui/todo.html == android/app/src/main/assets/todo.html.
++
++Result: PASS
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST*' '--exclude=SELF_TEST*' '--exclude=changes/V1.19.1-to-V1.20.patch' todo_v1191_baseline/changes/V1.19.1-to-V1.20.patch todo_v120_work/changes/V1.19.1-to-V1.20.patch
+--- todo_v1191_baseline/changes/V1.19.1-to-V1.20.patch	1970-01-01 00:00:00.000000000 +0000
++++ todo_v120_work/changes/V1.19.1-to-V1.20.patch	2026-08-13 11:14:02.135164990 +0000
+@@ -0,0 +1,972 @@
++diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST*' '--exclude=SELF_TEST*' '--exclude=changes/V1.19.1-to-V1.20.patch' todo_v1191_baseline/README.md todo_v120_work/README.md
++--- todo_v1191_baseline/README.md	2026-08-12 09:51:32.000000000 +0000
+++++ todo_v120_work/README.md	2026-08-13 11:10:22.153485536 +0000
++@@ -1,4 +1,4 @@
++-# To-Do V1.18
+++# To-Do V1.20
++ 
++ 本地优先的 To-Do + Note Android 应用。UI 使用 HTML/CSS/Vanilla JS，Android 原生层使用 Kotlin WebView，并负责精确定时、后台提醒守护与悬浮 Banner。
++ 
++@@ -6,6 +6,16 @@
++ 
++ 
++ 
+++
+++## V1.20 Note 长文编辑稳定 + 文件附件
+++
+++- Note 编辑器不再通过缩短整个全屏编辑层来躲避软键盘；编辑层始终覆盖全屏，只让格式工具栏依据 `visualViewport` 键盘上沿移动。长文上下滚动时工具栏持续贴住键盘顶部，避免露出 Note 根目录列表；收起键盘后工具栏回到底部。
+++- Note 工具栏的“添加图片”换成标准图库图标，并在最右侧新增“添加文件”按钮。
+++- 文件选择使用 Android Storage Access Framework，可多选 PDF / DOCX / MD / TXT / ZIP 等常见文件；选中后复制到 APP 私有 `files/note_files/`，正文只保存轻量附件卡片元数据。
+++- 文件以附件卡片插入当前光标位置，显示文件名、格式和大小；删除卡片或删除整条 Note 时会同步清理对应私有附件。
+++- 点击附件卡片打开自定义底部操作面板：`文件查看 / 微信发送 / QQ发送 / 更多`。文件查看通过系统兼容应用打开；微信/QQ走定向分享；更多进入 Android 系统 Sharesheet。
+++- 外部打开/分享统一通过 `FileProvider content:// URI` 临时授权，不暴露真实私有文件路径，也不新增全盘存储权限。
+++
++ ## V1.18 Note 图文编辑 + 原生悬浮层纯渐隐
++ 
++ - Note 编辑器底部工具栏最右侧新增 `▧+` 图片按钮，调用 Android 系统 Photo Picker，最多一次选择 20 张图片；不申请整库相册权限。
++@@ -109,7 +119,7 @@
++ ## 当前功能
++ 
++ - **To-Do 模式**：全部 / 未完成 / 进行中 / 已完成、分类、搜索、日历、回收站、AI 助手等。
++-- **Note 模式**：保留原 Note / 文件夹 / 子笔记 / 编辑器能力，并支持从系统相册多选图片插入正文、私有存储与图片预览。
+++- **Note 模式**：保留原 Note / 文件夹 / 子笔记 / 编辑器能力，支持相册多选图片与系统多选文件附件；图片/文件均复制到 APP 私有存储，正文只保存轻量引用/卡片。
++ - **每日总结提醒**：右上角时钟设置每天时间，到点显示今日完成进度悬浮 Banner，可展开并进入 APP。
++ - **Daily 每日事项**：独立半高抽屉管理每天固定重复的小事；今日完成/未完成两态，左滑编辑删除、月历完成统计、到点单行常驻 Banner。
++ - **单条待办提醒**：左滑仍是两个独立按钮：绿色“提醒”、红色“删除”；提醒设置年月日时分。
++diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST*' '--exclude=SELF_TEST*' '--exclude=changes/V1.19.1-to-V1.20.patch' todo_v1191_baseline/android/app/build.gradle.kts todo_v120_work/android/app/build.gradle.kts
++--- todo_v1191_baseline/android/app/build.gradle.kts	2026-08-12 09:44:51.000000000 +0000
+++++ todo_v120_work/android/app/build.gradle.kts	2026-08-13 11:07:27.300189535 +0000
++@@ -11,8 +11,8 @@
++         applicationId = "com.todolist.app"
++         minSdk = 26
++         targetSdk = 35
++-        versionCode = 30
++-        versionName = "1.19"
+++        versionCode = 31
+++        versionName = "1.20"
++     }
++ 
++     buildTypes {
++diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST*' '--exclude=SELF_TEST*' '--exclude=changes/V1.19.1-to-V1.20.patch' todo_v1191_baseline/android/app/src/main/AndroidManifest.xml todo_v120_work/android/app/src/main/AndroidManifest.xml
++--- todo_v1191_baseline/android/app/src/main/AndroidManifest.xml	2026-08-12 05:43:47.000000000 +0000
+++++ todo_v120_work/android/app/src/main/AndroidManifest.xml	2026-08-13 11:04:15.990430886 +0000
++@@ -11,6 +11,19 @@
++     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
++     <uses-permission android:name="android.permission.WAKE_LOCK" />
++ 
+++    <queries>
+++        <package android:name="com.tencent.mm" />
+++        <package android:name="com.tencent.mobileqq" />
+++        <intent>
+++            <action android:name="android.intent.action.SEND" />
+++            <data android:mimeType="*/*" />
+++        </intent>
+++        <intent>
+++            <action android:name="android.intent.action.VIEW" />
+++            <data android:mimeType="*/*" />
+++        </intent>
+++    </queries>
+++
++     <application
++         android:allowBackup="true"
++         android:icon="@mipmap/ic_launcher_v2"
++@@ -30,6 +43,16 @@
++             </intent-filter>
++         </activity>
++ 
+++        <provider
+++            android:name="androidx.core.content.FileProvider"
+++            android:authorities="${applicationId}.fileprovider"
+++            android:exported="false"
+++            android:grantUriPermissions="true">
+++            <meta-data
+++                android:name="android.support.FILE_PROVIDER_PATHS"
+++                android:resource="@xml/file_paths" />
+++        </provider>
+++
++         <service
++             android:name=".service.FloatWindowService"
++             android:foregroundServiceType="specialUse"
++diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST*' '--exclude=SELF_TEST*' '--exclude=changes/V1.19.1-to-V1.20.patch' todo_v1191_baseline/android/app/src/main/assets/todo.html todo_v120_work/android/app/src/main/assets/todo.html
++--- todo_v1191_baseline/android/app/src/main/assets/todo.html	2026-08-12 09:53:46.000000000 +0000
+++++ todo_v120_work/android/app/src/main/assets/todo.html	2026-08-13 11:11:03.150603360 +0000
++@@ -1946,6 +1946,12 @@
++   z-index: 200;
++   background: #f5ecd8;
++   display: flex; flex-direction: column;
+++  --note-keyboard-inset: 0px;
+++  overscroll-behavior: none;
+++}
+++html.note-editor-open, body.note-editor-open {
+++  overflow: hidden !important;
+++  overscroll-behavior: none;
++ }
++ .note-editor__header {
++   position: relative;
++@@ -2044,7 +2050,7 @@
++ .note-editor__search::placeholder { color: var(--text-tertiary); }
++ .note-editor__body {
++   flex: 1;
++-  padding: 4px 16px 40vh;
+++  padding: 4px 16px calc(78px + var(--note-keyboard-inset));
++   overflow-y: auto;
++   font-size: 15px;
++   font-weight: 400;
++@@ -2054,6 +2060,8 @@
++   -webkit-user-select: text;
++   user-select: text;
++   min-height: 80px;
+++  overscroll-behavior-y: contain;
+++  scroll-padding-bottom: calc(78px + var(--note-keyboard-inset));
++ }
++ .note-editor__body:empty::before {
++   content: '开始写笔记…';
++@@ -2120,22 +2128,30 @@
++   background: rgba(255,255,255,0.4);
++   max-height: 40vh;
++   overflow-y: auto;
+++  padding-bottom: calc(54px + var(--note-keyboard-inset));
++ }
++ 
++-/* ===== Format Bar (inside editor flow, at bottom) ===== */
+++/* ===== Format Bar: viewport-anchored, always glued to keyboard/top of IME ===== */
++ .note-format-bar {
++-  flex-shrink: 0;
+++  position: fixed;
+++  left: 0; right: 0; bottom: 0;
+++  z-index: 235;
++   display: flex;
++   align-items: center;
++   justify-content: flex-start;
++   gap: 2px;
++-  padding: 6px 8px;
++-  background: rgba(250, 248, 245, 0.97);
++-  backdrop-filter: blur(10px);
++-  -webkit-backdrop-filter: blur(10px);
+++  padding: 6px 8px max(6px, env(safe-area-inset-bottom));
+++  background: rgba(250, 248, 245, 0.975);
+++  backdrop-filter: blur(12px);
+++  -webkit-backdrop-filter: blur(12px);
++   border-top: 1px solid rgba(0,0,0,0.08);
+++  box-shadow: 0 -4px 18px rgba(84,70,58,.06);
++   overflow-x: auto;
++   -webkit-overflow-scrolling: touch;
+++  transform: translate3d(0, calc(-1 * var(--note-keyboard-inset)), 0);
+++  will-change: transform;
+++  transition: transform 110ms ease-out;
+++  backface-visibility: hidden;
++ }
++ .note-format-bar button {
++   flex-shrink: 0;
++@@ -2169,6 +2185,77 @@
++   margin: 0 4px;
++ }
++ 
+++.note-format-bar .note-toolbar-icon-btn { color:#3b9e8a; }
+++.note-format-bar .note-toolbar-icon-btn svg {
+++  width:20px; height:20px; display:block; fill:none; stroke:currentColor; stroke-width:1.8;
+++  stroke-linecap:round; stroke-linejoin:round; pointer-events:none;
+++}
+++.note-add-file-btn { color:#6f87bb!important; }
+++
+++/* ===== Note inline file attachments ===== */
+++.note-file-stack {
+++  display:flex; flex-direction:column; gap:8px; margin:10px 0 12px; width:100%;
+++  user-select:none; -webkit-user-select:none;
+++}
+++.note-file-card {
+++  display:flex; align-items:center; gap:11px; width:100%; min-width:0; padding:11px 12px;
+++  border-radius:16px; background:rgba(255,255,255,.58); border:1px solid rgba(255,255,255,.78);
+++  box-shadow:0 5px 18px rgba(91,76,61,.08); cursor:pointer;
+++  transition:transform .14s ease, box-shadow .14s ease, background .14s ease;
+++}
+++.note-file-card:active { transform:scale(.985); background:rgba(255,255,255,.76); }
+++.note-file-card__badge {
+++  flex:0 0 46px; width:46px; height:46px; border-radius:13px; display:flex; align-items:center; justify-content:center;
+++  font-size:11px; font-weight:850; letter-spacing:.2px; color:#fff; background:linear-gradient(135deg,#72cfc0,#5793e7);
+++  box-shadow:0 5px 14px rgba(72,126,167,.16);
+++}
+++.note-file-card__badge.pdf { background:linear-gradient(135deg,#ff8b83,#e95d67); }
+++.note-file-card__badge.md,.note-file-card__badge.txt { background:linear-gradient(135deg,#69c9ac,#3aa891); }
+++.note-file-card__badge.doc,.note-file-card__badge.docx { background:linear-gradient(135deg,#71aaf5,#4b75dc); }
+++.note-file-card__badge.xls,.note-file-card__badge.xlsx,.note-file-card__badge.csv { background:linear-gradient(135deg,#67c58d,#379d68); }
+++.note-file-card__badge.ppt,.note-file-card__badge.pptx { background:linear-gradient(135deg,#f7a06e,#e66f48); }
+++.note-file-card__badge.zip,.note-file-card__badge.rar,.note-file-card__badge.sevenzip { background:linear-gradient(135deg,#b59ae8,#876ccc); }
+++.note-file-card__main { flex:1; min-width:0; }
+++.note-file-card__name { font-size:13.5px; font-weight:720; color:#403832; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+++.note-file-card__meta { margin-top:3px; font-size:10.5px; color:#9a8e83; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+++.note-file-card__remove {
+++  flex:0 0 30px; width:30px; height:30px; border:0; border-radius:50%; background:rgba(238,111,108,.09);
+++  color:#d77673; font-size:14px; display:flex; align-items:center; justify-content:center;
+++}
+++.note-file-picker-marker { display:inline-block; width:2px; height:1em; vertical-align:middle; }
+++
+++.note-file-actions-overlay {
+++  position:fixed; inset:0; z-index:16030; display:none; align-items:flex-end; justify-content:center;
+++  padding:0 12px max(12px,env(safe-area-inset-bottom)); background:rgba(48,43,39,.28);
+++  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); opacity:0; transition:opacity 180ms ease-out;
+++}
+++.note-file-actions-overlay.active { display:flex; opacity:1; }
+++.note-file-actions-sheet {
+++  width:min(100%,440px); border-radius:26px; padding:10px 14px 14px;
+++  background:linear-gradient(180deg,rgba(255,255,253,.98),rgba(251,247,243,.98));
+++  border:1px solid rgba(255,255,255,.82); box-shadow:0 24px 70px rgba(74,57,45,.24);
+++  transform:translate3d(0,18px,0); opacity:0; transition:transform 200ms cubic-bezier(.22,.82,.28,1),opacity 170ms ease-out;
+++}
+++.note-file-actions-overlay.active .note-file-actions-sheet { transform:translate3d(0,0,0); opacity:1; }
+++.note-file-actions-handle { width:42px; height:4px; border-radius:999px; background:#ded8d1; margin:1px auto 12px; }
+++.note-file-actions-head { display:flex; align-items:center; gap:11px; padding:3px 4px 13px; }
+++.note-file-actions-head__icon { width:44px; height:44px; border-radius:13px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#e7f7f2,#e9effd); color:#547ca7; }
+++.note-file-actions-head__icon svg { width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+++.note-file-actions-copy { flex:1; min-width:0; }
+++.note-file-actions-name { font-size:14px; font-weight:800; color:#3f3731; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+++.note-file-actions-meta { margin-top:3px; font-size:11px; color:#9a8e83; }
+++.note-file-actions-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+++.note-file-action {
+++  border:0; border-radius:17px; padding:12px 5px 10px; background:rgba(247,244,240,.92); color:#554b43;
+++  display:flex; flex-direction:column; align-items:center; gap:7px; font-size:11px; font-weight:700; min-width:0;
+++}
+++.note-file-action:active { transform:scale(.96); }
+++.note-file-action__icon { width:36px; height:36px; border-radius:12px; background:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(76,62,52,.07); font-size:17px; }
+++.note-file-action__icon svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+++.note-file-action.wechat .note-file-action__icon { color:#21a763; }
+++.note-file-action.qq .note-file-action__icon { color:#4f78dc; }
+++.note-file-actions-cancel { width:100%; margin-top:10px; padding:12px; border:0; border-radius:15px; background:rgba(242,238,233,.9); color:#81756b; font-size:13px; font-weight:700; }
+++
++ /* ===== Color Picker Popup ===== */
++ .color-picker-pop {
++   position: fixed;
++@@ -2405,7 +2492,12 @@
++       <span class="note-format-bar__sep"></span>
++       <button onclick="insertCheckbox()" title="待办勾选">☐</button>
++       <button onclick="moreAddChild()" title="添加子笔记">+子</button>
++-      <button class="note-add-image-btn" id="noteAddImageBtn" title="添加图片" aria-label="添加图片">▧+</button>
+++      <button class="note-toolbar-icon-btn note-add-image-btn" id="noteAddImageBtn" title="添加图片" aria-label="添加图片">
+++        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"></rect><circle cx="8.2" cy="9" r="1.4"></circle><path d="M5.5 17l4.1-4.2 3.1 3.1 2.1-2.1 3.7 3.2"></path></svg>
+++      </button>
+++      <button class="note-toolbar-icon-btn note-add-file-btn" id="noteAddFileBtn" title="添加文件" aria-label="添加文件">
+++        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h8l4 4V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z"></path><path d="M14 3.5V8h4"></path><path d="M8.5 14h7"></path><path d="M12 10.5v7"></path></svg>
+++      </button>
++     </div>
++     <div class="note-editor__children" id="noteEditorChildren">
++       <div class="note-editor__children-header">子笔记</div>
++@@ -2418,6 +2510,23 @@
++     <img id="noteImagePreviewImg" alt="笔记图片预览">
++   </div>
++ 
+++  <div class="note-file-actions-overlay" id="noteFileActionsOverlay" aria-hidden="true">
+++    <section class="note-file-actions-sheet" role="dialog" aria-modal="true" aria-label="文件操作">
+++      <div class="note-file-actions-handle"></div>
+++      <div class="note-file-actions-head">
+++        <div class="note-file-actions-head__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h8l4 4V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z"></path><path d="M14 3.5V8h4"></path></svg></div>
+++        <div class="note-file-actions-copy"><div class="note-file-actions-name" id="noteFileActionsName">附件</div><div class="note-file-actions-meta" id="noteFileActionsMeta"></div></div>
+++      </div>
+++      <div class="note-file-actions-grid">
+++        <button class="note-file-action" data-note-file-action="open"><span class="note-file-action__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5h6l1.8 2H20a1 1 0 0 1 1 1v7.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8.5a1 1 0 0 1 .5-1z"></path><path d="M7 14h10"></path></svg></span><span>文件查看</span></button>
+++        <button class="note-file-action wechat" data-note-file-action="wechat"><span class="note-file-action__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 6.5c-3 0-5.5 1.9-5.5 4.3 0 1.4.8 2.7 2.1 3.5l-.5 2 2.1-1.1c.6.2 1.2.3 1.8.3 3 0 5.5-1.9 5.5-4.4S11.5 6.5 8.5 6.5z"></path><path d="M13.5 9.5c4 0 7 2.2 7 5 0 1.5-.8 2.8-2.2 3.7l.4 1.8-2-1c-.9.3-1.7.4-2.6.4-1.4 0-2.7-.3-3.7-.9"></path></svg></span><span>微信发送</span></button>
+++        <button class="note-file-action qq" data-note-file-action="qq"><span class="note-file-action__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18.5c1.4 1.2 3.5 2 6 2s4.6-.8 6-2"></path><path d="M7 15c-1.1-1.2-1.7-2.8-1.7-4.5C5.3 6.9 8.1 4 12 4s6.7 2.9 6.7 6.5c0 1.8-.6 3.4-1.7 4.5"></path><path d="M9 9.5h.01M15 9.5h.01"></path></svg></span><span>QQ发送</span></button>
+++        <button class="note-file-action" data-note-file-action="more"><span class="note-file-action__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg></span><span>更多</span></button>
+++      </div>
+++      <button class="note-file-actions-cancel" id="noteFileActionsCancel">取消</button>
+++    </section>
+++  </div>
+++
++   <!-- Folder Sidebar -->
++   <div class="folder-sidebar-backdrop" id="folderSidebarBackdrop" style="display:none" onclick="closeFolderSidebar()"></div>
++   <div class="folder-sidebar" id="folderSidebar" style="display:none">
++@@ -3372,6 +3481,21 @@
++   });
++ }
++ 
+++function extractNoteFileNames(content) {
+++  var names = [];
+++  var re = /data-note-file-name=["']([A-Za-z0-9._-]{1,180})["']/g;
+++  var match;
+++  while ((match = re.exec(String(content || ''))) !== null) names.push(match[1]);
+++  return names;
+++}
+++
+++function deleteNativeNoteFilesFromContent(content) {
+++  if (typeof AndroidBridge === 'undefined' || !AndroidBridge.deleteNoteFile) return;
+++  extractNoteFileNames(content).forEach(function(name) {
+++    try { AndroidBridge.deleteNoteFile(name); } catch(e) {}
+++  });
+++}
+++
++ function deleteNote(id) {
++   var note = getNoteById(id);
++   if (!note) return;
++@@ -3391,6 +3515,7 @@
++       if (notes[j].parentId === toDelete[di]) {
++         toDelete.push(notes[j].id);
++         deleteNativeNoteImagesFromContent(notes[j].content || '');
+++        deleteNativeNoteFilesFromContent(notes[j].content || '');
++         notes.splice(j, 1);
++       }
++     }
++@@ -3400,6 +3525,7 @@
++   for (var k = notes.length - 1; k >= 0; k--) {
++     if (notes[k].id === id) {
++       deleteNativeNoteImagesFromContent(notes[k].content || '');
+++      deleteNativeNoteFilesFromContent(notes[k].content || '');
++       notes.splice(k, 1); break;
++     }
++   }
++@@ -3722,7 +3848,9 @@
++   var bodyEl = document.getElementById('noteEditorBody');
++   var childrenList = document.getElementById('noteEditorChildrenList');
++   var searchInput = document.getElementById('noteEditorSearch');
++-  if (editor) editor.style.display = '';
+++  if (editor) { editor.style.display = ''; editor.style.bottom = '0px'; editor.style.setProperty('--note-keyboard-inset','0px'); }
+++  document.documentElement.classList.add('note-editor-open');
+++  document.body.classList.add('note-editor-open');
++   if (titleInput) titleInput.value = note.title;
++   if (bodyEl) bodyEl.innerHTML = note.content;
++   _boldActive = false;
++@@ -3744,12 +3872,15 @@
++     bodyEl.focus();
++     _boldActive = !!document.queryCommandState('bold');
++     updateToolbarState();
+++    scheduleNoteKeyboardLayout();
++   }, 100);
++ }
++ 
++ function closeNoteEditor() {
++   var editor = document.getElementById('noteEditor');
++-  if (editor) editor.style.display = 'none';
+++  if (editor) { editor.style.display = 'none'; editor.style.bottom = '0px'; editor.style.setProperty('--note-keyboard-inset','0px'); }
+++  document.documentElement.classList.remove('note-editor-open');
+++  document.body.classList.remove('note-editor-open');
++   saveCurrentNote(); // sync save before clearing state
++   currentNoteId = null;
++   renderNoteList();
++@@ -6484,9 +6615,15 @@
++ // Resolve title: user input, or first line of body
++ function firstLineOfBody(bodyEl) {
++   var clone = bodyEl.cloneNode(true);
++-  clone.querySelectorAll('.note-image-grid,.note-image-picker-marker,.note-image-remove').forEach(function(el) { el.remove(); });
+++  clone.querySelectorAll('.note-image-grid,.note-image-picker-marker,.note-image-remove,.note-file-stack,.note-file-picker-marker,.note-file-card__remove').forEach(function(el) { el.remove(); });
++   var text = (clone.textContent || '').replace(/\n/g, ' ').trim();
++-  if (!text && bodyEl.querySelector('.note-image-item')) return '图片笔记';
+++  if (!text) {
+++    var hasImage = !!bodyEl.querySelector('.note-image-item');
+++    var hasFile = !!bodyEl.querySelector('.note-file-card');
+++    if (hasImage && hasFile) return '附件笔记';
+++    if (hasFile) return '文件笔记';
+++    if (hasImage) return '图片笔记';
+++  }
++   if (text.length > 50) text = text.substring(0, 50) + '…';
++   return text;
++ }
++@@ -6738,21 +6875,210 @@
++     showToast('图片已删除');
++     return;
++   }
+++  var fileRemove = e.target.closest('[data-note-file-remove]');
+++  if (fileRemove) {
+++    e.preventDefault(); e.stopPropagation();
+++    var fileCard = fileRemove.closest('.note-file-card');
+++    var fileStack = fileRemove.closest('.note-file-stack');
+++    var fileName = fileCard ? fileCard.getAttribute('data-note-file-name') : '';
+++    if (fileName && typeof AndroidBridge !== 'undefined' && AndroidBridge.deleteNoteFile) { try { AndroidBridge.deleteNoteFile(fileName); } catch(err2) {} }
+++    if (fileCard) fileCard.remove();
+++    if (fileStack && !fileStack.querySelector('.note-file-card')) fileStack.remove();
+++    saveCurrentNote();
+++    showToast('文件已移除');
+++    return;
+++  }
++   var img = e.target.closest('img[data-note-image-preview]');
++-  if (img) { e.preventDefault(); e.stopPropagation(); openNoteImagePreview(img.src); }
+++  if (img) { e.preventDefault(); e.stopPropagation(); openNoteImagePreview(img.src); return; }
+++  var fileCard = e.target.closest('.note-file-card[data-note-file-name]');
+++  if (fileCard) { e.preventDefault(); e.stopPropagation(); openNoteFileActions(fileCard); }
++ });
++ 
+++// ===== Note file picker / inline attachment cards =====
+++var noteFilePendingMarkerId = '';
+++var noteFileMarkerSeq = 0;
+++var activeNoteFileMeta = null;
+++
+++function insertFileMarkerAtCaret() {
+++  var bodyEl = document.getElementById('noteEditorBody');
+++  if (!bodyEl) return null;
+++  var marker = document.createElement('span');
+++  marker.id = 'noteFileMarker_' + Date.now() + '_' + (++noteFileMarkerSeq);
+++  marker.className = 'note-file-picker-marker';
+++  marker.setAttribute('contenteditable','false');
+++  var range = noteLastSelectionRange && bodyEl.contains(noteLastSelectionRange.commonAncestorContainer)
+++    ? noteLastSelectionRange.cloneRange() : null;
+++  if (!range) {
+++    range = document.createRange();
+++    range.selectNodeContents(bodyEl);
+++    range.collapse(false);
+++  }
+++  range.deleteContents();
+++  range.insertNode(marker);
+++  return marker;
+++}
+++
+++function requestNoteFiles() {
+++  if (!currentNoteId) return showToast('请先打开一条笔记');
+++  if (typeof AndroidBridge === 'undefined' || !AndroidBridge.pickNoteFiles) return showToast('添加文件仅支持 Android APP');
+++  rememberNoteSelection();
+++  var oldMarker = noteFilePendingMarkerId ? document.getElementById(noteFilePendingMarkerId) : null;
+++  if (oldMarker) oldMarker.remove();
+++  var marker = insertFileMarkerAtCaret();
+++  if (!marker) return;
+++  noteFilePendingMarkerId = marker.id;
+++  try {
+++    var result = String(AndroidBridge.pickNoteFiles(String(currentNoteId)));
+++    if (result !== 'ok') { marker.remove(); noteFilePendingMarkerId = ''; showToast('无法打开系统文件选择器'); }
+++  } catch(e) {
+++    marker.remove(); noteFilePendingMarkerId = ''; showToast('无法打开系统文件选择器');
+++  }
+++}
+++
+++function noteFileExtension(displayName, mime) {
+++  var name = String(displayName || '');
+++  var idx = name.lastIndexOf('.');
+++  var ext = idx >= 0 ? name.slice(idx + 1).toLowerCase() : '';
+++  if (!ext && mime === 'application/pdf') ext = 'pdf';
+++  if (!ext && mime && mime.indexOf('text/') === 0) ext = 'txt';
+++  return ext || 'file';
+++}
+++function noteFileBadgeLabel(ext) {
+++  var e = String(ext || 'file').toUpperCase();
+++  if (e === 'MARKDOWN') e = 'MD';
+++  if (e === 'JPEG') e = 'JPG';
+++  return e.length > 5 ? 'FILE' : e;
+++}
+++function noteFileBadgeClass(ext) {
+++  var e = String(ext || '').toLowerCase();
+++  return e === '7z' ? 'sevenzip' : e.replace(/[^a-z0-9_-]/g,'');
+++}
+++function noteFileSizeLabel(bytes) {
+++  var n = Number(bytes);
+++  if (!isFinite(n) || n < 0) return '未知大小';
+++  if (n < 1024) return n + ' B';
+++  if (n < 1024 * 1024) return (n / 1024).toFixed(n < 10 * 1024 ? 1 : 0) + ' KB';
+++  if (n < 1024 * 1024 * 1024) return (n / 1024 / 1024).toFixed(n < 10 * 1024 * 1024 ? 1 : 0) + ' MB';
+++  return (n / 1024 / 1024 / 1024).toFixed(1) + ' GB';
+++}
+++function createNoteFileCard(item) {
+++  if (!item || !item.name) return null;
+++  var displayName = String(item.displayName || item.name);
+++  var mime = String(item.mime || 'application/octet-stream');
+++  var size = Number(item.size || 0);
+++  var ext = noteFileExtension(displayName, mime);
+++  var card = document.createElement('div');
+++  card.className = 'note-file-card';
+++  card.setAttribute('contenteditable','false');
+++  card.setAttribute('data-note-file-name', String(item.name));
+++  card.setAttribute('data-note-file-display', displayName);
+++  card.setAttribute('data-note-file-mime', mime);
+++  card.setAttribute('data-note-file-size', String(size));
+++  card.setAttribute('data-note-file-ext', ext);
+++
+++  var badge = document.createElement('div');
+++  badge.className = 'note-file-card__badge ' + noteFileBadgeClass(ext);
+++  badge.textContent = noteFileBadgeLabel(ext);
+++  var main = document.createElement('div');
+++  main.className = 'note-file-card__main';
+++  var name = document.createElement('div');
+++  name.className = 'note-file-card__name'; name.textContent = displayName;
+++  var meta = document.createElement('div');
+++  meta.className = 'note-file-card__meta'; meta.textContent = noteFileBadgeLabel(ext) + ' · ' + noteFileSizeLabel(size) + ' · 点击打开/分享';
+++  main.appendChild(name); main.appendChild(meta);
+++  var remove = document.createElement('button');
+++  remove.type = 'button'; remove.className = 'note-file-card__remove'; remove.setAttribute('data-note-file-remove','1'); remove.setAttribute('aria-label','移除文件'); remove.textContent = '✕';
+++  card.appendChild(badge); card.appendChild(main); card.appendChild(remove);
+++  return card;
+++}
++ 
++-// ===== Keyboard-aware: shrink editor so toolbar (in flow) stays above keyboard =====
+++window.__onNoteFilesPicked = function(items) {
+++  items = Array.isArray(items) ? items : [];
+++  var bodyEl = document.getElementById('noteEditorBody');
+++  if (!bodyEl) return;
+++  var marker = noteFilePendingMarkerId ? document.getElementById(noteFilePendingMarkerId) : null;
+++  noteFilePendingMarkerId = '';
+++  if (!items.length) { if (marker) marker.remove(); return; }
+++  var stack = document.createElement('div');
+++  stack.className = 'note-file-stack'; stack.setAttribute('contenteditable','false');
+++  items.forEach(function(item) { var card = createNoteFileCard(item); if (card) stack.appendChild(card); });
+++  if (!stack.children.length) { if (marker) marker.remove(); return; }
+++  var spacer = document.createElement('div'); spacer.innerHTML = '<br>';
+++  if (marker && marker.parentNode) {
+++    marker.parentNode.insertBefore(stack, marker);
+++    marker.parentNode.insertBefore(spacer, marker);
+++    marker.remove();
+++  } else { bodyEl.appendChild(stack); bodyEl.appendChild(spacer); }
+++  saveCurrentNote();
+++  showToast(items.length === 1 ? '已添加文件' : ('已添加 ' + items.length + ' 个文件'));
+++};
+++
+++function openNoteFileActions(card) {
+++  if (!card) return;
+++  activeNoteFileMeta = {
+++    name: card.getAttribute('data-note-file-name') || '',
+++    displayName: card.getAttribute('data-note-file-display') || '附件',
+++    mime: card.getAttribute('data-note-file-mime') || 'application/octet-stream',
+++    size: Number(card.getAttribute('data-note-file-size') || 0),
+++    ext: card.getAttribute('data-note-file-ext') || 'file'
+++  };
+++  var overlay = document.getElementById('noteFileActionsOverlay');
+++  var nameEl = document.getElementById('noteFileActionsName');
+++  var metaEl = document.getElementById('noteFileActionsMeta');
+++  if (!overlay) return;
+++  if (nameEl) nameEl.textContent = activeNoteFileMeta.displayName;
+++  if (metaEl) metaEl.textContent = noteFileBadgeLabel(activeNoteFileMeta.ext) + ' · ' + noteFileSizeLabel(activeNoteFileMeta.size);
+++  overlay.style.display = 'flex';
+++  requestAnimationFrame(function(){ overlay.classList.add('active'); });
+++  overlay.setAttribute('aria-hidden','false');
+++}
+++function closeNoteFileActions() {
+++  var overlay = document.getElementById('noteFileActionsOverlay');
+++  if (!overlay) return;
+++  overlay.classList.remove('active'); overlay.setAttribute('aria-hidden','true');
+++  setTimeout(function(){ if (!overlay.classList.contains('active')) overlay.style.display = 'none'; }, 190);
+++}
+++function runNoteFileAction(action) {
+++  if (!activeNoteFileMeta || !activeNoteFileMeta.name || typeof AndroidBridge === 'undefined') return showToast('文件不可用');
+++  var result = 'failed';
+++  try {
+++    if (action === 'open') result = String(AndroidBridge.openNoteFile(activeNoteFileMeta.name));
+++    else result = String(AndroidBridge.shareNoteFile(activeNoteFileMeta.name, action));
+++  } catch(e) { result = 'failed'; }
+++  closeNoteFileActions();
+++  if (result === 'unavailable') showToast(action === 'wechat' ? '未检测到可用的微信' : action === 'qq' ? '未检测到可用的 QQ' : '没有可打开此文件的应用');
+++  else if (result !== 'ok') showToast('暂时无法处理这个文件');
+++}
+++
+++document.getElementById('noteAddFileBtn')?.addEventListener('click', requestNoteFiles);
+++document.getElementById('noteFileActionsCancel')?.addEventListener('click', closeNoteFileActions);
+++document.getElementById('noteFileActionsOverlay')?.addEventListener('click', function(e){ if (e.target === e.currentTarget) closeNoteFileActions(); });
+++document.querySelectorAll('[data-note-file-action]').forEach(function(btn){ btn.addEventListener('click', function(){ runNoteFileAction(btn.getAttribute('data-note-file-action')); }); });
+++
+++// ===== Keyboard-aware Note editor =====
+++// Keep the editor itself full-screen. Only the formatting bar moves to the top edge of the IME.
+++// This avoids exposing the underlying Note list while the visual viewport pans during long-note scrolling.
+++var noteKeyboardLayoutRaf = 0;
+++function syncNoteKeyboardLayout() {
+++  noteKeyboardLayoutRaf = 0;
+++  var editor = document.getElementById('noteEditor');
+++  if (!editor || editor.style.display === 'none') return;
+++  editor.style.bottom = '0px';
+++  var vv = window.visualViewport;
+++  var keyboardTop = vv ? (vv.offsetTop + vv.height) : window.innerHeight;
+++  var inset = Math.max(0, Math.round(window.innerHeight - keyboardTop));
+++  if (inset < 80) inset = 0;
+++  editor.style.setProperty('--note-keyboard-inset', inset + 'px');
+++}
+++function scheduleNoteKeyboardLayout() {
+++  if (noteKeyboardLayoutRaf) cancelAnimationFrame(noteKeyboardLayoutRaf);
+++  noteKeyboardLayoutRaf = requestAnimationFrame(syncNoteKeyboardLayout);
+++}
++ if (window.visualViewport) {
++-  window.visualViewport.addEventListener('resize', function() {
++-    var diff = window.innerHeight - window.visualViewport.height;
++-    var editor = document.getElementById('noteEditor');
++-    if (editor && editor.style.display !== 'none') {
++-      editor.style.bottom = diff > 80 ? diff + 'px' : '0px';
++-    }
++-  });
+++  window.visualViewport.addEventListener('resize', scheduleNoteKeyboardLayout);
+++  window.visualViewport.addEventListener('scroll', scheduleNoteKeyboardLayout);
++ }
+++window.addEventListener('resize', scheduleNoteKeyboardLayout);
++ 
++ // ===== Highlight state =====
++ var highlightColor = '#ffd93d'; // default yellow
++@@ -7080,7 +7406,9 @@
++   el = document.getElementById('noteEditorMoreMenu');
++   if (el && el.style.display !== 'none') { el.style.display = 'none'; return 'note-more'; }
++ 
++-  // Note image preview sits above the editor.
+++  // Note attachment actions / image preview sit above the editor.
+++  el = document.getElementById('noteFileActionsOverlay');
+++  if (el && el.classList.contains('active')) { closeNoteFileActions(); return 'note-file-actions'; }
++   el = document.getElementById('noteImagePreview');
++   if (el && el.classList.contains('active')) { closeNoteImagePreview(); return 'note-image-preview'; }
++ 
++diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST*' '--exclude=SELF_TEST*' '--exclude=changes/V1.19.1-to-V1.20.patch' todo_v1191_baseline/android/app/src/main/java/com/todolist/app/MainActivity.kt todo_v120_work/android/app/src/main/java/com/todolist/app/MainActivity.kt
++--- todo_v1191_baseline/android/app/src/main/java/com/todolist/app/MainActivity.kt	2026-08-12 06:11:25.000000000 +0000
+++++ todo_v120_work/android/app/src/main/java/com/todolist/app/MainActivity.kt	2026-08-13 11:08:55.056252573 +0000
++@@ -4,6 +4,7 @@
++ import android.app.AlarmManager
++ import android.content.BroadcastReceiver
++ import android.content.Context
+++import android.content.ClipData
++ import android.content.Intent
++ import android.content.IntentFilter
++ import android.content.pm.PackageManager
++@@ -11,6 +12,7 @@
++ import android.os.Build
++ import android.os.Bundle
++ import android.provider.Settings
+++import android.provider.OpenableColumns
++ import android.webkit.JavascriptInterface
++ import android.webkit.MimeTypeMap
++ import android.webkit.WebChromeClient
++@@ -23,6 +25,7 @@
++ import androidx.appcompat.app.AppCompatActivity
++ import androidx.core.app.ActivityCompat
++ import androidx.core.content.ContextCompat
+++import androidx.core.content.FileProvider
++ import com.todolist.app.manager.FloatWindowManager
++ import com.todolist.app.receiver.MidnightReceiver
++ import com.todolist.app.reminder.DailyTaskStore
++@@ -52,6 +55,7 @@
++     private var pendingFocusTodoId: Long = -1L
++     private var pendingFocusDailyTaskId: Long = -1L
++     private var pendingNoteImageNoteId: Long = -1L
+++    private var pendingNoteFileNoteId: Long = -1L
++ 
++     private val noteImagePicker = registerForActivityResult(
++         ActivityResultContracts.PickMultipleVisualMedia(20)
++@@ -59,6 +63,12 @@
++         handlePickedNoteImages(uris)
++     }
++ 
+++    private val noteFilePicker = registerForActivityResult(
+++        ActivityResultContracts.OpenMultipleDocuments()
+++    ) { uris ->
+++        handlePickedNoteFiles(uris)
+++    }
+++
++     private var permissionFlowActive = false
++     private var notificationAttempted = false
++     private var overlayAttempted = false
++@@ -390,6 +400,139 @@
++         }.start()
++     }
++ 
+++    private fun noteFileDir(): File = File(filesDir, "note_files").apply { mkdirs() }
+++
+++    private fun isSafeNoteFileName(name: String): Boolean =
+++        name.matches(Regex("[A-Za-z0-9._-]{1,180}")) && !name.contains("..")
+++
+++    private fun queryDocumentMeta(uri: Uri): Pair<String, Long> {
+++        var displayName = "附件"
+++        var size = -1L
+++        try {
+++            contentResolver.query(
+++                uri,
+++                arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE),
+++                null, null, null
+++            )?.use { cursor ->
+++                if (cursor.moveToFirst()) {
+++                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+++                    val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+++                    if (nameIndex >= 0) displayName = cursor.getString(nameIndex)?.takeIf { it.isNotBlank() } ?: displayName
+++                    if (sizeIndex >= 0 && !cursor.isNull(sizeIndex)) size = cursor.getLong(sizeIndex)
+++                }
+++            }
+++        } catch (_: Exception) {}
+++        return displayName to size
+++    }
+++
+++    private fun safeDocumentExtension(displayName: String, mime: String): String {
+++        val fromName = displayName.substringAfterLast('.', "")
+++            .lowercase()
+++            .takeIf { it.matches(Regex("[a-z0-9]{1,10}")) }
+++        if (fromName != null) return fromName
+++        return MimeTypeMap.getSingleton().getExtensionFromMimeType(mime)
+++            ?.lowercase()
+++            ?.takeIf { it.matches(Regex("[a-z0-9]{1,10}")) }
+++            ?: "bin"
+++    }
+++
+++    private fun guessNoteFileMime(fileName: String): String {
+++        val ext = fileName.substringAfterLast('.', "").lowercase()
+++        return MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: when (ext) {
+++            "md", "markdown" -> "text/markdown"
+++            "json" -> "application/json"
+++            "csv" -> "text/csv"
+++            "log" -> "text/plain"
+++            else -> "application/octet-stream"
+++        }
+++    }
+++
+++    private fun copyPickedNoteFile(noteId: Long, source: Uri, index: Int): JSONObject? {
+++        return try {
+++            val resolver = contentResolver
+++            val mime = resolver.getType(source) ?: "application/octet-stream"
+++            val (displayName, reportedSize) = queryDocumentMeta(source)
+++            val extension = safeDocumentExtension(displayName, mime)
+++            val fileName = "note_file_${noteId}_${System.currentTimeMillis()}_${index}_${UUID.randomUUID().toString().take(8)}.$extension"
+++            val destination = File(noteFileDir(), fileName)
+++            resolver.openInputStream(source)?.use { input ->
+++                destination.outputStream().buffered().use { output -> input.copyTo(output) }
+++            } ?: return null
+++            if (destination.length() <= 0L) {
+++                destination.delete()
+++                return null
+++            }
+++            JSONObject()
+++                .put("name", fileName)
+++                .put("displayName", displayName)
+++                .put("mime", mime)
+++                .put("size", if (reportedSize > 0L) reportedSize else destination.length())
+++        } catch (_: Exception) {
+++            null
+++        }
+++    }
+++
+++    private fun handlePickedNoteFiles(uris: List<Uri>) {
+++        val noteId = pendingNoteFileNoteId
+++        pendingNoteFileNoteId = -1L
+++        Thread {
+++            val payload = JSONArray()
+++            if (noteId > 0L) {
+++                uris.take(30).forEachIndexed { index, uri ->
+++                    copyPickedNoteFile(noteId, uri, index)?.let { payload.put(it) }
+++                }
+++            }
+++            if (!pageReady) return@Thread
+++            val json = payload.toString()
+++            webView.post {
+++                webView.evaluateJavascript(
+++                    "window.__onNoteFilesPicked && window.__onNoteFilesPicked($json);",
+++                    null
+++                )
+++            }
+++        }.start()
+++    }
+++
+++    private fun getNoteFile(fileName: String): File? {
+++        if (!isSafeNoteFileName(fileName)) return null
+++        val file = File(noteFileDir(), fileName)
+++        return file.takeIf { it.exists() && it.isFile }
+++    }
+++
+++    private fun getNoteFileUri(file: File): Uri =
+++        FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+++
+++    private fun buildNoteFileShareIntent(file: File): Intent {
+++        val uri = getNoteFileUri(file)
+++        return Intent(Intent.ACTION_SEND).apply {
+++            type = guessNoteFileMime(file.name)
+++            putExtra(Intent.EXTRA_STREAM, uri)
+++            clipData = ClipData.newRawUri("note_attachment", uri)
+++            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+++        }
+++    }
+++
+++    private fun resolvePreferredSharePackage(intent: Intent, target: String): String? {
+++        val directPackage = when (target) {
+++            "wechat" -> "com.tencent.mm"
+++            "qq" -> "com.tencent.mobileqq"
+++            else -> null
+++        }
+++        if (directPackage != null) {
+++            val probe = Intent(intent).setPackage(directPackage)
+++            if (probe.resolveActivity(packageManager) != null) return directPackage
+++        }
+++        val candidates = try { packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY) } catch (_: Exception) { emptyList() }
+++        return candidates.firstOrNull { info ->
+++            val label = try { info.loadLabel(packageManager).toString() } catch (_: Exception) { "" }
+++            when (target) {
+++                "wechat" -> label.contains("微信", ignoreCase = true) || label.contains("WeChat", ignoreCase = true)
+++                "qq" -> label.equals("QQ", ignoreCase = true) || label.contains("QQ", ignoreCase = true)
+++                else -> false
+++            }
+++        }?.activityInfo?.packageName
+++    }
+++
++     inner class AndroidBridge {
++         @JavascriptInterface
++         fun pickNoteImages(noteIdRaw: String): String {
++@@ -424,6 +567,81 @@
++             } catch (_: Exception) {
++                 "failed"
++             }
+++        }
+++
+++        @JavascriptInterface
+++        fun pickNoteFiles(noteIdRaw: String): String {
+++            val noteId = noteIdRaw.toLongOrNull() ?: return "invalid"
+++            if (noteId <= 0L) return "invalid"
+++            pendingNoteFileNoteId = noteId
+++            runOnUiThread {
+++                try {
+++                    noteFilePicker.launch(arrayOf("*/*"))
+++                } catch (_: Exception) {
+++                    pendingNoteFileNoteId = -1L
+++                    if (pageReady) {
+++                        webView.evaluateJavascript(
+++                            "window.__onNoteFilesPicked && window.__onNoteFilesPicked([]);",
+++                            null
+++                        )
+++                    }
+++                }
+++            }
+++            return "ok"
+++        }
+++
+++        @JavascriptInterface
+++        fun deleteNoteFile(fileName: String): String {
+++            val file = getNoteFile(fileName) ?: return "invalid"
+++            return try {
+++                file.delete()
+++                "ok"
+++            } catch (_: Exception) {
+++                "failed"
+++            }
+++        }
+++
+++        @JavascriptInterface
+++        fun openNoteFile(fileName: String): String {
+++            val file = getNoteFile(fileName) ?: return "missing"
+++            return try {
+++                val uri = getNoteFileUri(file)
+++                val intent = Intent(Intent.ACTION_VIEW).apply {
+++                    setDataAndType(uri, guessNoteFileMime(file.name))
+++                    clipData = ClipData.newRawUri("note_attachment", uri)
+++                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+++                }
+++                if (intent.resolveActivity(packageManager) == null) return "unavailable"
+++                runOnUiThread {
+++                    try { startActivity(Intent.createChooser(intent, "打开文件")) } catch (_: Exception) {}
+++                }
+++                "ok"
+++            } catch (_: Exception) {
+++                "failed"
+++            }
+++        }
+++
+++        @JavascriptInterface
+++        fun shareNoteFile(fileName: String, target: String): String {
+++            val file = getNoteFile(fileName) ?: return "missing"
+++            return try {
+++                val baseIntent = buildNoteFileShareIntent(file)
+++                if (target == "more") {
+++                    runOnUiThread {
+++                        try { startActivity(Intent.createChooser(baseIntent, "分享文件")) } catch (_: Exception) {}
+++                    }
+++                    "ok"
+++                } else {
+++                    val packageName = resolvePreferredSharePackage(baseIntent, target) ?: return "unavailable"
+++                    val directIntent = Intent(baseIntent).setPackage(packageName)
+++                    runOnUiThread {
+++                        try { startActivity(directIntent) } catch (_: Exception) {}
+++                    }
+++                    "ok"
+++                }
+++            } catch (_: Exception) {
+++                "failed"
+++            }
++         }
++ 
++         @JavascriptInterface
++diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST*' '--exclude=SELF_TEST*' '--exclude=changes/V1.19.1-to-V1.20.patch' todo_v1191_baseline/android/app/src/main/res/xml/file_paths.xml todo_v120_work/android/app/src/main/res/xml/file_paths.xml
++--- todo_v1191_baseline/android/app/src/main/res/xml/file_paths.xml	1970-01-01 00:00:00.000000000 +0000
+++++ todo_v120_work/android/app/src/main/res/xml/file_paths.xml	2026-08-13 11:04:15.990863479 +0000
++@@ -0,0 +1,4 @@
+++<?xml version="1.0" encoding="utf-8"?>
+++<paths xmlns:android="http://schemas.android.com/apk/res/android">
+++    <files-path name="note_files" path="note_files/" />
+++</paths>
++diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST*' '--exclude=SELF_TEST*' '--exclude=changes/V1.19.1-to-V1.20.patch' todo_v1191_baseline/build-apk.bat todo_v120_work/build-apk.bat
++--- todo_v1191_baseline/build-apk.bat	2026-08-12 09:44:51.000000000 +0000
+++++ todo_v120_work/build-apk.bat	2026-08-13 11:07:27.300427474 +0000
++@@ -10,9 +10,9 @@
++ )
++ if not exist "dist" mkdir "dist"
++ for %%F in ("android\app\build\outputs\apk\debug\*.apk") do (
++-  copy /Y "%%~fF" "dist\To-Do-v1.19.apk" >nul
+++  copy /Y "%%~fF" "dist\To-Do-v1.20.apk" >nul
++   echo.
++-  echo APK: %CD%\dist\To-Do-v1.19.apk
+++  echo APK: %CD%\dist\To-Do-v1.20.apk
++   exit /b 0
++ )
++ echo Build finished but no APK was found under android\app\build\outputs\apk\debug
++diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST*' '--exclude=SELF_TEST*' '--exclude=changes/V1.19.1-to-V1.20.patch' todo_v1191_baseline/changes/CHANGELOG_V1.20.md todo_v120_work/changes/CHANGELOG_V1.20.md
++--- todo_v1191_baseline/changes/CHANGELOG_V1.20.md	1970-01-01 00:00:00.000000000 +0000
+++++ todo_v120_work/changes/CHANGELOG_V1.20.md	2026-08-13 11:12:11.529711840 +0000
++@@ -0,0 +1,32 @@
+++# To-Do V1.20 Changelog
+++
+++## Base / Target
+++- Base: `To-Do-v1.19.1-Full.zip`
+++- Target: `To-Do-v1.20-Full.zip`
+++
+++## 1. Note 长文编辑工具栏稳定
+++- 不再通过修改整个 `noteEditor.bottom` 来躲避软键盘，避免编辑器缩短后露出底层 Note 根目录。
+++- Note 编辑器始终全屏覆盖；格式工具栏改为固定在视口底部，并仅按 `visualViewport` 计算出的键盘高度向上平移。
+++- 同时监听 `visualViewport.resize` 与 `visualViewport.scroll`，长文滚动、系统输入法发生 viewport pan 时持续贴住键盘上沿。
+++- 正文增加动态底部滚动留白，收起键盘后工具栏自然回落屏幕底部。
+++
+++## 2. 图片按钮换成标准图库图标
+++- 原工具栏最右侧的 `▧+` 替换为简洁 SVG 图库图标。
+++- 原有系统 Photo Picker、多选图片、私有图片目录、预览与删除逻辑不变。
+++
+++## 3. Note 文件附件
+++- 图片按钮右侧新增“添加文件”按钮。
+++- 调用 Android Storage Access Framework (`OpenMultipleDocuments`) 打开系统文件选择器，可一次多选文件。
+++- 选中内容复制到 APP 私有 `files/note_files/`，避免原文件移动/删除后笔记附件立即失效。
+++- 正文在当前光标位置插入附件卡片，显示扩展名/格式、文件名、大小；支持 PDF、DOC/DOCX、MD/TXT、XLS/XLSX/CSV、PPT/PPTX、ZIP/RAR/7Z 及其他类型。
+++- 单卡片可移除；删除 Note 及其子 Note 时同步删除对应私有文件。
+++
+++## 4. 商业化文件操作面板
+++- 点击附件卡片弹出自定义底部圆角操作面板：`文件查看 / 微信发送 / QQ发送 / 更多`。
+++- 文件查看使用 `ACTION_VIEW` + Android chooser；微信/QQ使用定向 `ACTION_SEND`；更多使用系统 Sharesheet。
+++- 私有附件通过 AndroidX `FileProvider` 暴露临时 `content://` URI，并授予只读权限；不增加“读取全部存储”权限。
+++
+++## 版本
+++- `versionCode = 31`
+++- `versionName = 1.20`
+++- `applicationId = com.todolist.app`（保持不变）
++diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST*' '--exclude=SELF_TEST*' '--exclude=changes/V1.19.1-to-V1.20.patch' todo_v1191_baseline/changes/LOCKED_CORE_GUARD_V1.20.txt todo_v120_work/changes/LOCKED_CORE_GUARD_V1.20.txt
++--- todo_v1191_baseline/changes/LOCKED_CORE_GUARD_V1.20.txt	1970-01-01 00:00:00.000000000 +0000
+++++ todo_v120_work/changes/LOCKED_CORE_GUARD_V1.20.txt	2026-08-13 11:13:52.424351652 +0000
++@@ -0,0 +1,48 @@
+++Locked Core Guard — V1.19.1 -> V1.20
+++
+++This round explicitly authorizes changes to:
+++- ui/todo.html + Android asset mirror: Note editor keyboard anchoring, image icon, file attachment UI/data hooks.
+++- MainActivity.kt: Storage Access Framework file picker, private attachment copy, FileProvider open/share bridge.
+++- AndroidManifest.xml + new res/xml/file_paths.xml: package visibility and secure FileProvider.
+++- version/release metadata and README.
+++
+++Reminder scheduling, Daily core, Banner gesture/Snooze behavior, receivers/stores/service, notification behavior are NOT authorized for changes.
+++
+++- PASS  android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt  49dbbad17f11d7109eb4d82a55857e01b219e22b2d68c91289e801f2f6d9468f
+++- PASS  android/app/src/main/java/com/todolist/app/receiver/BootReceiver.kt  5c749c6186e9ba2e9226e29e93856753879c898e8b2dcbe5d7a9922c4d27ca7d
+++- PASS  android/app/src/main/java/com/todolist/app/receiver/DailyTaskActionReceiver.kt  9bd9bb60566ee86da41ce282cf3b1b845f4f4caa05b34567cc5612ac33c092de
+++- PASS  android/app/src/main/java/com/todolist/app/receiver/DailyTaskReminderReceiver.kt  26928a47fd1f97f7ab9b51500f5c58f20333e2c1d1cc72edd4cc6a3ed9907292
+++- PASS  android/app/src/main/java/com/todolist/app/receiver/MidnightReceiver.kt  49ebf2634854cd20c6d03656d4c1da7de3a6c0a30f542cdf23e7b0c9b9f1219e
+++- PASS  android/app/src/main/java/com/todolist/app/receiver/ReminderActionReceiver.kt  ba2b57ee965759555fe4913827b2aa4fdeb1499854fb40c298efeb2bcfc3e361
+++- PASS  android/app/src/main/java/com/todolist/app/receiver/TodoReminderReceiver.kt  36b242a80eaa2a9d4f4cd1aad3d8ff7105027e68ce0f166efd1b8aea495cb207
+++- PASS  android/app/src/main/java/com/todolist/app/reminder/DailyTaskStore.kt  5770232c61f413fa8e88dadd07182f1a3a81d04a8758d9e3b4e37d43d417162e
+++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderDiagnostics.kt  445283809d9ecbafd08e80e8cd882444372127ef7aebea8d38c30a9857be4898
+++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderNotifier.kt  2b99868689598268ac27e07ed55385d5e2786ab6c1b9027b80dff2459b5642fc
+++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderScheduler.kt  4d58be9846178a49e45ca62d69368be10190512599c19e5aeac5431e9bd79a1e
+++- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderStore.kt  f2e941bc491f4d743697136e135888e98c14324236abb8814b9632669a183df6
+++- PASS  android/app/src/main/java/com/todolist/app/reminder/SnoozeStore.kt  87f3a0ee2af0af3bf1d43453a24b2d4429de4b653b9faf4482f616a9da574b6d
+++- PASS  android/app/src/main/java/com/todolist/app/reminder/TodoSnapshotStore.kt  74ea806ecddc1680c3e7cb5f7e0abb9db8ba1a69ab9a4b3ac2e90a7cd5e9c1b3
+++- PASS  android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt  be35d5eff3dd8067f0596d13055b9dda7f8d77204fe4ff1015c7f57499a58ca4
+++- PASS  android/app/src/main/java/com/todolist/app/ui/BannerView.kt  f5e3fb07f5700e148e26cb4c9091f17e5ed06d2f82ad22bf15b9af24c328d68a
+++- PASS  android/app/src/main/java/com/todolist/app/ui/DailyTaskBannerView.kt  41aa1e68973d2b77462484c22be00b9b712349c452a4db3c819e534854ea2bb5
+++- PASS  android/app/src/main/java/com/todolist/app/ui/SnoozeSwipeBannerView.kt  4b99f2224df38ca6d90b749290174f69291e5f24589af35a58af12720bc829f4
+++- PASS  android/app/src/main/java/com/todolist/app/ui/TodoReminderBannerView.kt  c53e279feafaa0b46f470c4e0ee0ab3d0cd48420171ac006079a6988f867c408
+++- PASS  android/app/src/main/java/com/todolist/app/util/Dp.kt  4076197dac4258610e66978ffa4d4347ba1c1eb75ec364ddca9344c99ee617e8
+++
+++Locked reminder/banner core: 20/20 PASS.
+++All pre-existing source/runtime files outside the authorized diff remain byte-identical to V1.19.1. Release-generated metadata/checksum files are excluded from this count.
+++Changed existing files:
+++- README.md
+++- android/app/build.gradle.kts
+++- android/app/src/main/AndroidManifest.xml
+++- android/app/src/main/assets/todo.html
+++- android/app/src/main/java/com/todolist/app/MainActivity.kt
+++- build-apk.bat
+++- script_0.js
+++- ui/todo.html
+++
+++Storage key guard:
+++- Existing Web localStorage business key set remains identical to V1.19.1.
+++- ui/todo.html == android/app/src/main/assets/todo.html.
+++
+++Result: PASS
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST*' '--exclude=SELF_TEST*' '--exclude=changes/V1.19.1-to-V1.20.patch' todo_v1191_baseline/docs/NOTE_ATTACHMENTS_V1.20.md todo_v120_work/docs/NOTE_ATTACHMENTS_V1.20.md
+--- todo_v1191_baseline/docs/NOTE_ATTACHMENTS_V1.20.md	1970-01-01 00:00:00.000000000 +0000
++++ todo_v120_work/docs/NOTE_ATTACHMENTS_V1.20.md	2026-08-13 11:12:11.529738448 +0000
+@@ -0,0 +1,29 @@
++# Note Attachments — V1.20
++
++## 目标
++让 Note 在保留原纯文本/图文结构兼容性的前提下，能够把 Markdown、PDF、DOCX 等开发资料直接作为附件卡片插入正文。
++
++## 文件选择
++- Android 原生：`ActivityResultContracts.OpenMultipleDocuments()`。
++- WebView Bridge：`AndroidBridge.pickNoteFiles(noteId)`。
++- 选择完成后后台流式复制到 `files/note_files/`。
++- Note 正文不保存 Base64，只保存附件卡片的内部文件名、原显示名、MIME、大小。
++
++## 打开 / 分享
++- `文件查看`：`ACTION_VIEW`。
++- `微信发送 / QQ发送`：`ACTION_SEND` 定向到可用应用。
++- `更多`：`Intent.createChooser()` 系统 Sharesheet。
++- 所有外部访问通过 AndroidX `FileProvider` 生成 `content://` URI，并使用临时 read grant。
++
++## 数据与删除
++- 现有 `todo_glass_notes` key 不改变，旧 Note 无需迁移。
++- 新附件作为 HTML card 元数据自然随 `content` 持久化。
++- 删除单卡、删除 Note、级联删除子 Note 时同步清理 `files/note_files/`。
++
++## Keyboard Toolbar 修复
++V1.19.1 的实现通过 `editor.style.bottom = keyboardHeight` 缩短整个 fixed editor。在 Android WebView 的 visual viewport 发生 pan/scroll 时，这会让底层 Note 列表从缩短后的区域漏出来。V1.20 改为：
++1. editor 始终 `inset: 0` 全屏覆盖；
++2. format bar 独立 fixed；
++3. 只移动 format bar，不移动 editor；
++4. 监听 visual viewport 的 resize + scroll；
++5. 正文用动态 padding 保证长文可滚到键盘上方。
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST*' '--exclude=SELF_TEST*' '--exclude=changes/V1.19.1-to-V1.20.patch' todo_v1191_baseline/script_0.js todo_v120_work/script_0.js
+--- todo_v1191_baseline/script_0.js	2026-08-12 06:22:31.000000000 +0000
++++ todo_v120_work/script_0.js	2026-08-13 11:11:03.666964764 +0000
+@@ -62,6 +62,350 @@
+ const categoryScroll = document.getElementById('categoryScroll');
+ const categoryPicker = document.getElementById('categoryPicker');
+ 
++
++// ===== First-run onboarding =====
++const ONBOARDING_KEY = 'todo_glass_onboarding_v1';
++const COACH_PREFIX = 'todo_glass_coach_v1_';
++let onboardingIndex = 0;
++let onboardingDemoState = 0;
++let onboardingSwipeUnlocked = false;
++let contextCoachKey = '';
++
++const onboardingSteps = [
++  {
++    title: '先认识你的工作台',
++    text: 'To-Do 放要完成的事。底部 ＋ 新建，垃圾桶看删除内容，🤖 可以用自然语言帮你管理待办。',
++    target: null,
++    demo: 'home'
++  },
++  {
++    title: '一个待办，有三个状态',
++    text: '下面是教程里的虚拟事项，不会写进你的真实数据。亲手点两次复选框试试。',
++    target: null,
++    demo: 'states',
++    interactive: 'states'
++  },
++  {
++    title: '更多功能藏在左滑里',
++    text: '试着把下面这条虚拟待办向左拖。拖到一半可以退回，继续滑就会露出提醒与删除。',
++    target: null,
++    demo: 'swipe',
++    interactive: 'swipe'
++  },
++  {
++    title: 'To-Do ↔ Note，左右切换',
++    text: '顶部可以左右跟手滑动，也可以点 📝。Note 用来长期记录，不参与待办完成统计。',
++    target: '#modeToggle',
++    demo: 'mode'
++  },
++  {
++    title: '三个时间工具，各司其职',
++    text: '📅 看待办日期；🕐 设置每天固定时间的总结提醒；Daily 管喝水、吃药这类每天重新开始的事项。以后点 ? 可以随时重看教程。',
++    target: '.header__stats',
++    demo: 'tools'
++  }
++];
++
++function onboardingValue() {
++  try { return localStorage.getItem(ONBOARDING_KEY) || ''; } catch(e) { return ''; }
++}
++function setOnboardingValue(value) {
++  try { localStorage.setItem(ONBOARDING_KEY, value); } catch(e) {}
++}
++function maybeStartOnboarding() {
++  if (onboardingValue()) return;
++  const welcome = document.getElementById('onboardingWelcome');
++  if (welcome) welcome.classList.add('active');
++}
++function startOnboarding(showWelcome) {
++  closeContextCoach(false);
++  if (typeof applyMode === 'function' && currentMode !== 'todo') applyMode('todo');
++  const welcome = document.getElementById('onboardingWelcome');
++  if (welcome) welcome.classList.toggle('active', !!showWelcome);
++  if (showWelcome) return;
++  onboardingIndex = 0;
++  onboardingDemoState = 0;
++  onboardingSwipeUnlocked = false;
++  document.getElementById('onboardingOverlay').classList.add('active');
++  renderOnboardingStep();
++}
++function finishOnboarding(skipped) {
++  document.getElementById('onboardingWelcome')?.classList.remove('active');
++  document.getElementById('onboardingOverlay')?.classList.remove('active');
++  setOnboardingValue(skipped ? 'skipped' : 'done');
++  if (!skipped) showToast('教程完成 · 以后点右上角 ? 可重新观看');
++}
++function positionOnboardingTarget(selector) {
++  const overlay = document.getElementById('onboardingOverlay');
++  const spot = document.getElementById('onboardingSpotlight');
++  const pulse = document.getElementById('onboardingPulse');
++  const hand = document.getElementById('onboardingHand');
++  const card = document.getElementById('onboardingCard');
++  if (!selector) {
++    overlay.classList.add('no-focus');
++    card.classList.remove('above');
++    hand.style.display = 'none';
++    return;
++  }
++  const target = document.querySelector(selector);
++  if (!target) {
++    overlay.classList.add('no-focus');
++    hand.style.display = 'none';
++    return;
++  }
++  overlay.classList.remove('no-focus');
++  const r = target.getBoundingClientRect();
++  const padX = selector === '.header__stats' ? 8 : 10;
++  const padY = selector === '.header__stats' ? 7 : 9;
++  const left = Math.max(8, r.left - padX);
++  const top = Math.max(8, r.top - padY);
++  const width = Math.min(window.innerWidth - left - 8, r.width + padX * 2);
++  const height = r.height + padY * 2;
++  const radius = selector === '.header__stats' ? 22 : Math.max(16, Math.min(26, height / 2));
++  [spot,pulse].forEach(el => {
++    el.style.left = `${left}px`; el.style.top = `${top}px`; el.style.width = `${width}px`; el.style.height = `${height}px`; el.style.borderRadius = `${radius}px`;
++  });
++  const targetCenter = top + height / 2;
++  const cardAbove = targetCenter > window.innerHeight * .58;
++  card.classList.toggle('above', cardAbove);
++  hand.style.display = 'block';
++  hand.style.left = `${Math.min(window.innerWidth - 42, Math.max(12, left + width - 28))}px`;
++  hand.style.top = `${cardAbove ? Math.min(window.innerHeight - 90, top + height + 8) : Math.max(10, top - 44)}px`;
++}
++function renderOnboardingDots() {
++  const dots = document.getElementById('onboardingDots');
++  dots.innerHTML = onboardingSteps.map((_,i)=>`<i class="${i===onboardingIndex?'active':''}"></i>`).join('');
++}
++function onboardingDemoHtml(type) {
++  if (type === 'home') return `<div class="onboarding-tools"><div class="onboarding-tool"><b>＋</b><span>新建待办</span><small>最快的入口</small></div><div class="onboarding-tool"><b>🗑️</b><span>回收站</span><small>找回误删内容</small></div><div class="onboarding-tool"><b>🤖</b><span>AI 助手</span><small>自然语言管理</small></div></div>`;
++  if (type === 'states') return `<div class="onboarding-demo"><div class="onboarding-demo-row"><div class="onboarding-demo-inner"><div class="onboarding-demo-check" id="onboardingStateCheck"></div><div class="onboarding-demo-copy"><b>点击我试试看</b><span id="onboardingStateLabel">未完成 · 第一次点击进入进行中</span></div></div></div><div class="onboarding-demo-note">这是虚拟演示，不会加入你的待办。</div></div>`;
++  if (type === 'swipe') return `<div class="onboarding-demo"><div class="onboarding-demo-row" id="onboardingSwipeRow"><div class="onboarding-demo-actions"><span class="onboarding-demo-action remind">提醒</span><span class="onboarding-demo-action delete">删除</span></div><div class="onboarding-demo-inner" id="onboardingSwipeInner"><div class="onboarding-demo-check"></div><div class="onboarding-demo-copy"><b>向左拖动我</b><span>拖一半松手，会自然回弹</span></div></div></div><div class="onboarding-demo-note" id="onboardingSwipeHint">👈 用手指向左滑</div></div>`;
++  if (type === 'mode') return `<div class="onboarding-mini-switch"><div class="onboarding-mini-track"><div class="onboarding-mini-panel">✓ To-Do · 做完一件事</div><div class="onboarding-mini-panel">📝 Note · 留下一段内容</div></div></div>`;
++  if (type === 'tools') return `<div class="onboarding-tools"><div class="onboarding-tool"><b>📅</b><span>日期</span><small>按天查看待办</small></div><div class="onboarding-tool"><b>🕐</b><span>每日总结</span><small>每天固定时间提醒</small></div><div class="onboarding-tool"><b>↻</b><span>Daily</span><small>每天重新开始</small></div></div>`;
++  return '';
++}
++function renderOnboardingStep() {
++  const step = onboardingSteps[onboardingIndex];
++  if (!step) return finishOnboarding(false);
++  document.getElementById('onboardingStep').textContent = `${onboardingIndex + 1} / ${onboardingSteps.length}`;
++  document.getElementById('onboardingTitle').textContent = step.title;
++  document.getElementById('onboardingText').textContent = step.text;
++  document.getElementById('onboardingDemo').innerHTML = onboardingDemoHtml(step.demo);
++  renderOnboardingDots();
++  const next = document.getElementById('onboardingNext');
++  next.textContent = onboardingIndex === onboardingSteps.length - 1 ? '开始使用' : '下一步';
++  next.disabled = !!step.interactive;
++  positionOnboardingTarget(step.target);
++  if (step.interactive === 'states') bindOnboardingStateDemo();
++  if (step.interactive === 'swipe') bindOnboardingSwipeDemo();
++}
++function bindOnboardingStateDemo() {
++  onboardingDemoState = 0;
++  const check = document.getElementById('onboardingStateCheck');
++  const label = document.getElementById('onboardingStateLabel');
++  check?.addEventListener('click', () => {
++    onboardingDemoState = Math.min(2, onboardingDemoState + 1);
++    check.classList.toggle('progress', onboardingDemoState === 1);
++    check.classList.toggle('done', onboardingDemoState === 2);
++    if (onboardingDemoState === 1) label.textContent = '进行中 · 再点一次就完成';
++    if (onboardingDemoState === 2) {
++      label.textContent = '已完成 ✓ · 这就是三态待办';
++      document.getElementById('onboardingNext').disabled = false;
++      try { if (navigator.vibrate) navigator.vibrate(18); } catch(e) {}
++    }
++  });
++}
++function bindOnboardingSwipeDemo() {
++  onboardingSwipeUnlocked = false;
++  const inner = document.getElementById('onboardingSwipeInner');
++  const row = document.getElementById('onboardingSwipeRow');
++  if (!inner || !row) return;
++  let startX=0, dx=0, dragging=false;
++  const finish = () => {
++    if (!dragging) return;
++    dragging=false;
++    const open = dx < -58;
++    inner.style.transition='transform .22s cubic-bezier(.22,.82,.28,1)';
++    inner.style.transform = open ? 'translateX(-116px)' : 'translateX(0)';
++    if (open) {
++      onboardingSwipeUnlocked = true;
++      document.getElementById('onboardingSwipeHint').textContent = '就是这样 · 提醒与删除只在需要时出现';
++      document.getElementById('onboardingNext').disabled = false;
++    }
++  };
++  const move = x => {
++    if (!dragging) return;
++    dx = Math.max(-116, Math.min(0, x-startX));
++    inner.style.transform=`translateX(${dx}px)`;
++  };
++  inner.addEventListener('touchstart',e=>{ if(!e.touches.length)return; startX=e.touches[0].clientX;dx=0;dragging=true;inner.style.transition='none'; },{passive:true});
++  inner.addEventListener('touchmove',e=>{ if(!dragging||!e.touches.length)return; e.preventDefault();move(e.touches[0].clientX); },{passive:false});
++  inner.addEventListener('touchend',finish,{passive:true});
++  inner.addEventListener('pointerdown',e=>{ startX=e.clientX;dx=0;dragging=true;inner.style.transition='none'; inner.setPointerCapture?.(e.pointerId); });
++  inner.addEventListener('pointermove',e=>move(e.clientX));
++  inner.addEventListener('pointerup',finish);
++}
++function nextOnboardingStep() {
++  if (document.getElementById('onboardingNext').disabled) return;
++  if (onboardingIndex >= onboardingSteps.length - 1) return finishOnboarding(false);
++  onboardingIndex++;
++  renderOnboardingStep();
++}
++function replayOnboarding() {
++  startOnboarding(false);
++}
++
++// ===== Feature Coach: contextual one-time teaching =====
++const FeatureCoachManager = (() => {
++  let activeKey = '';
++  let activeTarget = null;
++
++  const seenKey = key => COACH_PREFIX + key;
++  const enabled = () => onboardingValue() === 'done';
++  const hasSeen = key => {
++    try { return localStorage.getItem(seenKey(key)) === '1'; } catch(e) { return false; }
++  };
++  const markSeen = key => {
++    try { localStorage.setItem(seenKey(key), '1'); } catch(e) {}
++  };
++
++  function resolveTarget(target) {
++    return typeof target === 'string' ? document.querySelector(target) : target;
++  }
++
++  function position(target) {
++    const coach = document.getElementById('contextCoach');
++    const ring = document.getElementById('contextCoachRing');
++    const arrow = document.getElementById('contextCoachArrow');
++    const card = document.getElementById('contextCoachCard');
++    if (!coach || !ring || !arrow || !card || !target) return false;
++    const r = target.getBoundingClientRect();
++    if (r.width < 1 || r.height < 1) return false;
++    const padX = Math.min(10, Math.max(6, r.width * .04));
++    const padY = 7;
++    const left = Math.max(7, r.left - padX);
++    const top = Math.max(7, r.top - padY);
++    const width = Math.min(window.innerWidth - left - 7, r.width + padX * 2);
++    const height = Math.min(window.innerHeight - top - 7, r.height + padY * 2);
++    ring.style.left = `${left}px`;
++    ring.style.top = `${top}px`;
++    ring.style.width = `${width}px`;
++    ring.style.height = `${height}px`;
++    ring.style.borderRadius = `${Math.max(15, Math.min(26, height * .34))}px`;
++
++    const placeCardTop = top + height / 2 > window.innerHeight * .55;
++    card.classList.toggle('top', placeCardTop);
++    const arrowX = Math.max(10, Math.min(window.innerWidth - 48, left + width * .72));
++    const arrowY = placeCardTop ? Math.max(12, top - 48) : Math.min(window.innerHeight - 54, top + height + 7);
++    arrow.style.left = `${arrowX}px`;
++    arrow.style.top = `${arrowY}px`;
++    arrow.style.transform = placeCardTop ? 'rotate(180deg)' : '';
++    return true;
++  }
++
++  function show(key, target, options={}) {
++    if (!enabled() || !key || hasSeen(key)) return false;
++    const coach = document.getElementById('contextCoach');
++    if (!coach || coach.classList.contains('active')) return false;
++    const el = resolveTarget(target);
++    if (!el || !position(el)) return false;
++
++    document.getElementById('contextCoachEyebrow').textContent = options.eyebrow || '隐藏技巧';
++    document.getElementById('contextCoachTitle').textContent = options.title || '发现一个小功能';
++    document.getElementById('contextCoachText').textContent = options.text || '';
++    const visual = document.getElementById('contextCoachVisual');
++    if (visual) {
++      visual.innerHTML = options.visual || '';
++      visual.classList.toggle('show', !!options.visual);
++    }
++    activeKey = key;
++    activeTarget = el;
++    coach.classList.add('active');
++    try { if (navigator.vibrate) navigator.vibrate(10); } catch(e) {}
++    return true;
++  }
++
++  function close(mark=true) {
++    const coach = document.getElementById('contextCoach');
++    if (!coach) return;
++    if (mark && activeKey) markSeen(activeKey);
++    activeKey = '';
++    activeTarget = null;
++    coach.classList.remove('active');
++  }
++
++  function reset() {
++    try {
++      const remove=[];
++      for (let i=0;i<localStorage.length;i++) {
++        const k=localStorage.key(i);
++        if (k && k.startsWith(COACH_PREFIX)) remove.push(k);
++      }
++      remove.forEach(k=>localStorage.removeItem(k));
++    } catch(e) {}
++    close(false);
++  }
++
++  function refreshPosition() {
++    if (activeTarget && document.getElementById('contextCoach')?.classList.contains('active')) position(activeTarget);
++  }
++
++  return { show, close, reset, hasSeen, refreshPosition };
++})();
++
++// Observe the already-existing Note container instead of modifying Note mode/data code.
++// This keeps the Note core byte-identical while still teaching the first real entry, whether
++// the user switches by button or by the horizontal gesture.
++const featureCoachNoteContainer = document.getElementById('noteContainer');
++if (featureCoachNoteContainer && typeof MutationObserver !== 'undefined') {
++  new MutationObserver(() => {
++    if (currentMode === 'notes' && featureCoachNoteContainer.classList.contains('note-container--open')) {
++      setTimeout(() => FeatureCoachManager.show('noteOpen', '#noteToolbarRow', {
++        eyebrow:'Note 小技巧',
++        title:'这里是长期记录区',
++        text:'Note 适合保存想长期留下的内容，不会进入 To-Do 完成统计。用右下角 ＋ 新建笔记，顶部文件夹可以继续整理。',
++        visual:'📝 记录想法与资料　·　📁 用文件夹整理　·　✓ 不影响任务统计'
++      }), 260);
++    }
++  }).observe(featureCoachNoteContainer, { attributes:true, attributeFilter:['class','style'] });
++}
++
++// Backward-compatible helper used by V1.13 trigger points; V1.14 routes all coaches through the manager.
++function showContextCoach(key, target, title, text, visual='') {
++  return FeatureCoachManager.show(key, target, { title, text, visual });
++}
++function closeContextCoach(markSeen=true) { FeatureCoachManager.close(markSeen); }
++
++function openHelpGuide() {
++  closeContextCoach(false);
++  document.getElementById('helpGuideOverlay')?.classList.add('active');
++}
++function closeHelpGuide() { document.getElementById('helpGuideOverlay')?.classList.remove('active'); }
++
++// First-run onboarding controls.
++document.getElementById('onboardingWelcomeStart')?.addEventListener('click', () => startOnboarding(false));
++document.getElementById('onboardingWelcomeSkip')?.addEventListener('click', () => finishOnboarding(true));
++document.getElementById('onboardingSkip')?.addEventListener('click', () => finishOnboarding(true));
++document.getElementById('onboardingNext')?.addEventListener('click', nextOnboardingStep);
++
++// Help hub: replay the main tutorial or re-arm all contextual coaches.
++document.getElementById('helpBtn')?.addEventListener('click', openHelpGuide);
++document.getElementById('helpGuideClose')?.addEventListener('click', closeHelpGuide);
++document.getElementById('helpGuideOverlay')?.addEventListener('click', e => { if (e.target === e.currentTarget) closeHelpGuide(); });
++document.getElementById('replayMainTutorialBtn')?.addEventListener('click', () => { closeHelpGuide(); replayOnboarding(); });
++document.getElementById('resetFeatureCoachBtn')?.addEventListener('click', () => {
++  FeatureCoachManager.reset();
++  closeHelpGuide();
++  showToast('功能提示已重新开启 · 下次进入对应功能时会再次出现');
++});
++
++document.getElementById('contextCoachOk')?.addEventListener('click', () => FeatureCoachManager.close(true));
++document.getElementById('contextCoachLater')?.addEventListener('click', () => FeatureCoachManager.close(false));
++window.addEventListener('resize', () => {
++  if (document.getElementById('onboardingOverlay')?.classList.contains('active')) positionOnboardingTarget(onboardingSteps[onboardingIndex]?.target || null);
++  FeatureCoachManager.refreshPosition();
++});
++
+ // ===== Toast =====
+ let toastTimer;
+ function showToast(msg) {
+@@ -300,6 +644,36 @@
+   return note;
+ }
+ 
++function extractNoteImageNames(content) {
++  var names = [];
++  var re = /data-note-image-name=["']([A-Za-z0-9._-]{1,180})["']/g;
++  var match;
++  while ((match = re.exec(String(content || ''))) !== null) names.push(match[1]);
++  return names;
++}
++
++function deleteNativeNoteImagesFromContent(content) {
++  if (typeof AndroidBridge === 'undefined' || !AndroidBridge.deleteNoteImage) return;
++  extractNoteImageNames(content).forEach(function(name) {
++    try { AndroidBridge.deleteNoteImage(name); } catch(e) {}
++  });
++}
++
++function extractNoteFileNames(content) {
++  var names = [];
++  var re = /data-note-file-name=["']([A-Za-z0-9._-]{1,180})["']/g;
++  var match;
++  while ((match = re.exec(String(content || ''))) !== null) names.push(match[1]);
++  return names;
++}
++
++function deleteNativeNoteFilesFromContent(content) {
++  if (typeof AndroidBridge === 'undefined' || !AndroidBridge.deleteNoteFile) return;
++  extractNoteFileNames(content).forEach(function(name) {
++    try { AndroidBridge.deleteNoteFile(name); } catch(e) {}
++  });
++}
++
+ function deleteNote(id) {
+   var note = getNoteById(id);
+   if (!note) return;
+@@ -318,6 +692,8 @@
+     for (var j = notes.length - 1; j >= 0; j--) {
+       if (notes[j].parentId === toDelete[di]) {
+         toDelete.push(notes[j].id);
++        deleteNativeNoteImagesFromContent(notes[j].content || '');
++        deleteNativeNoteFilesFromContent(notes[j].content || '');
+         notes.splice(j, 1);
+       }
+     }
+@@ -325,7 +701,11 @@
+   }
+   // Re-find and delete the note itself (array may have shifted)
+   for (var k = notes.length - 1; k >= 0; k--) {
+-    if (notes[k].id === id) { notes.splice(k, 1); break; }
++    if (notes[k].id === id) {
++      deleteNativeNoteImagesFromContent(notes[k].content || '');
++      deleteNativeNoteFilesFromContent(notes[k].content || '');
++      notes.splice(k, 1); break;
++    }
+   }
+   saveNotes();
+ }
+@@ -646,9 +1026,13 @@
+   var bodyEl = document.getElementById('noteEditorBody');
+   var childrenList = document.getElementById('noteEditorChildrenList');
+   var searchInput = document.getElementById('noteEditorSearch');
+-  if (editor) editor.style.display = '';
++  if (editor) { editor.style.display = ''; editor.style.bottom = '0px'; editor.style.setProperty('--note-keyboard-inset','0px'); }
++  document.documentElement.classList.add('note-editor-open');
++  document.body.classList.add('note-editor-open');
+   if (titleInput) titleInput.value = note.title;
+   if (bodyEl) bodyEl.innerHTML = note.content;
++  _boldActive = false;
++  _highlightActive = false;
+   if (searchInput) searchInput.value = '';
+ 
+   // Render children in editor
+@@ -662,12 +1046,19 @@
+     }).join('');
+   }
+ 
+-  if (bodyEl) setTimeout(function() { bodyEl.focus(); }, 100);
++  if (bodyEl) setTimeout(function() {
++    bodyEl.focus();
++    _boldActive = !!document.queryCommandState('bold');
++    updateToolbarState();
++    scheduleNoteKeyboardLayout();
++  }, 100);
+ }
+ 
+ function closeNoteEditor() {
+   var editor = document.getElementById('noteEditor');
+-  if (editor) editor.style.display = 'none';
++  if (editor) { editor.style.display = 'none'; editor.style.bottom = '0px'; editor.style.setProperty('--note-keyboard-inset','0px'); }
++  document.documentElement.classList.remove('note-editor-open');
++  document.body.classList.remove('note-editor-open');
+   saveCurrentNote(); // sync save before clearing state
+   currentNoteId = null;
+   renderNoteList();
+@@ -1464,15 +1855,23 @@
+   loadBannerTime();
+   buildTimePicker();
+   document.getElementById('timePickerOverlay').classList.add('active');
++  setTimeout(() => FeatureCoachManager.show('summaryReminder', '#timePickerOverlay .time-picker', {
++    eyebrow:'每天一次',
++    title:'这是“每日总结提醒”',
++    text:'它不是某一条 To-Do，也不是 Daily 事项。只要设置一次，以后每天都会在这个时间提醒你回顾当天完成情况。',
++    visual:'🕐 每天固定时间　→　显示当天整体进度 Banner　→　第二天继续重复'
++  }), 180);
+ });
+ 
+ document.getElementById('timePickerClose').addEventListener('click', () => {
+   document.getElementById('timePickerOverlay').classList.remove('active');
++  FeatureCoachManager.close(false);
+ });
+ 
+ document.getElementById('timePickerOverlay').addEventListener('click', (e) => {
+   if (e.target === e.currentTarget) {
+     document.getElementById('timePickerOverlay').classList.remove('active');
++    FeatureCoachManager.close(false);
+   }
+ });
+ 
+@@ -1593,9 +1992,31 @@
+ }
+ function openDailyDrawer(focusId) {
+   if (currentMode !== 'todo') applyMode('todo');
+-  renderDailyDrawer();
+   const overlay = document.getElementById('dailyDrawerOverlay');
+-  overlay.classList.add('active');
++  const drawer = document.getElementById('dailyDrawer');
++
++  // Prepare the drawer fully off-screen for one rendered frame before revealing it.
++  // This avoids the one-frame "content flash" that some WebView/MagicOS compositors show
++  // when innerHTML updates and backdrop-filter + transform become visible in the same frame.
++  overlay.classList.remove('active');
++  overlay.classList.add('prepared');
++  if (drawer) {
++    drawer.style.removeProperty('transform');
++    drawer.style.removeProperty('transition');
++  }
++  renderDailyDrawer();
++  void overlay.offsetWidth;
++  requestAnimationFrame(() => requestAnimationFrame(() => {
++    overlay.classList.remove('prepared');
++    overlay.classList.add('active');
++  }));
++
++  setTimeout(() => FeatureCoachManager.show('dailyOpenGesturesV2', '#dailyDrawer', {
++    eyebrow:'每天重新开始',
++    title:'Daily 不等于普通待办',
++    text:'喝水、吃药、运动这类每天都要做的事情放这里。今天勾选完成，到了第二天会自然重新变成未完成。桌面 Banner 支持四向手势：右滑 +5/+10 分钟稍后提醒，左滑关闭，上滑直接完成，下滑打开应用。',
++    visual:'↑ 完成　← 关闭　Banner　→ +5 / +10 min　↓ 打开应用'
++  }), 280);
+   if (focusId) {
+     setTimeout(() => {
+       const el = document.querySelector(`.daily-item[data-daily-id="${Number(focusId)}"]`);
+@@ -1612,6 +2033,8 @@
+   const drawer = document.getElementById('dailyDrawer');
+   if (drawer) { drawer.style.removeProperty('transform'); drawer.style.removeProperty('transition'); }
+   overlay.classList.remove('active');
++  overlay.classList.remove('prepared');
++  if (document.getElementById('contextCoach')?.classList.contains('active')) FeatureCoachManager.close(false);
+ }
+ function openDailyEditor(id) {
+   dailyEditingId = id ? Number(id) : null;
+@@ -1676,10 +2099,12 @@
+   renderDailyHistoryCalendar();
+   renderDailyHistorySheet();
+   document.getElementById('dailyHistoryOverlay').classList.add('active');
++  setTimeout(() => showContextCoach('dailyCalendar', '.daily-history-card', '读懂 Daily 的完成轨迹', '绿点代表完成度高，黄点代表部分完成，红点代表完成较少。点任意一天，底部会展开这一天每项 Daily 的具体情况。', '🟢 完成度高　🟡 部分完成　🔴 完成较少　·　点日期看明细'), 220);
+ }
+ function closeDailyHistory() {
+   document.getElementById('dailyHistoryOverlay').classList.remove('active');
+   document.getElementById('dailyHistorySheet').classList.remove('active');
++  if (document.getElementById('contextCoach')?.classList.contains('active')) FeatureCoachManager.close(false);
+ }
+ function renderDailyHistoryCalendar() {
+   const y = dailyHistoryCursor.getFullYear(), m = dailyHistoryCursor.getMonth();
+@@ -1739,8 +2164,9 @@
+   dailyCalendarCursor.setDate(1); dailyCalendarCursor.setHours(12,0,0,0);
+   renderDailyCalendar();
+   document.getElementById('dailyCalendarOverlay').classList.add('active');
++  setTimeout(() => showContextCoach('daily_item_calendar', '.daily-calendar', '看一件事坚持了多久', '每个日期正下方的 ✓、×、● 分别代表完成、过去未完成和今天待完成。切换月份就能回看这件 Daily 的长期记录。'), 180);
+ }
+-function closeDailyCalendar() { document.getElementById('dailyCalendarOverlay').classList.remove('active'); dailyCalendarTaskId = null; }
++function closeDailyCalendar() { document.getElementById('dailyCalendarOverlay').classList.remove('active'); dailyCalendarTaskId = null; if (document.getElementById('contextCoach')?.classList.contains('active')) FeatureCoachManager.close(false); }
+ function renderDailyCalendar() {
+   const task = getDailyTask(dailyCalendarTaskId); if (!task) return;
+   const y = dailyCalendarCursor.getFullYear(), m = dailyCalendarCursor.getMonth();
+@@ -1887,10 +2313,12 @@
+   setReminderFields(base);
+   document.getElementById('reminderCancelExisting').classList.toggle('visible', existing > 0);
+   document.getElementById('reminderPickerOverlay').classList.add('active');
++  setTimeout(() => showContextCoach('todoReminderGesturesV2', '#reminderPickerOverlay .reminder-picker', '这是单条待办提醒', '设置具体日期和时间后，到点会显示 Todo Banner。复选框仍可切换三态；手势则更快：右滑按距离选择 +5/+10 分钟，左滑等同 × 关闭，上滑直接判定已完成并同步到 App，下滑等同点击 Banner 打开应用。', '↑ 完成　← 关闭　Banner　→ +5 / +10 min　↓ 打开应用'), 180);
+ }
+ function closeTodoReminderPicker() {
+   document.getElementById('reminderPickerOverlay').classList.remove('active');
+   reminderEditingTodoId = null;
++  FeatureCoachManager.close(false);
+ }
+ function readReminderDate() {
+   const y = parseInt(document.getElementById('reminderYear').value, 10);
+@@ -2118,11 +2546,21 @@
+ }, { passive: false });
+ todoListEl.addEventListener('touchend', () => {
+   if (!swipeItemEl) return;
+-  const inner = swipeItemEl.querySelector('.todo-item__inner');
++  const coachedItem = swipeItemEl;
++  const didReveal = swipeRevealed;
++  const inner = coachedItem.querySelector('.todo-item__inner');
+   if (!inner) { swipeItemEl = null; swipeRevealed = false; return; }
+   inner.style.transition = 'transform 0.2s ease-out';
+-  inner.style.transform = swipeRevealed ? `translateX(-${SWIPE_ACTION_WIDTH}px)` : '';
++  inner.style.transform = didReveal ? `translateX(-${SWIPE_ACTION_WIDTH}px)` : '';
+   swipeItemEl = null; swipeRevealed = false;
++  if (didReveal) {
++    setTimeout(() => FeatureCoachManager.show('todoSwipe', coachedItem.querySelector('.todo-item__swipe-bg'), {
++      eyebrow:'你发现了隐藏操作',
++      title:'左滑可以快速管理待办',
++      text:'绿色按钮设置具体日期与时间的桌面提醒；红色按钮删除这条待办。以后不需要先进入编辑页面。',
++      visual:'⏰ 提醒：到点浮在桌面　　⌫ 删除：移除当前事项'
++    }), 230);
++  }
+ });
+ todoListEl.addEventListener('click', (e) => {
+   const remindBtn = e.target.closest('.todo-item__remind-btn');
+@@ -2218,11 +2656,13 @@
+ // ===== AI Chat =====
+ function openAiChat() {
+   document.getElementById('aiChatModal').classList.add('active');
++  setTimeout(() => showContextCoach('aiOpen', '#aiChatModal .ai-chat-modal__content', '可以直接说人话', '例如“明天下午三点提醒我交材料”或“把今天完成的清掉”。它适合用一句话快速创建、查询和整理待办。', '试试说：“明天上午 10 点提醒我开会”'), 180);
+   // Don't auto-focus — keyboard only when user taps input
+ }
+ 
+ function closeAiChat() {
+   document.getElementById('aiChatModal').classList.remove('active');
++  FeatureCoachManager.close(false);
+ }
+ 
+ function addAiMessage(role, text) {
+@@ -3352,7 +3792,16 @@
+ 
+ // Resolve title: user input, or first line of body
+ function firstLineOfBody(bodyEl) {
+-  var text = (bodyEl.textContent || '').replace(/\n/g, ' ').trim();
++  var clone = bodyEl.cloneNode(true);
++  clone.querySelectorAll('.note-image-grid,.note-image-picker-marker,.note-image-remove,.note-file-stack,.note-file-picker-marker,.note-file-card__remove').forEach(function(el) { el.remove(); });
++  var text = (clone.textContent || '').replace(/\n/g, ' ').trim();
++  if (!text) {
++    var hasImage = !!bodyEl.querySelector('.note-image-item');
++    var hasFile = !!bodyEl.querySelector('.note-file-card');
++    if (hasImage && hasFile) return '附件笔记';
++    if (hasFile) return '文件笔记';
++    if (hasImage) return '图片笔记';
++  }
+   if (text.length > 50) text = text.substring(0, 50) + '…';
+   return text;
+ }
+@@ -3472,16 +3921,342 @@
+   document.execCommand('insertHTML', false, html);
+ }
+ 
+-// ===== Keyboard-aware: shrink editor so toolbar (in flow) stays above keyboard =====
+-if (window.visualViewport) {
+-  window.visualViewport.addEventListener('resize', function() {
+-    var diff = window.innerHeight - window.visualViewport.height;
+-    var editor = document.getElementById('noteEditor');
+-    if (editor && editor.style.display !== 'none') {
+-      editor.style.bottom = diff > 80 ? diff + 'px' : '0px';
+-    }
++// ===== Note image picker / inline image blocks =====
++var noteImagePendingMarkerId = '';
++var noteImageMarkerSeq = 0;
++var noteLastSelectionRange = null;
++
++function rememberNoteSelection() {
++  var bodyEl = document.getElementById('noteEditorBody');
++  var sel = window.getSelection();
++  if (!bodyEl || !sel || !sel.rangeCount) return;
++  var range = sel.getRangeAt(0);
++  if (bodyEl.contains(range.commonAncestorContainer)) noteLastSelectionRange = range.cloneRange();
++}
++
++function insertImageMarkerAtCaret() {
++  var bodyEl = document.getElementById('noteEditorBody');
++  if (!bodyEl) return null;
++  var marker = document.createElement('span');
++  marker.id = 'noteImageMarker_' + Date.now() + '_' + (++noteImageMarkerSeq);
++  marker.className = 'note-image-picker-marker';
++  marker.setAttribute('contenteditable', 'false');
++
++  var range = noteLastSelectionRange && bodyEl.contains(noteLastSelectionRange.commonAncestorContainer)
++    ? noteLastSelectionRange.cloneRange() : null;
++  if (!range) {
++    range = document.createRange();
++    range.selectNodeContents(bodyEl);
++    range.collapse(false);
++  }
++  range.deleteContents();
++  range.insertNode(marker);
++  return marker;
++}
++
++function requestNoteImages() {
++  if (!currentNoteId) return showToast('请先打开一条笔记');
++  if (typeof AndroidBridge === 'undefined' || !AndroidBridge.pickNoteImages) {
++    return showToast('添加图片仅支持 Android APP');
++  }
++  rememberNoteSelection();
++  var oldMarker = noteImagePendingMarkerId ? document.getElementById(noteImagePendingMarkerId) : null;
++  if (oldMarker) oldMarker.remove();
++  var marker = insertImageMarkerAtCaret();
++  if (!marker) return;
++  noteImagePendingMarkerId = marker.id;
++  try {
++    var result = String(AndroidBridge.pickNoteImages(String(currentNoteId)));
++    if (result !== 'ok') { marker.remove(); noteImagePendingMarkerId = ''; showToast('无法打开系统相册'); }
++  } catch(e) {
++    marker.remove(); noteImagePendingMarkerId = ''; showToast('无法打开系统相册');
++  }
++}
++
++window.__onNoteImagesPicked = function(items) {
++  items = Array.isArray(items) ? items : [];
++  var bodyEl = document.getElementById('noteEditorBody');
++  if (!bodyEl) return;
++  var marker = noteImagePendingMarkerId ? document.getElementById(noteImagePendingMarkerId) : null;
++  noteImagePendingMarkerId = '';
++  if (!items.length) { if (marker) marker.remove(); return; }
++
++  var grid = document.createElement('div');
++  grid.className = 'note-image-grid' + (items.length === 1 ? ' note-image-grid--single' : '');
++  grid.setAttribute('contenteditable', 'false');
++  items.forEach(function(item) {
++    if (!item || !item.url || !item.name) return;
++    var fig = document.createElement('div');
++    fig.className = 'note-image-item';
++    fig.setAttribute('data-note-image-name', String(item.name));
++    var img = document.createElement('img');
++    img.src = String(item.url);
++    img.alt = '笔记图片';
++    img.setAttribute('data-note-image-preview', '1');
++    var remove = document.createElement('button');
++    remove.type = 'button';
++    remove.className = 'note-image-remove';
++    remove.setAttribute('data-note-image-remove', '1');
++    remove.setAttribute('aria-label', '删除图片');
++    remove.textContent = '✕';
++    fig.appendChild(img);
++    fig.appendChild(remove);
++    grid.appendChild(fig);
+   });
++  if (!grid.children.length) { if (marker) marker.remove(); return; }
++
++  var spacer = document.createElement('div');
++  spacer.innerHTML = '<br>';
++  if (marker && marker.parentNode) {
++    marker.parentNode.insertBefore(grid, marker);
++    marker.parentNode.insertBefore(spacer, marker);
++    marker.remove();
++  } else {
++    bodyEl.appendChild(grid); bodyEl.appendChild(spacer);
++  }
++  saveCurrentNote();
++  showToast(items.length === 1 ? '已添加图片' : ('已添加 ' + items.length + ' 张图片'));
++};
++
++function openNoteImagePreview(src) {
++  var overlay = document.getElementById('noteImagePreview');
++  var img = document.getElementById('noteImagePreviewImg');
++  if (!overlay || !img || !src) return;
++  img.src = src;
++  overlay.style.display = 'flex';
++  requestAnimationFrame(function() { overlay.classList.add('active'); });
++  overlay.setAttribute('aria-hidden', 'false');
++}
++function closeNoteImagePreview() {
++  var overlay = document.getElementById('noteImagePreview');
++  var img = document.getElementById('noteImagePreviewImg');
++  if (!overlay) return;
++  overlay.classList.remove('active');
++  overlay.setAttribute('aria-hidden', 'true');
++  setTimeout(function() { if (!overlay.classList.contains('active')) { overlay.style.display = 'none'; if (img) img.removeAttribute('src'); } }, 190);
++}
++
++document.getElementById('noteAddImageBtn')?.addEventListener('click', requestNoteImages);
++document.getElementById('noteImagePreviewClose')?.addEventListener('click', closeNoteImagePreview);
++document.getElementById('noteImagePreview')?.addEventListener('click', function(e) { if (e.target === e.currentTarget) closeNoteImagePreview(); });
++document.getElementById('noteEditorBody')?.addEventListener('click', function(e) {
++  var remove = e.target.closest('[data-note-image-remove]');
++  if (remove) {
++    e.preventDefault(); e.stopPropagation();
++    var fig = remove.closest('.note-image-item');
++    var grid = remove.closest('.note-image-grid');
++    var name = fig ? fig.getAttribute('data-note-image-name') : '';
++    if (name && typeof AndroidBridge !== 'undefined' && AndroidBridge.deleteNoteImage) { try { AndroidBridge.deleteNoteImage(name); } catch(err) {} }
++    if (fig) fig.remove();
++    if (grid && !grid.querySelector('.note-image-item')) grid.remove();
++    saveCurrentNote();
++    showToast('图片已删除');
++    return;
++  }
++  var fileRemove = e.target.closest('[data-note-file-remove]');
++  if (fileRemove) {
++    e.preventDefault(); e.stopPropagation();
++    var fileCard = fileRemove.closest('.note-file-card');
++    var fileStack = fileRemove.closest('.note-file-stack');
++    var fileName = fileCard ? fileCard.getAttribute('data-note-file-name') : '';
++    if (fileName && typeof AndroidBridge !== 'undefined' && AndroidBridge.deleteNoteFile) { try { AndroidBridge.deleteNoteFile(fileName); } catch(err2) {} }
++    if (fileCard) fileCard.remove();
++    if (fileStack && !fileStack.querySelector('.note-file-card')) fileStack.remove();
++    saveCurrentNote();
++    showToast('文件已移除');
++    return;
++  }
++  var img = e.target.closest('img[data-note-image-preview]');
++  if (img) { e.preventDefault(); e.stopPropagation(); openNoteImagePreview(img.src); return; }
++  var fileCard = e.target.closest('.note-file-card[data-note-file-name]');
++  if (fileCard) { e.preventDefault(); e.stopPropagation(); openNoteFileActions(fileCard); }
++});
++
++// ===== Note file picker / inline attachment cards =====
++var noteFilePendingMarkerId = '';
++var noteFileMarkerSeq = 0;
++var activeNoteFileMeta = null;
++
++function insertFileMarkerAtCaret() {
++  var bodyEl = document.getElementById('noteEditorBody');
++  if (!bodyEl) return null;
++  var marker = document.createElement('span');
++  marker.id = 'noteFileMarker_' + Date.now() + '_' + (++noteFileMarkerSeq);
++  marker.className = 'note-file-picker-marker';
++  marker.setAttribute('contenteditable','false');
++  var range = noteLastSelectionRange && bodyEl.contains(noteLastSelectionRange.commonAncestorContainer)
++    ? noteLastSelectionRange.cloneRange() : null;
++  if (!range) {
++    range = document.createRange();
++    range.selectNodeContents(bodyEl);
++    range.collapse(false);
++  }
++  range.deleteContents();
++  range.insertNode(marker);
++  return marker;
++}
++
++function requestNoteFiles() {
++  if (!currentNoteId) return showToast('请先打开一条笔记');
++  if (typeof AndroidBridge === 'undefined' || !AndroidBridge.pickNoteFiles) return showToast('添加文件仅支持 Android APP');
++  rememberNoteSelection();
++  var oldMarker = noteFilePendingMarkerId ? document.getElementById(noteFilePendingMarkerId) : null;
++  if (oldMarker) oldMarker.remove();
++  var marker = insertFileMarkerAtCaret();
++  if (!marker) return;
++  noteFilePendingMarkerId = marker.id;
++  try {
++    var result = String(AndroidBridge.pickNoteFiles(String(currentNoteId)));
++    if (result !== 'ok') { marker.remove(); noteFilePendingMarkerId = ''; showToast('无法打开系统文件选择器'); }
++  } catch(e) {
++    marker.remove(); noteFilePendingMarkerId = ''; showToast('无法打开系统文件选择器');
++  }
++}
++
++function noteFileExtension(displayName, mime) {
++  var name = String(displayName || '');
++  var idx = name.lastIndexOf('.');
++  var ext = idx >= 0 ? name.slice(idx + 1).toLowerCase() : '';
++  if (!ext && mime === 'application/pdf') ext = 'pdf';
++  if (!ext && mime && mime.indexOf('text/') === 0) ext = 'txt';
++  return ext || 'file';
++}
++function noteFileBadgeLabel(ext) {
++  var e = String(ext || 'file').toUpperCase();
++  if (e === 'MARKDOWN') e = 'MD';
++  if (e === 'JPEG') e = 'JPG';
++  return e.length > 5 ? 'FILE' : e;
++}
++function noteFileBadgeClass(ext) {
++  var e = String(ext || '').toLowerCase();
++  return e === '7z' ? 'sevenzip' : e.replace(/[^a-z0-9_-]/g,'');
++}
++function noteFileSizeLabel(bytes) {
++  var n = Number(bytes);
++  if (!isFinite(n) || n < 0) return '未知大小';
++  if (n < 1024) return n + ' B';
++  if (n < 1024 * 1024) return (n / 1024).toFixed(n < 10 * 1024 ? 1 : 0) + ' KB';
++  if (n < 1024 * 1024 * 1024) return (n / 1024 / 1024).toFixed(n < 10 * 1024 * 1024 ? 1 : 0) + ' MB';
++  return (n / 1024 / 1024 / 1024).toFixed(1) + ' GB';
++}
++function createNoteFileCard(item) {
++  if (!item || !item.name) return null;
++  var displayName = String(item.displayName || item.name);
++  var mime = String(item.mime || 'application/octet-stream');
++  var size = Number(item.size || 0);
++  var ext = noteFileExtension(displayName, mime);
++  var card = document.createElement('div');
++  card.className = 'note-file-card';
++  card.setAttribute('contenteditable','false');
++  card.setAttribute('data-note-file-name', String(item.name));
++  card.setAttribute('data-note-file-display', displayName);
++  card.setAttribute('data-note-file-mime', mime);
++  card.setAttribute('data-note-file-size', String(size));
++  card.setAttribute('data-note-file-ext', ext);
++
++  var badge = document.createElement('div');
++  badge.className = 'note-file-card__badge ' + noteFileBadgeClass(ext);
++  badge.textContent = noteFileBadgeLabel(ext);
++  var main = document.createElement('div');
++  main.className = 'note-file-card__main';
++  var name = document.createElement('div');
++  name.className = 'note-file-card__name'; name.textContent = displayName;
++  var meta = document.createElement('div');
++  meta.className = 'note-file-card__meta'; meta.textContent = noteFileBadgeLabel(ext) + ' · ' + noteFileSizeLabel(size) + ' · 点击打开/分享';
++  main.appendChild(name); main.appendChild(meta);
++  var remove = document.createElement('button');
++  remove.type = 'button'; remove.className = 'note-file-card__remove'; remove.setAttribute('data-note-file-remove','1'); remove.setAttribute('aria-label','移除文件'); remove.textContent = '✕';
++  card.appendChild(badge); card.appendChild(main); card.appendChild(remove);
++  return card;
++}
++
++window.__onNoteFilesPicked = function(items) {
++  items = Array.isArray(items) ? items : [];
++  var bodyEl = document.getElementById('noteEditorBody');
++  if (!bodyEl) return;
++  var marker = noteFilePendingMarkerId ? document.getElementById(noteFilePendingMarkerId) : null;
++  noteFilePendingMarkerId = '';
++  if (!items.length) { if (marker) marker.remove(); return; }
++  var stack = document.createElement('div');
++  stack.className = 'note-file-stack'; stack.setAttribute('contenteditable','false');
++  items.forEach(function(item) { var card = createNoteFileCard(item); if (card) stack.appendChild(card); });
++  if (!stack.children.length) { if (marker) marker.remove(); return; }
++  var spacer = document.createElement('div'); spacer.innerHTML = '<br>';
++  if (marker && marker.parentNode) {
++    marker.parentNode.insertBefore(stack, marker);
++    marker.parentNode.insertBefore(spacer, marker);
++    marker.remove();
++  } else { bodyEl.appendChild(stack); bodyEl.appendChild(spacer); }
++  saveCurrentNote();
++  showToast(items.length === 1 ? '已添加文件' : ('已添加 ' + items.length + ' 个文件'));
++};
++
++function openNoteFileActions(card) {
++  if (!card) return;
++  activeNoteFileMeta = {
++    name: card.getAttribute('data-note-file-name') || '',
++    displayName: card.getAttribute('data-note-file-display') || '附件',
++    mime: card.getAttribute('data-note-file-mime') || 'application/octet-stream',
++    size: Number(card.getAttribute('data-note-file-size') || 0),
++    ext: card.getAttribute('data-note-file-ext') || 'file'
++  };
++  var overlay = document.getElementById('noteFileActionsOverlay');
++  var nameEl = document.getElementById('noteFileActionsName');
++  var metaEl = document.getElementById('noteFileActionsMeta');
++  if (!overlay) return;
++  if (nameEl) nameEl.textContent = activeNoteFileMeta.displayName;
++  if (metaEl) metaEl.textContent = noteFileBadgeLabel(activeNoteFileMeta.ext) + ' · ' + noteFileSizeLabel(activeNoteFileMeta.size);
++  overlay.style.display = 'flex';
++  requestAnimationFrame(function(){ overlay.classList.add('active'); });
++  overlay.setAttribute('aria-hidden','false');
++}
++function closeNoteFileActions() {
++  var overlay = document.getElementById('noteFileActionsOverlay');
++  if (!overlay) return;
++  overlay.classList.remove('active'); overlay.setAttribute('aria-hidden','true');
++  setTimeout(function(){ if (!overlay.classList.contains('active')) overlay.style.display = 'none'; }, 190);
++}
++function runNoteFileAction(action) {
++  if (!activeNoteFileMeta || !activeNoteFileMeta.name || typeof AndroidBridge === 'undefined') return showToast('文件不可用');
++  var result = 'failed';
++  try {
++    if (action === 'open') result = String(AndroidBridge.openNoteFile(activeNoteFileMeta.name));
++    else result = String(AndroidBridge.shareNoteFile(activeNoteFileMeta.name, action));
++  } catch(e) { result = 'failed'; }
++  closeNoteFileActions();
++  if (result === 'unavailable') showToast(action === 'wechat' ? '未检测到可用的微信' : action === 'qq' ? '未检测到可用的 QQ' : '没有可打开此文件的应用');
++  else if (result !== 'ok') showToast('暂时无法处理这个文件');
++}
++
++document.getElementById('noteAddFileBtn')?.addEventListener('click', requestNoteFiles);
++document.getElementById('noteFileActionsCancel')?.addEventListener('click', closeNoteFileActions);
++document.getElementById('noteFileActionsOverlay')?.addEventListener('click', function(e){ if (e.target === e.currentTarget) closeNoteFileActions(); });
++document.querySelectorAll('[data-note-file-action]').forEach(function(btn){ btn.addEventListener('click', function(){ runNoteFileAction(btn.getAttribute('data-note-file-action')); }); });
++
++// ===== Keyboard-aware Note editor =====
++// Keep the editor itself full-screen. Only the formatting bar moves to the top edge of the IME.
++// This avoids exposing the underlying Note list while the visual viewport pans during long-note scrolling.
++var noteKeyboardLayoutRaf = 0;
++function syncNoteKeyboardLayout() {
++  noteKeyboardLayoutRaf = 0;
++  var editor = document.getElementById('noteEditor');
++  if (!editor || editor.style.display === 'none') return;
++  editor.style.bottom = '0px';
++  var vv = window.visualViewport;
++  var keyboardTop = vv ? (vv.offsetTop + vv.height) : window.innerHeight;
++  var inset = Math.max(0, Math.round(window.innerHeight - keyboardTop));
++  if (inset < 80) inset = 0;
++  editor.style.setProperty('--note-keyboard-inset', inset + 'px');
++}
++function scheduleNoteKeyboardLayout() {
++  if (noteKeyboardLayoutRaf) cancelAnimationFrame(noteKeyboardLayoutRaf);
++  noteKeyboardLayoutRaf = requestAnimationFrame(syncNoteKeyboardLayout);
++}
++if (window.visualViewport) {
++  window.visualViewport.addEventListener('resize', scheduleNoteKeyboardLayout);
++  window.visualViewport.addEventListener('scroll', scheduleNoteKeyboardLayout);
+ }
++window.addEventListener('resize', scheduleNoteKeyboardLayout);
+ 
+ // ===== Highlight state =====
+ var highlightColor = '#ffd93d'; // default yellow
+@@ -3564,8 +4339,8 @@
+   if (cmd === 'hiliteColor') {
+     toggleHighlight();
+   } else if (cmd === 'bold') {
+-    _boldActive = !_boldActive;
+     document.execCommand('bold', false, null);
++    _boldActive = !!document.queryCommandState('bold');
+     updateToolbarState();
+   } else if (cmd === 'indent') {
+     document.execCommand('insertHTML', false, '&emsp;');
+@@ -3752,20 +4527,16 @@
+   });
+ })();
+ 
+-// Update H button state when selection changes in editor
++// Selection changes must never mutate the note. They only mirror the caret's real formatting state.
+ document.addEventListener('selectionchange', function() {
+   var editor = document.getElementById('noteEditor');
+   if (!editor || editor.style.display === 'none') return;
+   var bodyEl = document.getElementById('noteEditorBody');
+   if (!bodyEl) return;
+-  if (bodyEl.contains(document.activeElement) || document.activeElement === bodyEl) {
+-    // If H/B are off, clear formatting so typing at cursor doesn't inherit it
+-    if (!_highlightActive) {
+-      try { document.execCommand('backColor', false, '#f5ecd8'); } catch(e) {}
+-    }
+-    if (!_boldActive) {
+-      try { document.execCommand('bold', false, null); } catch(e) {}
+-    }
++  var sel = window.getSelection();
++  if (sel && sel.rangeCount && bodyEl.contains(sel.getRangeAt(0).commonAncestorContainer)) {
++    noteLastSelectionRange = sel.getRangeAt(0).cloneRange();
++    _boldActive = !!document.queryCommandState('bold');
+     updateToolbarState();
+   }
+ });
+@@ -3775,6 +4546,15 @@
+ function handleBackPress() {
+   var el;
+ 
++  el = document.getElementById('onboardingWelcome');
++  if (el && el.classList.contains('active')) { finishOnboarding(true); return 'onboarding-welcome'; }
++  el = document.getElementById('onboardingOverlay');
++  if (el && el.classList.contains('active')) { finishOnboarding(true); return 'onboarding'; }
++  el = document.getElementById('helpGuideOverlay');
++  if (el && el.classList.contains('active')) { closeHelpGuide(); return 'help-guide'; }
++  el = document.getElementById('contextCoach');
++  if (el && el.classList.contains('active')) { closeContextCoach(false); return 'context-coach'; }
++
+   // Highest-priority second-level dialogs.
+   el = document.getElementById('confirmOverlay');
+   if (el && el.style.display !== 'none') { hideConfirm(); return 'confirm'; }
+@@ -3804,6 +4584,12 @@
+   el = document.getElementById('noteEditorMoreMenu');
+   if (el && el.style.display !== 'none') { el.style.display = 'none'; return 'note-more'; }
+ 
++  // Note attachment actions / image preview sit above the editor.
++  el = document.getElementById('noteFileActionsOverlay');
++  if (el && el.classList.contains('active')) { closeNoteFileActions(); return 'note-file-actions'; }
++  el = document.getElementById('noteImagePreview');
++  if (el && el.classList.contains('active')) { closeNoteImagePreview(); return 'note-image-preview'; }
++
+   // Note sub-pages.
+   el = document.getElementById('folderSidebar');
+   if (el && (el.classList.contains('folder-sidebar--open') || el.style.display !== 'none')) {
+@@ -3925,9 +4711,10 @@
+       btn.classList.remove('toolbar-active');
+     }
+   }
+-  // B button: pure manual toggle
++  // B button mirrors the actual caret formatting. Default text remains normal weight.
+   var boldBtn = document.querySelector('#noteFormatBar button[data-cmd="bold"]');
+   if (boldBtn) {
++    _boldActive = !!document.queryCommandState('bold');
+     if (_boldActive) { boldBtn.classList.add('toolbar-active'); }
+     else { boldBtn.classList.remove('toolbar-active'); }
+   }
+@@ -3947,3 +4734,4 @@
+ }
+ // Load notes on init
+ loadNotes();
++setTimeout(maybeStartOnboarding, 650);
+diff -ruN '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST*' '--exclude=SELF_TEST*' '--exclude=changes/V1.19.1-to-V1.20.patch' todo_v1191_baseline/ui/todo.html todo_v120_work/ui/todo.html
+--- todo_v1191_baseline/ui/todo.html	2026-08-12 09:53:46.000000000 +0000
++++ todo_v120_work/ui/todo.html	2026-08-13 11:10:58.566207178 +0000
+@@ -1946,6 +1946,12 @@
+   z-index: 200;
+   background: #f5ecd8;
+   display: flex; flex-direction: column;
++  --note-keyboard-inset: 0px;
++  overscroll-behavior: none;
++}
++html.note-editor-open, body.note-editor-open {
++  overflow: hidden !important;
++  overscroll-behavior: none;
+ }
+ .note-editor__header {
+   position: relative;
+@@ -2044,7 +2050,7 @@
+ .note-editor__search::placeholder { color: var(--text-tertiary); }
+ .note-editor__body {
+   flex: 1;
+-  padding: 4px 16px 40vh;
++  padding: 4px 16px calc(78px + var(--note-keyboard-inset));
+   overflow-y: auto;
+   font-size: 15px;
+   font-weight: 400;
+@@ -2054,6 +2060,8 @@
+   -webkit-user-select: text;
+   user-select: text;
+   min-height: 80px;
++  overscroll-behavior-y: contain;
++  scroll-padding-bottom: calc(78px + var(--note-keyboard-inset));
+ }
+ .note-editor__body:empty::before {
+   content: '开始写笔记…';
+@@ -2120,22 +2128,30 @@
+   background: rgba(255,255,255,0.4);
+   max-height: 40vh;
+   overflow-y: auto;
++  padding-bottom: calc(54px + var(--note-keyboard-inset));
+ }
+ 
+-/* ===== Format Bar (inside editor flow, at bottom) ===== */
++/* ===== Format Bar: viewport-anchored, always glued to keyboard/top of IME ===== */
+ .note-format-bar {
+-  flex-shrink: 0;
++  position: fixed;
++  left: 0; right: 0; bottom: 0;
++  z-index: 235;
+   display: flex;
+   align-items: center;
+   justify-content: flex-start;
+   gap: 2px;
+-  padding: 6px 8px;
+-  background: rgba(250, 248, 245, 0.97);
+-  backdrop-filter: blur(10px);
+-  -webkit-backdrop-filter: blur(10px);
++  padding: 6px 8px max(6px, env(safe-area-inset-bottom));
++  background: rgba(250, 248, 245, 0.975);
++  backdrop-filter: blur(12px);
++  -webkit-backdrop-filter: blur(12px);
+   border-top: 1px solid rgba(0,0,0,0.08);
++  box-shadow: 0 -4px 18px rgba(84,70,58,.06);
+   overflow-x: auto;
+   -webkit-overflow-scrolling: touch;
++  transform: translate3d(0, calc(-1 * var(--note-keyboard-inset)), 0);
++  will-change: transform;
++  transition: transform 110ms ease-out;
++  backface-visibility: hidden;
+ }
+ .note-format-bar button {
+   flex-shrink: 0;
+@@ -2169,6 +2185,77 @@
+   margin: 0 4px;
+ }
+ 
++.note-format-bar .note-toolbar-icon-btn { color:#3b9e8a; }
++.note-format-bar .note-toolbar-icon-btn svg {
++  width:20px; height:20px; display:block; fill:none; stroke:currentColor; stroke-width:1.8;
++  stroke-linecap:round; stroke-linejoin:round; pointer-events:none;
++}
++.note-add-file-btn { color:#6f87bb!important; }
++
++/* ===== Note inline file attachments ===== */
++.note-file-stack {
++  display:flex; flex-direction:column; gap:8px; margin:10px 0 12px; width:100%;
++  user-select:none; -webkit-user-select:none;
++}
++.note-file-card {
++  display:flex; align-items:center; gap:11px; width:100%; min-width:0; padding:11px 12px;
++  border-radius:16px; background:rgba(255,255,255,.58); border:1px solid rgba(255,255,255,.78);
++  box-shadow:0 5px 18px rgba(91,76,61,.08); cursor:pointer;
++  transition:transform .14s ease, box-shadow .14s ease, background .14s ease;
++}
++.note-file-card:active { transform:scale(.985); background:rgba(255,255,255,.76); }
++.note-file-card__badge {
++  flex:0 0 46px; width:46px; height:46px; border-radius:13px; display:flex; align-items:center; justify-content:center;
++  font-size:11px; font-weight:850; letter-spacing:.2px; color:#fff; background:linear-gradient(135deg,#72cfc0,#5793e7);
++  box-shadow:0 5px 14px rgba(72,126,167,.16);
++}
++.note-file-card__badge.pdf { background:linear-gradient(135deg,#ff8b83,#e95d67); }
++.note-file-card__badge.md,.note-file-card__badge.txt { background:linear-gradient(135deg,#69c9ac,#3aa891); }
++.note-file-card__badge.doc,.note-file-card__badge.docx { background:linear-gradient(135deg,#71aaf5,#4b75dc); }
++.note-file-card__badge.xls,.note-file-card__badge.xlsx,.note-file-card__badge.csv { background:linear-gradient(135deg,#67c58d,#379d68); }
++.note-file-card__badge.ppt,.note-file-card__badge.pptx { background:linear-gradient(135deg,#f7a06e,#e66f48); }
++.note-file-card__badge.zip,.note-file-card__badge.rar,.note-file-card__badge.sevenzip { background:linear-gradient(135deg,#b59ae8,#876ccc); }
++.note-file-card__main { flex:1; min-width:0; }
++.note-file-card__name { font-size:13.5px; font-weight:720; color:#403832; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
++.note-file-card__meta { margin-top:3px; font-size:10.5px; color:#9a8e83; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
++.note-file-card__remove {
++  flex:0 0 30px; width:30px; height:30px; border:0; border-radius:50%; background:rgba(238,111,108,.09);
++  color:#d77673; font-size:14px; display:flex; align-items:center; justify-content:center;
++}
++.note-file-picker-marker { display:inline-block; width:2px; height:1em; vertical-align:middle; }
++
++.note-file-actions-overlay {
++  position:fixed; inset:0; z-index:16030; display:none; align-items:flex-end; justify-content:center;
++  padding:0 12px max(12px,env(safe-area-inset-bottom)); background:rgba(48,43,39,.28);
++  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); opacity:0; transition:opacity 180ms ease-out;
++}
++.note-file-actions-overlay.active { display:flex; opacity:1; }
++.note-file-actions-sheet {
++  width:min(100%,440px); border-radius:26px; padding:10px 14px 14px;
++  background:linear-gradient(180deg,rgba(255,255,253,.98),rgba(251,247,243,.98));
++  border:1px solid rgba(255,255,255,.82); box-shadow:0 24px 70px rgba(74,57,45,.24);
++  transform:translate3d(0,18px,0); opacity:0; transition:transform 200ms cubic-bezier(.22,.82,.28,1),opacity 170ms ease-out;
++}
++.note-file-actions-overlay.active .note-file-actions-sheet { transform:translate3d(0,0,0); opacity:1; }
++.note-file-actions-handle { width:42px; height:4px; border-radius:999px; background:#ded8d1; margin:1px auto 12px; }
++.note-file-actions-head { display:flex; align-items:center; gap:11px; padding:3px 4px 13px; }
++.note-file-actions-head__icon { width:44px; height:44px; border-radius:13px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#e7f7f2,#e9effd); color:#547ca7; }
++.note-file-actions-head__icon svg { width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
++.note-file-actions-copy { flex:1; min-width:0; }
++.note-file-actions-name { font-size:14px; font-weight:800; color:#3f3731; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
++.note-file-actions-meta { margin-top:3px; font-size:11px; color:#9a8e83; }
++.note-file-actions-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
++.note-file-action {
++  border:0; border-radius:17px; padding:12px 5px 10px; background:rgba(247,244,240,.92); color:#554b43;
++  display:flex; flex-direction:column; align-items:center; gap:7px; font-size:11px; font-weight:700; min-width:0;
++}
++.note-file-action:active { transform:scale(.96); }
++.note-file-action__icon { width:36px; height:36px; border-radius:12px; background:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(76,62,52,.07); font-size:17px; }
++.note-file-action__icon svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
++.note-file-action.wechat .note-file-action__icon { color:#21a763; }
++.note-file-action.qq .note-file-action__icon { color:#4f78dc; }
++.note-file-actions-cancel { width:100%; margin-top:10px; padding:12px; border:0; border-radius:15px; background:rgba(242,238,233,.9); color:#81756b; font-size:13px; font-weight:700; }
++
+ /* ===== Color Picker Popup ===== */
+ .color-picker-pop {
+   position: fixed;
+@@ -2405,7 +2492,12 @@
+       <span class="note-format-bar__sep"></span>
+       <button onclick="insertCheckbox()" title="待办勾选">☐</button>
+       <button onclick="moreAddChild()" title="添加子笔记">+子</button>
+-      <button class="note-add-image-btn" id="noteAddImageBtn" title="添加图片" aria-label="添加图片">▧+</button>
++      <button class="note-toolbar-icon-btn note-add-image-btn" id="noteAddImageBtn" title="添加图片" aria-label="添加图片">
++        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"></rect><circle cx="8.2" cy="9" r="1.4"></circle><path d="M5.5 17l4.1-4.2 3.1 3.1 2.1-2.1 3.7 3.2"></path></svg>
++      </button>
++      <button class="note-toolbar-icon-btn note-add-file-btn" id="noteAddFileBtn" title="添加文件" aria-label="添加文件">
++        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h8l4 4V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z"></path><path d="M14 3.5V8h4"></path><path d="M8.5 14h7"></path><path d="M12 10.5v7"></path></svg>
++      </button>
+     </div>
+     <div class="note-editor__children" id="noteEditorChildren">
+       <div class="note-editor__children-header">子笔记</div>
+@@ -2418,6 +2510,23 @@
+     <img id="noteImagePreviewImg" alt="笔记图片预览">
+   </div>
+ 
++  <div class="note-file-actions-overlay" id="noteFileActionsOverlay" aria-hidden="true">
++    <section class="note-file-actions-sheet" role="dialog" aria-modal="true" aria-label="文件操作">
++      <div class="note-file-actions-handle"></div>
++      <div class="note-file-actions-head">
++        <div class="note-file-actions-head__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h8l4 4V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z"></path><path d="M14 3.5V8h4"></path></svg></div>
++        <div class="note-file-actions-copy"><div class="note-file-actions-name" id="noteFileActionsName">附件</div><div class="note-file-actions-meta" id="noteFileActionsMeta"></div></div>
++      </div>
++      <div class="note-file-actions-grid">
++        <button class="note-file-action" data-note-file-action="open"><span class="note-file-action__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5h6l1.8 2H20a1 1 0 0 1 1 1v7.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8.5a1 1 0 0 1 .5-1z"></path><path d="M7 14h10"></path></svg></span><span>文件查看</span></button>
++        <button class="note-file-action wechat" data-note-file-action="wechat"><span class="note-file-action__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 6.5c-3 0-5.5 1.9-5.5 4.3 0 1.4.8 2.7 2.1 3.5l-.5 2 2.1-1.1c.6.2 1.2.3 1.8.3 3 0 5.5-1.9 5.5-4.4S11.5 6.5 8.5 6.5z"></path><path d="M13.5 9.5c4 0 7 2.2 7 5 0 1.5-.8 2.8-2.2 3.7l.4 1.8-2-1c-.9.3-1.7.4-2.6.4-1.4 0-2.7-.3-3.7-.9"></path></svg></span><span>微信发送</span></button>
++        <button class="note-file-action qq" data-note-file-action="qq"><span class="note-file-action__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18.5c1.4 1.2 3.5 2 6 2s4.6-.8 6-2"></path><path d="M7 15c-1.1-1.2-1.7-2.8-1.7-4.5C5.3 6.9 8.1 4 12 4s6.7 2.9 6.7 6.5c0 1.8-.6 3.4-1.7 4.5"></path><path d="M9 9.5h.01M15 9.5h.01"></path></svg></span><span>QQ发送</span></button>
++        <button class="note-file-action" data-note-file-action="more"><span class="note-file-action__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg></span><span>更多</span></button>
++      </div>
++      <button class="note-file-actions-cancel" id="noteFileActionsCancel">取消</button>
++    </section>
++  </div>
++
+   <!-- Folder Sidebar -->
+   <div class="folder-sidebar-backdrop" id="folderSidebarBackdrop" style="display:none" onclick="closeFolderSidebar()"></div>
+   <div class="folder-sidebar" id="folderSidebar" style="display:none">
+@@ -3372,6 +3481,21 @@
+   });
+ }
+ 
++function extractNoteFileNames(content) {
++  var names = [];
++  var re = /data-note-file-name=["']([A-Za-z0-9._-]{1,180})["']/g;
++  var match;
++  while ((match = re.exec(String(content || ''))) !== null) names.push(match[1]);
++  return names;
++}
++
++function deleteNativeNoteFilesFromContent(content) {
++  if (typeof AndroidBridge === 'undefined' || !AndroidBridge.deleteNoteFile) return;
++  extractNoteFileNames(content).forEach(function(name) {
++    try { AndroidBridge.deleteNoteFile(name); } catch(e) {}
++  });
++}
++
+ function deleteNote(id) {
+   var note = getNoteById(id);
+   if (!note) return;
+@@ -3391,6 +3515,7 @@
+       if (notes[j].parentId === toDelete[di]) {
+         toDelete.push(notes[j].id);
+         deleteNativeNoteImagesFromContent(notes[j].content || '');
++        deleteNativeNoteFilesFromContent(notes[j].content || '');
+         notes.splice(j, 1);
+       }
+     }
+@@ -3400,6 +3525,7 @@
+   for (var k = notes.length - 1; k >= 0; k--) {
+     if (notes[k].id === id) {
+       deleteNativeNoteImagesFromContent(notes[k].content || '');
++      deleteNativeNoteFilesFromContent(notes[k].content || '');
+       notes.splice(k, 1); break;
+     }
+   }
+@@ -3722,7 +3848,9 @@
+   var bodyEl = document.getElementById('noteEditorBody');
+   var childrenList = document.getElementById('noteEditorChildrenList');
+   var searchInput = document.getElementById('noteEditorSearch');
+-  if (editor) editor.style.display = '';
++  if (editor) { editor.style.display = ''; editor.style.bottom = '0px'; editor.style.setProperty('--note-keyboard-inset','0px'); }
++  document.documentElement.classList.add('note-editor-open');
++  document.body.classList.add('note-editor-open');
+   if (titleInput) titleInput.value = note.title;
+   if (bodyEl) bodyEl.innerHTML = note.content;
+   _boldActive = false;
+@@ -3744,12 +3872,15 @@
+     bodyEl.focus();
+     _boldActive = !!document.queryCommandState('bold');
+     updateToolbarState();
++    scheduleNoteKeyboardLayout();
+   }, 100);
+ }
+ 
+ function closeNoteEditor() {
+   var editor = document.getElementById('noteEditor');
+-  if (editor) editor.style.display = 'none';
++  if (editor) { editor.style.display = 'none'; editor.style.bottom = '0px'; editor.style.setProperty('--note-keyboard-inset','0px'); }
++  document.documentElement.classList.remove('note-editor-open');
++  document.body.classList.remove('note-editor-open');
+   saveCurrentNote(); // sync save before clearing state
+   currentNoteId = null;
+   renderNoteList();
+@@ -6484,9 +6615,15 @@
+ // Resolve title: user input, or first line of body
+ function firstLineOfBody(bodyEl) {
+   var clone = bodyEl.cloneNode(true);
+-  clone.querySelectorAll('.note-image-grid,.note-image-picker-marker,.note-image-remove').forEach(function(el) { el.remove(); });
++  clone.querySelectorAll('.note-image-grid,.note-image-picker-marker,.note-image-remove,.note-file-stack,.note-file-picker-marker,.note-file-card__remove').forEach(function(el) { el.remove(); });
+   var text = (clone.textContent || '').replace(/\n/g, ' ').trim();
+-  if (!text && bodyEl.querySelector('.note-image-item')) return '图片笔记';
++  if (!text) {
++    var hasImage = !!bodyEl.querySelector('.note-image-item');
++    var hasFile = !!bodyEl.querySelector('.note-file-card');
++    if (hasImage && hasFile) return '附件笔记';
++    if (hasFile) return '文件笔记';
++    if (hasImage) return '图片笔记';
++  }
+   if (text.length > 50) text = text.substring(0, 50) + '…';
+   return text;
+ }
+@@ -6738,21 +6875,210 @@
+     showToast('图片已删除');
+     return;
+   }
++  var fileRemove = e.target.closest('[data-note-file-remove]');
++  if (fileRemove) {
++    e.preventDefault(); e.stopPropagation();
++    var fileCard = fileRemove.closest('.note-file-card');
++    var fileStack = fileRemove.closest('.note-file-stack');
++    var fileName = fileCard ? fileCard.getAttribute('data-note-file-name') : '';
++    if (fileName && typeof AndroidBridge !== 'undefined' && AndroidBridge.deleteNoteFile) { try { AndroidBridge.deleteNoteFile(fileName); } catch(err2) {} }
++    if (fileCard) fileCard.remove();
++    if (fileStack && !fileStack.querySelector('.note-file-card')) fileStack.remove();
++    saveCurrentNote();
++    showToast('文件已移除');
++    return;
++  }
+   var img = e.target.closest('img[data-note-image-preview]');
+-  if (img) { e.preventDefault(); e.stopPropagation(); openNoteImagePreview(img.src); }
++  if (img) { e.preventDefault(); e.stopPropagation(); openNoteImagePreview(img.src); return; }
++  var fileCard = e.target.closest('.note-file-card[data-note-file-name]');
++  if (fileCard) { e.preventDefault(); e.stopPropagation(); openNoteFileActions(fileCard); }
+ });
+ 
++// ===== Note file picker / inline attachment cards =====
++var noteFilePendingMarkerId = '';
++var noteFileMarkerSeq = 0;
++var activeNoteFileMeta = null;
++
++function insertFileMarkerAtCaret() {
++  var bodyEl = document.getElementById('noteEditorBody');
++  if (!bodyEl) return null;
++  var marker = document.createElement('span');
++  marker.id = 'noteFileMarker_' + Date.now() + '_' + (++noteFileMarkerSeq);
++  marker.className = 'note-file-picker-marker';
++  marker.setAttribute('contenteditable','false');
++  var range = noteLastSelectionRange && bodyEl.contains(noteLastSelectionRange.commonAncestorContainer)
++    ? noteLastSelectionRange.cloneRange() : null;
++  if (!range) {
++    range = document.createRange();
++    range.selectNodeContents(bodyEl);
++    range.collapse(false);
++  }
++  range.deleteContents();
++  range.insertNode(marker);
++  return marker;
++}
++
++function requestNoteFiles() {
++  if (!currentNoteId) return showToast('请先打开一条笔记');
++  if (typeof AndroidBridge === 'undefined' || !AndroidBridge.pickNoteFiles) return showToast('添加文件仅支持 Android APP');
++  rememberNoteSelection();
++  var oldMarker = noteFilePendingMarkerId ? document.getElementById(noteFilePendingMarkerId) : null;
++  if (oldMarker) oldMarker.remove();
++  var marker = insertFileMarkerAtCaret();
++  if (!marker) return;
++  noteFilePendingMarkerId = marker.id;
++  try {
++    var result = String(AndroidBridge.pickNoteFiles(String(currentNoteId)));
++    if (result !== 'ok') { marker.remove(); noteFilePendingMarkerId = ''; showToast('无法打开系统文件选择器'); }
++  } catch(e) {
++    marker.remove(); noteFilePendingMarkerId = ''; showToast('无法打开系统文件选择器');
++  }
++}
++
++function noteFileExtension(displayName, mime) {
++  var name = String(displayName || '');
++  var idx = name.lastIndexOf('.');
++  var ext = idx >= 0 ? name.slice(idx + 1).toLowerCase() : '';
++  if (!ext && mime === 'application/pdf') ext = 'pdf';
++  if (!ext && mime && mime.indexOf('text/') === 0) ext = 'txt';
++  return ext || 'file';
++}
++function noteFileBadgeLabel(ext) {
++  var e = String(ext || 'file').toUpperCase();
++  if (e === 'MARKDOWN') e = 'MD';
++  if (e === 'JPEG') e = 'JPG';
++  return e.length > 5 ? 'FILE' : e;
++}
++function noteFileBadgeClass(ext) {
++  var e = String(ext || '').toLowerCase();
++  return e === '7z' ? 'sevenzip' : e.replace(/[^a-z0-9_-]/g,'');
++}
++function noteFileSizeLabel(bytes) {
++  var n = Number(bytes);
++  if (!isFinite(n) || n < 0) return '未知大小';
++  if (n < 1024) return n + ' B';
++  if (n < 1024 * 1024) return (n / 1024).toFixed(n < 10 * 1024 ? 1 : 0) + ' KB';
++  if (n < 1024 * 1024 * 1024) return (n / 1024 / 1024).toFixed(n < 10 * 1024 * 1024 ? 1 : 0) + ' MB';
++  return (n / 1024 / 1024 / 1024).toFixed(1) + ' GB';
++}
++function createNoteFileCard(item) {
++  if (!item || !item.name) return null;
++  var displayName = String(item.displayName || item.name);
++  var mime = String(item.mime || 'application/octet-stream');
++  var size = Number(item.size || 0);
++  var ext = noteFileExtension(displayName, mime);
++  var card = document.createElement('div');
++  card.className = 'note-file-card';
++  card.setAttribute('contenteditable','false');
++  card.setAttribute('data-note-file-name', String(item.name));
++  card.setAttribute('data-note-file-display', displayName);
++  card.setAttribute('data-note-file-mime', mime);
++  card.setAttribute('data-note-file-size', String(size));
++  card.setAttribute('data-note-file-ext', ext);
++
++  var badge = document.createElement('div');
++  badge.className = 'note-file-card__badge ' + noteFileBadgeClass(ext);
++  badge.textContent = noteFileBadgeLabel(ext);
++  var main = document.createElement('div');
++  main.className = 'note-file-card__main';
++  var name = document.createElement('div');
++  name.className = 'note-file-card__name'; name.textContent = displayName;
++  var meta = document.createElement('div');
++  meta.className = 'note-file-card__meta'; meta.textContent = noteFileBadgeLabel(ext) + ' · ' + noteFileSizeLabel(size) + ' · 点击打开/分享';
++  main.appendChild(name); main.appendChild(meta);
++  var remove = document.createElement('button');
++  remove.type = 'button'; remove.className = 'note-file-card__remove'; remove.setAttribute('data-note-file-remove','1'); remove.setAttribute('aria-label','移除文件'); remove.textContent = '✕';
++  card.appendChild(badge); card.appendChild(main); card.appendChild(remove);
++  return card;
++}
+ 
+-// ===== Keyboard-aware: shrink editor so toolbar (in flow) stays above keyboard =====
++window.__onNoteFilesPicked = function(items) {
++  items = Array.isArray(items) ? items : [];
++  var bodyEl = document.getElementById('noteEditorBody');
++  if (!bodyEl) return;
++  var marker = noteFilePendingMarkerId ? document.getElementById(noteFilePendingMarkerId) : null;
++  noteFilePendingMarkerId = '';
++  if (!items.length) { if (marker) marker.remove(); return; }
++  var stack = document.createElement('div');
++  stack.className = 'note-file-stack'; stack.setAttribute('contenteditable','false');
++  items.forEach(function(item) { var card = createNoteFileCard(item); if (card) stack.appendChild(card); });
++  if (!stack.children.length) { if (marker) marker.remove(); return; }
++  var spacer = document.createElement('div'); spacer.innerHTML = '<br>';
++  if (marker && marker.parentNode) {
++    marker.parentNode.insertBefore(stack, marker);
++    marker.parentNode.insertBefore(spacer, marker);
++    marker.remove();
++  } else { bodyEl.appendChild(stack); bodyEl.appendChild(spacer); }
++  saveCurrentNote();
++  showToast(items.length === 1 ? '已添加文件' : ('已添加 ' + items.length + ' 个文件'));
++};
++
++function openNoteFileActions(card) {
++  if (!card) return;
++  activeNoteFileMeta = {
++    name: card.getAttribute('data-note-file-name') || '',
++    displayName: card.getAttribute('data-note-file-display') || '附件',
++    mime: card.getAttribute('data-note-file-mime') || 'application/octet-stream',
++    size: Number(card.getAttribute('data-note-file-size') || 0),
++    ext: card.getAttribute('data-note-file-ext') || 'file'
++  };
++  var overlay = document.getElementById('noteFileActionsOverlay');
++  var nameEl = document.getElementById('noteFileActionsName');
++  var metaEl = document.getElementById('noteFileActionsMeta');
++  if (!overlay) return;
++  if (nameEl) nameEl.textContent = activeNoteFileMeta.displayName;
++  if (metaEl) metaEl.textContent = noteFileBadgeLabel(activeNoteFileMeta.ext) + ' · ' + noteFileSizeLabel(activeNoteFileMeta.size);
++  overlay.style.display = 'flex';
++  requestAnimationFrame(function(){ overlay.classList.add('active'); });
++  overlay.setAttribute('aria-hidden','false');
++}
++function closeNoteFileActions() {
++  var overlay = document.getElementById('noteFileActionsOverlay');
++  if (!overlay) return;
++  overlay.classList.remove('active'); overlay.setAttribute('aria-hidden','true');
++  setTimeout(function(){ if (!overlay.classList.contains('active')) overlay.style.display = 'none'; }, 190);
++}
++function runNoteFileAction(action) {
++  if (!activeNoteFileMeta || !activeNoteFileMeta.name || typeof AndroidBridge === 'undefined') return showToast('文件不可用');
++  var result = 'failed';
++  try {
++    if (action === 'open') result = String(AndroidBridge.openNoteFile(activeNoteFileMeta.name));
++    else result = String(AndroidBridge.shareNoteFile(activeNoteFileMeta.name, action));
++  } catch(e) { result = 'failed'; }
++  closeNoteFileActions();
++  if (result === 'unavailable') showToast(action === 'wechat' ? '未检测到可用的微信' : action === 'qq' ? '未检测到可用的 QQ' : '没有可打开此文件的应用');
++  else if (result !== 'ok') showToast('暂时无法处理这个文件');
++}
++
++document.getElementById('noteAddFileBtn')?.addEventListener('click', requestNoteFiles);
++document.getElementById('noteFileActionsCancel')?.addEventListener('click', closeNoteFileActions);
++document.getElementById('noteFileActionsOverlay')?.addEventListener('click', function(e){ if (e.target === e.currentTarget) closeNoteFileActions(); });
++document.querySelectorAll('[data-note-file-action]').forEach(function(btn){ btn.addEventListener('click', function(){ runNoteFileAction(btn.getAttribute('data-note-file-action')); }); });
++
++// ===== Keyboard-aware Note editor =====
++// Keep the editor itself full-screen. Only the formatting bar moves to the top edge of the IME.
++// This avoids exposing the underlying Note list while the visual viewport pans during long-note scrolling.
++var noteKeyboardLayoutRaf = 0;
++function syncNoteKeyboardLayout() {
++  noteKeyboardLayoutRaf = 0;
++  var editor = document.getElementById('noteEditor');
++  if (!editor || editor.style.display === 'none') return;
++  editor.style.bottom = '0px';
++  var vv = window.visualViewport;
++  var keyboardTop = vv ? (vv.offsetTop + vv.height) : window.innerHeight;
++  var inset = Math.max(0, Math.round(window.innerHeight - keyboardTop));
++  if (inset < 80) inset = 0;
++  editor.style.setProperty('--note-keyboard-inset', inset + 'px');
++}
++function scheduleNoteKeyboardLayout() {
++  if (noteKeyboardLayoutRaf) cancelAnimationFrame(noteKeyboardLayoutRaf);
++  noteKeyboardLayoutRaf = requestAnimationFrame(syncNoteKeyboardLayout);
++}
+ if (window.visualViewport) {
+-  window.visualViewport.addEventListener('resize', function() {
+-    var diff = window.innerHeight - window.visualViewport.height;
+-    var editor = document.getElementById('noteEditor');
+-    if (editor && editor.style.display !== 'none') {
+-      editor.style.bottom = diff > 80 ? diff + 'px' : '0px';
+-    }
+-  });
++  window.visualViewport.addEventListener('resize', scheduleNoteKeyboardLayout);
++  window.visualViewport.addEventListener('scroll', scheduleNoteKeyboardLayout);
+ }
++window.addEventListener('resize', scheduleNoteKeyboardLayout);
+ 
+ // ===== Highlight state =====
+ var highlightColor = '#ffd93d'; // default yellow
+@@ -7080,7 +7406,9 @@
+   el = document.getElementById('noteEditorMoreMenu');
+   if (el && el.style.display !== 'none') { el.style.display = 'none'; return 'note-more'; }
+ 
+-  // Note image preview sits above the editor.
++  // Note attachment actions / image preview sit above the editor.
++  el = document.getElementById('noteFileActionsOverlay');
++  if (el && el.classList.contains('active')) { closeNoteFileActions(); return 'note-file-actions'; }
+   el = document.getElementById('noteImagePreview');
+   if (el && el.classList.contains('active')) { closeNoteImagePreview(); return 'note-image-preview'; }
+ 

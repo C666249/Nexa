@@ -1,0 +1,3939 @@
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/README.md" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/README.md"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/README.md"	2026-06-27 07:21:29.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/README.md"	2026-08-11 10:33:11.735229653 +0000
+@@ -1,45 +1,51 @@
+-# To-Do List
++# To-Do List V1.4
+ 
+-毛玻璃风格待办事项 Android 应用。HTML/CSS/JS 单文件 + Kotlin WebView 壳。
++本地优先的 To-Do + Note Android 应用。UI 使用 HTML/CSS/Vanilla JS，Android 原生层使用 Kotlin WebView，并负责精确定时、开机恢复、前台服务与悬浮提醒。
+ 
+-## 截图
++## 当前功能
+ 
+-（真机截图待补）
+-
+-## 功能
++- **To-Do 模式**：全部 / 未完成 / 进行中 / 已完成、分类、搜索、日历、回收站、AI 助手等原有功能。
++- **Note 模式**：笔记树、文件夹、子笔记、富文本编辑等 7 月 22 日版本功能已恢复并保留。
++- **每日总结提醒**：右上角时钟设置每天重复时间；到点后显示今日完成进度悬浮 Banner，可展开详情并进入 APP。
++- **单条待办提醒**：待办左滑显示两个独立按钮——绿色“提醒”、红色“删除”；提醒可设置年月日、时、分。
++- **常驻待办 Banner**：到点后顶部显示对应待办，左侧复选框可切换 未完成 → 进行中 → 已完成，右侧 ✕ 才关闭；状态与 APP 双向同步。
++- localStorage 仍是 WebView 主数据源；Android 只保存后台提醒所需的轻量镜像。
++
++## Android Studio 打开方式
++
++**直接打开本 ZIP 解压后的最外层 `To-Do List` 文件夹，不要再进入 `android/`。**
++
++项目根目录已经包含：
++
++```text
++settings.gradle.kts
++build.gradle.kts
++gradlew
++gradlew.bat
++gradle/
++gradle.properties
++local.properties
++android/
++```
+ 
+-- 三个标签页：全部 / 未完成 / 已完成
+-- 时间戳 + 日期分隔（今日高亮）
+-- 行内编辑 + 光标定位
+-- 左滑删除 + 弹跳动画
+-- 搜索过滤 + 高亮定位
+-- 悬浮窗每日回顾
+-- localStorage 持久化
++Gradle 中的 `:app` 映射到 `android/app`，因此既保留原项目源码位置，又能让 Android Studio 直接把最外层识别为 Gradle 工程。
+ 
+-## 快速开始
++Windows 也可双击：
+ 
+-```bash
+-cd android && ./gradlew assembleDebug
+-# APK 输出: android/app/build/outputs/apk/debug/app-debug.apk
++```text
++build-apk.bat
+ ```
+ 
+-## 技术栈
++成功后 APK 会复制到：
+ 
+-| 层 | 技术 |
+-|---|------|
+-| UI | HTML5 + CSS3 + Vanilla JS |
+-| 壳 | Kotlin + WebView |
+-| 构建 | Gradle 8.11.1 / AGP 8.7.3 |
+-| 最低 | Android 8.0 (API 26) |
++```text
++dist/To-Do-v1.4.apk
++```
+ 
+-## 项目结构
++## 技术栈
+ 
+-```
+-To-Do List/
+-├── ui/todo.html        ← 主应用（单文件）
+-├── android/            ← Android 壳
+-├── assets/             ← 图标、素材、生成脚本
+-├── docs/               ← 技术文档
+-├── dev-logs/           ← 开发日志
+-└── CLAUDE.md           ← 协作指令
+-```
++- Gradle 8.11.1
++- Android Gradle Plugin 8.7.3
++- Kotlin 2.1.0
++- compileSdk / targetSdk 35
++- minSdk 26
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/build.gradle.kts" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/build.gradle.kts"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/build.gradle.kts"	2026-07-06 14:44:50.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/build.gradle.kts"	2026-08-11 10:26:43.651707708 +0000
+@@ -11,8 +11,8 @@
+         applicationId = "com.todolist.app"
+         minSdk = 26
+         targetSdk = 35
+-        versionCode = 1
+-        versionName = "1.0"
++        versionCode = 14
++        versionName = "1.4"
+     }
+ 
+     buildTypes {
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/src/main/AndroidManifest.xml" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/src/main/AndroidManifest.xml"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/src/main/AndroidManifest.xml"	2026-07-16 05:09:16.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/src/main/AndroidManifest.xml"	2026-08-11 10:22:37.413262260 +0000
+@@ -41,6 +41,10 @@
+             android:exported="false">
+             <intent-filter>
+                 <action android:name="android.intent.action.BOOT_COMPLETED" />
++                <action android:name="android.intent.action.TIME_SET" />
++                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
++                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
++                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
+             </intent-filter>
+         </receiver>
+ 
+@@ -52,6 +56,10 @@
+             </intent-filter>
+         </receiver>
+ 
++        <receiver
++            android:name=".receiver.TodoReminderReceiver"
++            android:exported="false" />
++
+     </application>
+ 
+ </manifest>
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/src/main/assets/todo.html" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/src/main/assets/todo.html"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/src/main/assets/todo.html"	2026-08-11 10:31:26.611878384 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/src/main/assets/todo.html"	2026-08-11 10:26:19.956898393 +0000
+@@ -338,12 +338,10 @@
+   position: relative;
+   display: flex; align-items: center;
+   margin-bottom: 6px;
+-  background: rgba(255,255,255,0.78);
+-  backdrop-filter: blur(14px);
+-  -webkit-backdrop-filter: blur(14px);
+-  border: 1px solid rgba(255,255,255,0.6);
++  background: #fffefa;
++  border: 1px solid #eee7de;
+   border-radius: var(--radius-md);
+-  box-shadow: 0 2px 10px rgba(139,119,101,0.06);
++  box-shadow: 0 2px 10px rgba(139,119,101,0.07);
+   overflow: hidden;
+   -webkit-user-select: none; user-select: none;
+   -webkit-touch-callout: none;
+@@ -353,28 +351,26 @@
+   display: flex; align-items: center; gap: 10px;
+   padding: 12px 14px;
+   width: 100%;
+-  background: rgba(255,255,255,0.78);
+-  backdrop-filter: blur(14px);
+-  -webkit-backdrop-filter: blur(14px);
++  background: #fffefa;
+   border-radius: var(--radius-md);
+   cursor: pointer;
+-  transition: transform 0.2s ease-out;
++  transition: transform 0.2s ease-out, background 0.2s ease;
+ }
+ .todo-item:active .todo-item__inner {
+-  background: rgba(255,255,255,0.9);
++  background: #fffaf3;
+ }
+ /* Completed state */
+ .todo-item.in-progress {
+-  border-color: rgba(255,255,255,0.6);
++  border-color: #f0e5cf;
+ }
+ .todo-item.in-progress .todo-item__inner {
+-  background: rgba(255,248,235,0.7);
++  background: #fff9ed;
+ }
+ .todo-item.completed {
+-  border-color: rgba(255,255,255,0.35);
++  border-color: #ece9e4;
+ }
+ .todo-item.completed .todo-item__inner {
+-  background: rgba(255,255,255,0.5);
++  background: #f8f8f6;
+ }
+ .todo-item.completed .todo-item__text {
+   text-decoration: line-through;
+@@ -543,20 +539,33 @@
+   border-top-color: #00a88a;
+ }
+ 
+-/* Swipe delete — just icon, no background bar */
++/* Swipe actions — two discrete buttons only, no colored action card */
+ .todo-item__swipe-bg {
+   position: absolute; z-index: 1; right: 0; top: 0; bottom: 0;
+-  width: 64px;
++  width: 124px;
+   background: transparent;
+-  display: flex; align-items: center; justify-content: center;
++  display: flex; align-items: center; justify-content: flex-end;
++  gap: 8px; padding: 0 8px;
+ }
+-.todo-item__delete-btn {
+-  background: none; border: none;
+-  color: #fff8e7; font-size: 14px; font-weight: 600;
+-  cursor: pointer; padding: 4px 0;
+-  transition: opacity 0.15s;
++.todo-item__swipe-btn {
++  width: 50px; height: 38px;
++  border: none; border-radius: 11px;
++  color: #fff; font-size: 11px; font-weight: 750;
++  cursor: pointer;
++  display: flex; flex-direction: column; align-items: center; justify-content: center;
++  gap: 1px;
++  box-shadow: 0 3px 10px rgba(70,60,52,0.12);
++  transition: transform 0.15s ease, filter 0.15s ease;
++}
++.todo-item__swipe-btn:active { transform: scale(0.95); filter: brightness(0.95); }
++.todo-item__remind-btn { background: #25b99a; }
++.todo-item__delete-btn { background: #ef6f6c; }
++.todo-item__swipe-icon { font-size: 14px; line-height: 1; }
++.todo-item__reminder-dot {
++  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
++  background: #25b99a; margin-left: 5px; vertical-align: middle;
++  box-shadow: 0 0 0 3px rgba(37,185,154,0.12);
+ }
+-.todo-item__delete-btn:active { opacity: 0.6; }
+ 
+ /* ===== Empty State ===== */
+ .empty-state {
+@@ -885,6 +894,42 @@
+   color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
+ }
+ 
++
++/* ===== Per-item Reminder Picker ===== */
++.reminder-picker-overlay {
++  position: fixed; inset: 0; z-index: 10020;
++  background: rgba(0,0,0,0.32);
++  backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
++  display: none; align-items: center; justify-content: center;
++  padding: 18px;
++}
++.reminder-picker-overlay.active { display: flex; }
++.reminder-picker {
++  width: min(92vw, 360px);
++  background: #fffefa;
++  border: 1px solid rgba(220,207,195,0.7);
++  border-radius: 22px;
++  box-shadow: 0 18px 60px rgba(76,60,46,0.2);
++  padding: 20px;
++}
++.reminder-picker__header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
++.reminder-picker__title { font-size: 17px; font-weight: 750; color: var(--text-primary); }
++.reminder-picker__close { width: 34px; height: 34px; border: none; border-radius: 50%; background: #f6f2ed; color: #8d8278; font-size: 17px; cursor: pointer; }
++.reminder-picker__todo { margin-bottom: 14px; padding: 10px 12px; border-radius: 12px; background: #f8f5f1; color: #5b5047; font-size: 13px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
++.reminder-picker__section-label { font-size: 11px; color: #9b8d81; margin: 10px 0 6px; font-weight: 650; }
++.reminder-picker__fields { display: grid; gap: 8px; }
++.reminder-picker__fields.date { grid-template-columns: 1.35fr .9fr .9fr; }
++.reminder-picker__fields.time { grid-template-columns: 1fr 1fr; }
++.reminder-field { position: relative; background: #f7f4f0; border: 1px solid #ece4dc; border-radius: 12px; padding: 7px 9px 5px; }
++.reminder-field label { display: block; font-size: 10px; color: #a09285; margin-bottom: 2px; }
++.reminder-field input { width: 100%; border: none; outline: none; background: transparent; color: #3f3832; font-size: 18px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
++.reminder-picker__quick { display: flex; gap: 8px; margin-top: 10px; }
++.reminder-picker__quick button { flex: 1; border: 1px solid #e8dfd6; background: #fffaf5; color: #75695f; border-radius: 10px; padding: 7px 4px; font-size: 12px; cursor: pointer; }
++.reminder-picker__actions { display: flex; gap: 10px; margin-top: 16px; }
++.reminder-picker__cancel-reminder { display: none; flex: 0 0 92px; border: none; border-radius: 12px; background: #f3efeb; color: #8a7c70; font-size: 13px; font-weight: 650; }
++.reminder-picker__cancel-reminder.visible { display: block; }
++.reminder-picker__confirm { flex: 1; border: none; border-radius: 12px; padding: 12px; background: linear-gradient(135deg, #21c8b1, #13a4d6); color: #fff; font-size: 14px; font-weight: 750; cursor: pointer; }
++
+ /* ===== Category Picker ===== */
+ .category-picker {
+   display: none;
+@@ -2081,6 +2126,35 @@
+     <button class="time-picker__confirm" id="timePickerConfirm">确定</button>
+   </div>
+ </div>
++<div class="reminder-picker-overlay" id="reminderPickerOverlay">
++  <div class="reminder-picker">
++    <div class="reminder-picker__header">
++      <span class="reminder-picker__title">⏰ 条目提醒</span>
++      <button class="reminder-picker__close" id="reminderPickerClose">✕</button>
++    </div>
++    <div class="reminder-picker__todo" id="reminderPickerTodo">待办事项</div>
++    <div class="reminder-picker__section-label">日期</div>
++    <div class="reminder-picker__fields date">
++      <div class="reminder-field"><label>年</label><input id="reminderYear" type="number" inputmode="numeric" min="2024" max="2099"></div>
++      <div class="reminder-field"><label>月</label><input id="reminderMonth" type="number" inputmode="numeric" min="1" max="12"></div>
++      <div class="reminder-field"><label>日</label><input id="reminderDay" type="number" inputmode="numeric" min="1" max="31"></div>
++    </div>
++    <div class="reminder-picker__section-label">时间</div>
++    <div class="reminder-picker__fields time">
++      <div class="reminder-field"><label>时</label><input id="reminderHour" type="number" inputmode="numeric" min="0" max="23"></div>
++      <div class="reminder-field"><label>分</label><input id="reminderMinute" type="number" inputmode="numeric" min="0" max="59"></div>
++    </div>
++    <div class="reminder-picker__quick">
++      <button data-reminder-quick="today">今天</button>
++      <button data-reminder-quick="tomorrow">明天</button>
++      <button data-reminder-quick="week">一周后</button>
++    </div>
++    <div class="reminder-picker__actions">
++      <button class="reminder-picker__cancel-reminder" id="reminderCancelExisting">取消提醒</button>
++      <button class="reminder-picker__confirm" id="reminderPickerConfirm">设定提醒</button>
++    </div>
++  </div>
++</div>
+ <button class="fab" id="fab" aria-label="添加待办">+</button>
+ <div class="toast" id="toast"></div>
+ <div class="confirm-overlay" id="confirmOverlay" style="display:none">
+@@ -2314,7 +2388,7 @@
+ }
+ 
+ function syncToAndroid() {
+-  if (typeof AndroidBridge === 'undefined' || !AndroidBridge.syncDailyData) return;
++  if (typeof AndroidBridge === 'undefined') return;
+   const today = new Date(); today.setHours(0,0,0,0);
+   const todayStart = today.getTime();
+   const todayEnd = todayStart + 86400000;
+@@ -2325,8 +2399,20 @@
+   const inProgress = todayTodos.filter(t => t.status === 'in-progress').map(t => t.text);
+   const todo = todayTodos.filter(t => t.status === 'todo').map(t => t.text);
+   const completedItems = todayTodos.filter(t => t.status === 'completed').map(t => t.text);
+-  AndroidBridge.syncDailyData(percent, completed, total,
+-    JSON.stringify(inProgress), JSON.stringify(todo), JSON.stringify(completedItems));
++  if (AndroidBridge.syncDailyData) {
++    AndroidBridge.syncDailyData(percent, completed, total,
++      JSON.stringify(inProgress), JSON.stringify(todo), JSON.stringify(completedItems));
++  }
++  if (AndroidBridge.syncTodoSnapshot) {
++    const nativeSnapshot = todos.map(t => ({
++      id: t.id,
++      text: t.text,
++      status: t.status,
++      createdAt: t.createdAt,
++      reminderAt: t.reminderAt || null
++    }));
++    AndroidBridge.syncTodoSnapshot(JSON.stringify(nativeSnapshot));
++  }
+ }
+ 
+ // ===== Notes Data Layer =====
+@@ -3064,14 +3150,16 @@
+       }
+       el.setAttribute('data-id', todo.id);
+       el.setAttribute('data-category', todo.category || '全部');
++      const hasReminder = todo.reminderAt && Number(todo.reminderAt) > Date.now();
+       el.innerHTML = `
+         <div class="todo-item__swipe-bg">
+-          <button class="todo-item__delete-btn" data-del="${todo.id}">delete</button>
++          <button class="todo-item__swipe-btn todo-item__remind-btn" data-remind="${todo.id}" aria-label="设置提醒"><span class="todo-item__swipe-icon">⏰</span><span>提醒</span></button>
++          <button class="todo-item__swipe-btn todo-item__delete-btn" data-del="${todo.id}" aria-label="删除"><span class="todo-item__swipe-icon">⌫</span><span>删除</span></button>
+         </div>
+         <div class="todo-item__inner">
+           <div class="checkbox${checkboxClass}"></div>
+           <div class="todo-item__content">
+-            <div class="todo-item__text"><span class="todo-item__status ${dotClass}"></span>${escapeHtml(todo.text)}</div>
++            <div class="todo-item__text"><span class="todo-item__status ${dotClass}"></span>${escapeHtml(todo.text)}${hasReminder ? '<span class="todo-item__reminder-dot" title="已设置提醒"></span>' : ''}</div>
+             <div class="todo-item__category has-menu${catActive ? ' active' : ''}" data-category="${escapeHtml(todo.category || '全部')}">${escapeHtml(todo.category || '全部')}</div>
+           </div>
+         </div>`;
+@@ -3385,8 +3473,10 @@
+     const stored = localStorage.getItem(BANNER_TIME_KEY);
+     if (stored) {
+       const parts = stored.split(':');
+-      bannerHour = parseInt(parts[0]) || 0;
+-      bannerMinute = parseInt(parts[1]) || 6;
++      const parsedHour = parseInt(parts[0], 10);
++      const parsedMinute = parseInt(parts[1], 10);
++      bannerHour = Number.isFinite(parsedHour) ? Math.max(0, Math.min(23, parsedHour)) : 0;
++      bannerMinute = Number.isFinite(parsedMinute) ? Math.max(0, Math.min(59, parsedMinute)) : 6;
+     }
+   } catch(e) {}
+ }
+@@ -3483,6 +3573,105 @@
+   showToast(`已设定 · ${label}`);
+ });
+ 
++
++// ===== Per-item reminders + native two-way sync =====
++let reminderEditingTodoId = null;
++function setReminderFields(date) {
++  document.getElementById('reminderYear').value = date.getFullYear();
++  document.getElementById('reminderMonth').value = date.getMonth() + 1;
++  document.getElementById('reminderDay').value = date.getDate();
++  document.getElementById('reminderHour').value = String(date.getHours()).padStart(2, '0');
++  document.getElementById('reminderMinute').value = String(date.getMinutes()).padStart(2, '0');
++}
++function openTodoReminderPicker(id) {
++  const todo = todos.find(t => t.id === id);
++  if (!todo) return;
++  reminderEditingTodoId = id;
++  document.getElementById('reminderPickerTodo').textContent = todo.text || '未命名待办';
++  const existing = Number(todo.reminderAt || 0);
++  let base = existing > Date.now() ? new Date(existing) : new Date(Date.now() + 30 * 60000);
++  base.setSeconds(0, 0);
++  setReminderFields(base);
++  document.getElementById('reminderCancelExisting').classList.toggle('visible', existing > 0);
++  document.getElementById('reminderPickerOverlay').classList.add('active');
++}
++function closeTodoReminderPicker() {
++  document.getElementById('reminderPickerOverlay').classList.remove('active');
++  reminderEditingTodoId = null;
++}
++function readReminderDate() {
++  const y = parseInt(document.getElementById('reminderYear').value, 10);
++  const mo = parseInt(document.getElementById('reminderMonth').value, 10);
++  const d = parseInt(document.getElementById('reminderDay').value, 10);
++  const h = parseInt(document.getElementById('reminderHour').value, 10);
++  const mi = parseInt(document.getElementById('reminderMinute').value, 10);
++  if (![y,mo,d,h,mi].every(Number.isFinite) || y < 2024 || y > 2099 || mo < 1 || mo > 12 || d < 1 || d > 31 || h < 0 || h > 23 || mi < 0 || mi > 59) return null;
++  const date = new Date(y, mo - 1, d, h, mi, 0, 0);
++  if (date.getFullYear() !== y || date.getMonth() !== mo - 1 || date.getDate() !== d || date.getHours() !== h || date.getMinutes() !== mi) return null;
++  return date;
++}
++function setReminderQuick(kind) {
++  const current = readReminderDate() || new Date(Date.now() + 30 * 60000);
++  const now = new Date();
++  if (kind === 'today') current.setFullYear(now.getFullYear(), now.getMonth(), now.getDate());
++  else if (kind === 'tomorrow') { const t = new Date(now); t.setDate(t.getDate() + 1); current.setFullYear(t.getFullYear(), t.getMonth(), t.getDate()); }
++  else if (kind === 'week') { const t = new Date(now); t.setDate(t.getDate() + 7); current.setFullYear(t.getFullYear(), t.getMonth(), t.getDate()); }
++  setReminderFields(current);
++}
++document.getElementById('reminderPickerClose').addEventListener('click', closeTodoReminderPicker);
++document.getElementById('reminderPickerOverlay').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeTodoReminderPicker(); });
++document.querySelectorAll('[data-reminder-quick]').forEach(btn => btn.addEventListener('click', () => setReminderQuick(btn.dataset.reminderQuick)));
++document.getElementById('reminderPickerConfirm').addEventListener('click', () => {
++  const todo = todos.find(t => t.id === reminderEditingTodoId);
++  const date = readReminderDate();
++  if (!todo || !date) { showToast('日期或时间不正确'); return; }
++  if (date.getTime() <= Date.now() + 5000) { showToast('提醒时间必须晚于现在'); return; }
++  todo.reminderAt = date.getTime();
++  saveTodos(); render(); closeTodoReminderPicker();
++  if (typeof AndroidBridge !== 'undefined' && AndroidBridge.requestReminderPermissions) { try { AndroidBridge.requestReminderPermissions(); } catch(e) {} }
++  const label = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
++  showToast(`提醒已设定 · ${label}`);
++});
++document.getElementById('reminderCancelExisting').addEventListener('click', () => {
++  const todo = todos.find(t => t.id === reminderEditingTodoId);
++  if (!todo) return;
++  todo.reminderAt = null;
++  saveTodos(); render(); closeTodoReminderPicker(); showToast('已取消该条提醒');
++});
++window.__pullNativeTodoMutations = function() {
++  if (typeof AndroidBridge === 'undefined' || !AndroidBridge.getTodoMutations) return;
++  let mutations = [];
++  try { mutations = JSON.parse(AndroidBridge.getTodoMutations() || '[]'); } catch(e) { return; }
++  if (!Array.isArray(mutations) || mutations.length === 0) return;
++  let changed = false;
++  mutations.forEach(m => {
++    const todo = todos.find(t => t.id === Number(m.id));
++    if (!todo) return;
++    if (m.type === 'status' && ['todo','in-progress','completed'].includes(m.status)) { todo.status = m.status; changed = true; }
++    else if (m.type === 'clearReminder') { todo.reminderAt = null; changed = true; }
++  });
++  try { if (AndroidBridge.ackTodoMutations) AndroidBridge.ackTodoMutations(); } catch(e) {}
++  if (changed) { saveTodos(); render(); updateStats(); }
++};
++window.__onNativeReminderPermissionState = function(state) {
++  if (state === 'ok') { showToast('提醒权限已就绪'); return; }
++  const missing = [];
++  if (state.includes('overlay')) missing.push('悬浮窗');
++  if (state.includes('exact_alarm')) missing.push('精确闹钟');
++  if (state.includes('notification')) missing.push('通知');
++  if (missing.length) showToast(`提醒已保存 · ${missing.join(' / ')}权限未开启`);
++};
++window.__focusTodoFromNative = function(id) {
++  if (typeof currentMode !== 'undefined' && currentMode !== 'todo' && typeof switchMode === 'function') switchMode('todo');
++  currentTab = 'all'; selectedCategory = '全部'; searchQuery = ''; searchInput.value = '';
++  tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === 'all'));
++  renderCategoryBar(); render();
++  setTimeout(() => {
++    const el = todoListEl.querySelector(`[data-id="${id}"]`);
++    if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('highlight-flash'); setTimeout(() => el.classList.remove('highlight-flash'), 1500); }
++  }, 120);
++};
++
+ fabBtn.addEventListener('click', () => {
+   if (currentMode === 'notes') {
+     var note = createNote('');
+@@ -3600,83 +3789,48 @@
+   }
+ });
+ 
+-// ===== Swipe to delete (Left Swipe) =====
++// ===== Swipe actions (Left Swipe: reminder + delete) =====
+ let swipeStartX = 0;
+ let swipeStartY = 0;
+ let swipeItemEl = null;
+ let swipeRevealed = false;
+-
++const SWIPE_ACTION_WIDTH = 124;
+ todoListEl.addEventListener('touchstart', (e) => {
+   const itemEl = e.target.closest('.todo-item');
+-  if (!itemEl || e.target.closest('.checkbox') || e.target.closest('.todo-item__text.editing') || e.target.closest('.todo-item__swipe-bg')) {
+-    swipeItemEl = null;
+-    return;
+-  }
+-  swipeItemEl = itemEl;
+-  swipeStartX = e.touches[0].clientX;
+-  swipeStartY = e.touches[0].clientY;
+-  swipeRevealed = false;
+-  const inner = swipeItemEl.querySelector('.todo-item__inner');
+-  if (inner) inner.style.transition = '';
++  if (!itemEl || e.target.closest('.checkbox') || e.target.closest('.todo-item__text.editing') || e.target.closest('.todo-item__swipe-bg')) { swipeItemEl = null; return; }
++  swipeItemEl = itemEl; swipeStartX = e.touches[0].clientX; swipeStartY = e.touches[0].clientY; swipeRevealed = false;
++  const inner = swipeItemEl.querySelector('.todo-item__inner'); if (inner) inner.style.transition = '';
+ }, { passive: true });
+-
+ todoListEl.addEventListener('touchmove', (e) => {
+   if (!swipeItemEl) return;
+-
+-  const dx = e.touches[0].clientX - swipeStartX;
+-  const dy = e.touches[0].clientY - swipeStartY;
+-
+-  // Only respond to horizontal swipe
++  const dx = e.touches[0].clientX - swipeStartX; const dy = e.touches[0].clientY - swipeStartY;
+   if (Math.abs(dy) > Math.abs(dx)) return;
+-
+   e.preventDefault();
+-
+   if (dx < 0) {
+-    const translateX = Math.max(dx, -64);
+-    const inner = swipeItemEl.querySelector('.todo-item__inner');
+-    if (inner) inner.style.transform = `translateX(${translateX}px)`;
+-    swipeRevealed = translateX < -32;
++    const translateX = Math.max(dx, -SWIPE_ACTION_WIDTH);
++    const inner = swipeItemEl.querySelector('.todo-item__inner'); if (inner) inner.style.transform = `translateX(${translateX}px)`;
++    swipeRevealed = translateX < -48;
+   }
+ }, { passive: false });
+-
+ todoListEl.addEventListener('touchend', () => {
+   if (!swipeItemEl) return;
+-
+   const inner = swipeItemEl.querySelector('.todo-item__inner');
+   if (!inner) { swipeItemEl = null; swipeRevealed = false; return; }
+-
+   inner.style.transition = 'transform 0.2s ease-out';
+-
+-  if (swipeRevealed) {
+-    inner.style.transform = 'translateX(-64px)';
+-  } else {
+-    inner.style.transform = '';
+-  }
+-
+-  swipeItemEl = null;
+-  swipeRevealed = false;
++  inner.style.transform = swipeRevealed ? `translateX(-${SWIPE_ACTION_WIDTH}px)` : '';
++  swipeItemEl = null; swipeRevealed = false;
+ });
+-
+-// Delete button click
+ todoListEl.addEventListener('click', (e) => {
++  const remindBtn = e.target.closest('.todo-item__remind-btn');
+   const deleteBtn = e.target.closest('.todo-item__delete-btn');
+-  if (!deleteBtn) return;
+-
++  if (!remindBtn && !deleteBtn) return;
+   e.stopPropagation();
+-  const itemEl = deleteBtn.closest('.todo-item');
+-  if (!itemEl) return;
+-
+-  const id = parseInt(itemEl.getAttribute('data-id'));
+-  // Reset inner swipe
+-  const inner = itemEl.querySelector('.todo-item__inner');
++  const actionBtn = remindBtn || deleteBtn; const itemEl = actionBtn.closest('.todo-item'); if (!itemEl) return;
++  const id = parseInt(itemEl.getAttribute('data-id'), 10); const inner = itemEl.querySelector('.todo-item__inner');
++  if (remindBtn) { if (inner) { inner.style.transition = 'transform 0.2s ease-out'; inner.style.transform = ''; } openTodoReminderPicker(id); return; }
+   if (inner) { inner.style.transition = 'none'; inner.style.transform = ''; }
+-  // Animate card out
+-  itemEl.style.opacity = '0';
+-  itemEl.style.transform = 'scale(0.9)';
+-  itemEl.style.transition = 'all 0.2s ease-in';
+-  itemEl.addEventListener('transitionend', () => {
+-    deleteTodoById(id);
+-  }, { once: true });
++  itemEl.style.opacity = '0'; itemEl.style.transform = 'scale(0.9)'; itemEl.style.transition = 'all 0.2s ease-in';
++  itemEl.addEventListener('transitionend', () => deleteTodoById(id), { once: true });
+ });
+ 
+ // ===== Search =====
+@@ -4530,6 +4684,8 @@
+ loadTodos();
+ loadRecycleBin();
+ loadSearchHistory();
++if (window.__pullNativeTodoMutations) window.__pullNativeTodoMutations();
++syncToAndroid();
+ render();
+ updateCounts();
+ renderCategoryBar();
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/src/main/java/com/todolist/app/MainActivity.kt" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/src/main/java/com/todolist/app/MainActivity.kt"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/src/main/java/com/todolist/app/MainActivity.kt"	2026-07-25 10:31:55.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/src/main/java/com/todolist/app/MainActivity.kt"	2026-08-11 10:22:37.344836355 +0000
+@@ -1,23 +1,57 @@
+ package com.todolist.app
+ 
++import android.Manifest
++import android.app.AlarmManager
++import android.content.BroadcastReceiver
+ import android.content.Context
+ import android.content.Intent
++import android.content.IntentFilter
++import android.content.pm.PackageManager
++import android.net.Uri
++import android.os.Build
+ import android.os.Bundle
+ import android.provider.Settings
+ import android.webkit.JavascriptInterface
+-import android.webkit.WebView
+ import android.webkit.WebChromeClient
++import android.webkit.WebView
+ import android.webkit.WebViewClient
+ import androidx.appcompat.app.AppCompatActivity
++import androidx.core.app.ActivityCompat
++import androidx.core.content.ContextCompat
++import com.todolist.app.manager.FloatWindowManager
+ import com.todolist.app.receiver.MidnightReceiver
++import com.todolist.app.reminder.ReminderScheduler
++import com.todolist.app.reminder.ReminderStore
++import com.todolist.app.service.FloatWindowService
+ import org.json.JSONArray
+ 
+ class MainActivity : AppCompatActivity() {
+ 
++    companion object {
++        const val EXTRA_FOCUS_TODO_ID = "focus_todo_id"
++        private const val REQ_NOTIFICATIONS = 901
++    }
++
+     private lateinit var webView: WebView
++    private var pageReady = false
++    private var pendingFocusTodoId: Long = -1L
++
++    private var permissionFlowActive = false
++    private var notificationAttempted = false
++    private var overlayAttempted = false
++    private var exactAlarmAttempted = false
++
++    private val nativeMutationReceiver = object : BroadcastReceiver() {
++        override fun onReceive(context: Context?, intent: Intent?) {
++            if (intent?.action == FloatWindowService.ACTION_NATIVE_TODO_MUTATED) {
++                pullNativeMutationsIntoWeb()
++            }
++        }
++    }
+ 
+     override fun onCreate(savedInstanceState: Bundle?) {
+         super.onCreate(savedInstanceState)
++        pendingFocusTodoId = intent.getLongExtra(EXTRA_FOCUS_TODO_ID, -1L)
+ 
+         webView = WebView(this).apply {
+             settings.apply {
+@@ -30,31 +64,190 @@
+                 builtInZoomControls = false
+             }
+ 
+-            webViewClient = WebViewClient()
++            webViewClient = object : WebViewClient() {
++                override fun onPageFinished(view: WebView?, url: String?) {
++                    super.onPageFinished(view, url)
++                    pageReady = true
++                    pullNativeMutationsIntoWeb()
++                    deliverPendingFocus()
++                }
++            }
+             webChromeClient = WebChromeClient()
+             addJavascriptInterface(AndroidBridge(), "AndroidBridge")
+-
+             loadUrl("file:///android_asset/todo.html")
+         }
+ 
+         setContentView(webView)
++        registerNativeMutationReceiver()
++
++        try { ReminderScheduler.rescheduleAll(this, restoreFiredOverdue = true) } catch (_: Exception) {}
++    }
++
++    override fun onResume() {
++        super.onResume()
++        try { ReminderScheduler.rescheduleAll(this, restoreFiredOverdue = false) } catch (_: Exception) {}
++        if (permissionFlowActive) {
++            webView.postDelayed({ continueReminderPermissionFlow() }, 250)
++        }
++        pullNativeMutationsIntoWeb()
++        deliverPendingFocus()
++    }
++
++    override fun onNewIntent(intent: Intent) {
++        super.onNewIntent(intent)
++        setIntent(intent)
++        val id = intent.getLongExtra(EXTRA_FOCUS_TODO_ID, -1L)
++        if (id > 0L) pendingFocusTodoId = id
++        pullNativeMutationsIntoWeb()
++        deliverPendingFocus()
++    }
+ 
+-        try { MidnightReceiver.schedule(this) } catch (_: Exception) {}
++    override fun onDestroy() {
++        try { unregisterReceiver(nativeMutationReceiver) } catch (_: Exception) {}
++        super.onDestroy()
+     }
+ 
++    @Deprecated("Deprecated in Java")
+     override fun onBackPressed() {
+-        if (webView.canGoBack()) {
+-            webView.goBack()
++        if (webView.canGoBack()) webView.goBack() else super.onBackPressed()
++    }
++
++    override fun onRequestPermissionsResult(
++        requestCode: Int,
++        permissions: Array<out String>,
++        grantResults: IntArray
++    ) {
++        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
++        if (requestCode == REQ_NOTIFICATIONS && permissionFlowActive) {
++            webView.postDelayed({ continueReminderPermissionFlow() }, 150)
++        }
++    }
++
++    private fun registerNativeMutationReceiver() {
++        val filter = IntentFilter(FloatWindowService.ACTION_NATIVE_TODO_MUTATED)
++        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
++            registerReceiver(nativeMutationReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+         } else {
+-            super.onBackPressed()
++            @Suppress("DEPRECATION")
++            registerReceiver(nativeMutationReceiver, filter)
++        }
++    }
++
++    private fun beginReminderPermissionFlow() {
++        if (permissionFlowActive) return
++        permissionFlowActive = true
++        notificationAttempted = false
++        overlayAttempted = false
++        exactAlarmAttempted = false
++        continueReminderPermissionFlow()
++    }
++
++    private fun continueReminderPermissionFlow() {
++        if (!permissionFlowActive || isFinishing) return
++
++        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
++            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED &&
++            !notificationAttempted
++        ) {
++            notificationAttempted = true
++            ActivityCompat.requestPermissions(
++                this,
++                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
++                REQ_NOTIFICATIONS
++            )
++            return
++        }
++
++        if (!Settings.canDrawOverlays(this) && !overlayAttempted) {
++            overlayAttempted = true
++            try {
++                startActivity(
++                    Intent(
++                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
++                        Uri.parse("package:$packageName")
++                    )
++                )
++                return
++            } catch (_: Exception) {}
++        }
++
++        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
++            !ReminderScheduler.canScheduleExact(this) &&
++            !exactAlarmAttempted
++        ) {
++            exactAlarmAttempted = true
++            try {
++                startActivity(
++                    Intent(
++                        Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
++                        Uri.parse("package:$packageName")
++                    )
++                )
++                return
++            } catch (_: Exception) {}
++        }
++
++        permissionFlowActive = false
++        try { ReminderScheduler.rescheduleAll(this, restoreFiredOverdue = true) } catch (_: Exception) {}
++        notifyWebPermissionState()
++    }
++
++    private fun reminderPermissionState(): String {
++        val parts = mutableListOf<String>()
++        if (!Settings.canDrawOverlays(this)) parts += "overlay"
++        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !ReminderScheduler.canScheduleExact(this)) {
++            parts += "exact_alarm"
++        }
++        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
++            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
++        ) {
++            parts += "notification"
++        }
++        return if (parts.isEmpty()) "ok" else parts.joinToString(",")
++    }
++
++    private fun notifyWebPermissionState() {
++        if (!pageReady) return
++        val state = reminderPermissionState().replace("'", "\\'")
++        webView.post {
++            webView.evaluateJavascript(
++                "window.__onNativeReminderPermissionState && window.__onNativeReminderPermissionState('$state');",
++                null
++            )
++        }
++    }
++
++    private fun pullNativeMutationsIntoWeb() {
++        if (!pageReady) return
++        webView.post {
++            webView.evaluateJavascript(
++                "window.__pullNativeTodoMutations && window.__pullNativeTodoMutations();",
++                null
++            )
++        }
++    }
++
++    private fun deliverPendingFocus() {
++        if (!pageReady || pendingFocusTodoId <= 0L) return
++        val id = pendingFocusTodoId
++        pendingFocusTodoId = -1L
++        webView.post {
++            webView.evaluateJavascript(
++                "window.__focusTodoFromNative && window.__focusTodoFromNative($id);",
++                null
++            )
+         }
+     }
+ 
+     inner class AndroidBridge {
+         @JavascriptInterface
+         fun syncDailyData(
+-            percent: Float, completed: Int, total: Int,
+-            inProgressJson: String, todoJson: String, completedJson: String
++            percent: Float,
++            completed: Int,
++            total: Int,
++            inProgressJson: String,
++            todoJson: String,
++            completedJson: String
+         ) {
+             fun parseList(json: String): String {
+                 val arr = JSONArray(json)
+@@ -72,39 +265,85 @@
+         }
+ 
+         @JavascriptInterface
++        fun syncTodoSnapshot(todosJson: String) {
++            try {
++                ReminderScheduler.syncTodoSnapshot(this@MainActivity, todosJson)
++                // Keep any already-visible persistent reminder in lockstep with edits/status
++                // changes made inside the app. Native -> Web uses the mutation queue; this is
++                // the Web -> Native half of the same two-way contract.
++                ReminderStore.getAll(this@MainActivity)
++                    .filter { it.fired }
++                    .forEach { FloatWindowManager.updateTodo(it.id, it.text, it.status) }
++            } catch (_: Exception) {}
++        }
++
++        @JavascriptInterface
++        fun getTodoMutations(): String = ReminderStore.peekMutations(this@MainActivity)
++
++        @JavascriptInterface
++        fun ackTodoMutations() {
++            ReminderStore.clearMutations(this@MainActivity)
++        }
++
++        @JavascriptInterface
++        fun requestReminderPermissions(): String {
++            runOnUiThread { beginReminderPermissionFlow() }
++            return reminderPermissionState()
++        }
++
++        @JavascriptInterface
++        fun getReminderPermissionState(): String = reminderPermissionState()
++
++        @JavascriptInterface
+         fun checkBatteryOptimization(): String {
+             val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+-            return if (pm.isIgnoringBatteryOptimizations(packageName)) "ok"
+-            else "battery_optimizing"
++            return if (pm.isIgnoringBatteryOptimizations(packageName)) "ok" else "battery_optimizing"
+         }
+ 
+         @JavascriptInterface
+         fun requestBatteryOptimization() {
+-            try {
+-                startActivity(Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+-                    data = android.net.Uri.parse("package:$packageName")
+-                })
+-            } catch (_: Exception) {}
++            runOnUiThread {
++                try {
++                    startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
++                } catch (_: Exception) {}
++            }
+         }
+ 
+         @JavascriptInterface
+         fun scheduleTestAlarm(): String {
+-            return try { MidnightReceiver.scheduleTest(this@MainActivity); "ok" } catch (e: Exception) { "失败: ${e.message}" }
++            runOnUiThread { beginReminderPermissionFlow() }
++            return try {
++                MidnightReceiver.scheduleTest(this@MainActivity)
++                "ok"
++            } catch (e: Exception) {
++                "失败: ${e.message}"
++            }
+         }
+ 
+         @JavascriptInterface
+-        fun syncBannerTime(hour: Int, minute: Int) {
++        fun syncBannerTime(hour: Int, minute: Int): String {
+             val prefs = getSharedPreferences("banner_time", Context.MODE_PRIVATE)
+-            prefs.edit().putInt("hour", hour).putInt("minute", minute).apply()
+-            try { MidnightReceiver.schedule(this@MainActivity) } catch (_: Exception) {}
++            prefs.edit()
++                .putInt("hour", hour.coerceIn(0, 23))
++                .putInt("minute", minute.coerceIn(0, 59))
++                .putBoolean("enabled", true)
++                .apply()
++            try { ReminderScheduler.scheduleDaily(this@MainActivity) } catch (_: Exception) {}
++            runOnUiThread { beginReminderPermissionFlow() }
++            return reminderPermissionState()
+         }
+ 
+         @JavascriptInterface
+         fun showDailyBanner(
+-            percent: Float, completed: Int, total: Int,
+-            inProgressJson: String, todoJson: String, completedJson: String
++            percent: Float,
++            completed: Int,
++            total: Int,
++            inProgressJson: String,
++            todoJson: String,
++            completedJson: String
+         ): String {
+             if (!Settings.canDrawOverlays(this@MainActivity)) {
++                runOnUiThread { beginReminderPermissionFlow() }
+                 return "悬浮窗权限未授予"
+             }
+ 
+@@ -117,14 +356,21 @@
+             val completedItems = parseArr(completedJson)
+ 
+             return try {
+-                com.todolist.app.manager.FloatWindowManager.showBanner(
+-                    this@MainActivity, percent, completed, total,
+-                    inProgress, todo, completedItems
+-                ) {
+-                    val launchIntent = Intent(this@MainActivity, MainActivity::class.java).apply {
+-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
++                runOnUiThread {
++                    FloatWindowManager.showBanner(
++                        this@MainActivity,
++                        percent,
++                        completed,
++                        total,
++                        inProgress,
++                        todo,
++                        completedItems
++                    ) {
++                        val launchIntent = Intent(this@MainActivity, MainActivity::class.java).apply {
++                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
++                        }
++                        startActivity(launchIntent)
+                     }
+-                    startActivity(launchIntent)
+                 }
+                 "ok"
+             } catch (e: Exception) {
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt"	2026-07-06 14:45:06.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt"	2026-08-11 10:22:37.384960778 +0000
+@@ -3,15 +3,29 @@
+ import android.content.Context
+ import android.graphics.PixelFormat
+ import android.os.Build
++import android.provider.Settings
+ import android.view.Gravity
+ import android.view.WindowManager
+ import com.todolist.app.ui.BannerView
++import com.todolist.app.ui.TodoReminderBannerView
+ 
+ object FloatWindowManager {
+ 
+-    private var bannerView: BannerView? = null
+     private var windowManager: WindowManager? = null
+-    var onDismissCallback: (() -> Unit)? = null
++    private var appContext: Context? = null
++    private var dailyBannerView: BannerView? = null
++    private val todoBannerViews = linkedMapOf<Long, TodoReminderBannerView>()
++
++    var onDailyDismissed: (() -> Unit)? = null
++
++    private fun ensureWindowManager(context: Context): WindowManager {
++        appContext = context.applicationContext
++        return windowManager ?: (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager).also {
++            windowManager = it
++        }
++    }
++
++    fun canShowOverlay(context: Context): Boolean = Settings.canDrawOverlays(context)
+ 
+     fun showBanner(
+         context: Context,
+@@ -23,34 +37,133 @@
+         completedItems: List<String>,
+         onOpenApp: () -> Unit
+     ) {
+-        // Detach old banner's callbacks before cleanup — prevents stale callbacks
+-        // from the old BannerView (e.g. auto-dismiss animation end) from
+-        // accidentally dismissing the new banner.
+-        bannerView?.onDismiss = null
+-        bannerView?.onOpenApp = null
+-        dismissBanner()
+-
+-        windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+-        val wm = windowManager!!
++        if (!canShowOverlay(context)) return
++        val wm = ensureWindowManager(context)
+ 
++        dismissDailyBanner(silent = true)
+         val openCb = onOpenApp
+-        bannerView = BannerView(context).apply {
++        dailyBannerView = BannerView(context).apply {
+             setSummary(percent, completed, total)
+             setItems(inProgress, todo, completedItems)
+             this.onOpenApp = {
+                 openCb()
+-                dismissBanner()
++                dismissDailyBanner()
+             }
++            this.onDismiss = { dismissDailyBanner() }
++        }
++
++        val screenWidth = context.resources.displayMetrics.widthPixels
++        val bannerWidth = (screenWidth * 0.82).toInt()
++        val params = makeParams(context, bannerWidth, yDp = 4f)
++        wm.addView(dailyBannerView, params)
++        dailyBannerView?.slideIn()
++        repositionTodoBanners()
++    }
++
++    fun showTodoReminder(
++        context: Context,
++        id: Long,
++        text: String,
++        status: String,
++        onStatusChanged: (String) -> Unit,
++        onDismiss: () -> Unit,
++        onOpenApp: () -> Unit
++    ) {
++        if (!canShowOverlay(context)) return
++        val wm = ensureWindowManager(context)
++
++        todoBannerViews[id]?.let { existing ->
++            existing.setStatus(status)
++            return
++        }
++
++        val view = TodoReminderBannerView(context, id, text, status).apply {
++            this.onStatusChanged = onStatusChanged
++            this.onOpenApp = onOpenApp
+             this.onDismiss = {
+-                dismissBanner()
++                dismissTodoReminder(id, silent = true)
++                onDismiss()
+             }
+         }
++        todoBannerViews[id] = view
+ 
+-        val density = context.resources.displayMetrics.density
+         val screenWidth = context.resources.displayMetrics.widthPixels
+-        val bannerWidth = (screenWidth * 0.8).toInt()
++        val width = (screenWidth * 0.94).toInt()
++        wm.addView(view, makeParams(context, width, yDp = 10f))
++        view.alpha = 0f
++        view.translationY = -48f * context.resources.displayMetrics.density
++        view.animate().alpha(1f).translationY(0f).setDuration(280).start()
++        repositionTodoBanners()
++    }
+ 
+-        val params = WindowManager.LayoutParams().apply {
++    fun updateTodoStatus(id: Long, status: String) {
++        todoBannerViews[id]?.setStatus(status)
++    }
++
++    fun updateTodo(id: Long, text: String, status: String) {
++        todoBannerViews[id]?.setTodo(text, status)
++    }
++
++    fun dismissTodoReminder(id: Long, silent: Boolean = false) {
++        val view = todoBannerViews.remove(id) ?: return
++        try { windowManager?.removeView(view) } catch (_: Exception) {}
++        if (!silent) view.onDismiss?.invoke()
++        repositionTodoBanners()
++        clearWindowManagerIfIdle()
++    }
++
++    fun dismissDailyBanner(silent: Boolean = false) {
++        val view = dailyBannerView ?: return
++        view.cancelAutoDismiss()
++        view.onDismiss = null
++        view.onOpenApp = null
++        try { windowManager?.removeView(view) } catch (_: Exception) {}
++        dailyBannerView = null
++        repositionTodoBanners()
++        if (!silent) onDailyDismissed?.invoke()
++        onDailyDismissed = null
++        clearWindowManagerIfIdle()
++    }
++
++    fun dismissAllSilently() {
++        dailyBannerView?.let { view ->
++            view.cancelAutoDismiss()
++            view.onDismiss = null
++            view.onOpenApp = null
++            try { windowManager?.removeView(view) } catch (_: Exception) {}
++        }
++        dailyBannerView = null
++        todoBannerViews.values.forEach { view ->
++            view.onDismiss = null
++            view.onOpenApp = null
++            view.onStatusChanged = null
++            try { windowManager?.removeView(view) } catch (_: Exception) {}
++        }
++        todoBannerViews.clear()
++        onDailyDismissed = null
++        windowManager = null
++        appContext = null
++    }
++
++    fun hasAnyOverlay(): Boolean = dailyBannerView != null || todoBannerViews.isNotEmpty()
++    fun hasTodoOverlays(): Boolean = todoBannerViews.isNotEmpty()
++
++    private fun repositionTodoBanners() {
++        val context = appContext ?: return
++        val wm = windowManager ?: return
++        val density = context.resources.displayMetrics.density
++        val baseDp = if (dailyBannerView != null) 62f else 10f
++        val gapDp = 84f
++        todoBannerViews.values.forEachIndexed { index, view ->
++            val lp = view.layoutParams as? WindowManager.LayoutParams ?: return@forEachIndexed
++            lp.y = ((baseDp + index * gapDp) * density).toInt()
++            try { wm.updateViewLayout(view, lp) } catch (_: Exception) {}
++        }
++    }
++
++    private fun makeParams(context: Context, widthPx: Int, yDp: Float): WindowManager.LayoutParams {
++        val density = context.resources.displayMetrics.density
++        return WindowManager.LayoutParams().apply {
+             type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+             } else {
+@@ -61,27 +174,16 @@
+             flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                     WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+-            width = bannerWidth
++            width = widthPx
+             height = WindowManager.LayoutParams.WRAP_CONTENT
+-            y = (2 * density).toInt()
++            y = (yDp * density).toInt()
+         }
+-
+-        wm.addView(bannerView, params)
+-        bannerView?.slideIn()
+     }
+ 
+-    fun dismissBanner() {
+-        val hadBanner = bannerView != null
+-        bannerView?.let { view ->
+-            view.cancelAutoDismiss()  // Kill pending auto-dismiss timer on old banner
+-            try { windowManager?.removeView(view) } catch (_: Exception) {}
++    private fun clearWindowManagerIfIdle() {
++        if (!hasAnyOverlay()) {
++            windowManager = null
++            appContext = null
+         }
+-        bannerView = null
+-        windowManager = null
+-        if (hadBanner) {
+-            onDismissCallback?.invoke()
+-        }
+-        onDismissCallback = null
+     }
+-
+ }
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/src/main/java/com/todolist/app/receiver/BootReceiver.kt" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/src/main/java/com/todolist/app/receiver/BootReceiver.kt"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/src/main/java/com/todolist/app/receiver/BootReceiver.kt"	2026-07-06 14:45:06.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/src/main/java/com/todolist/app/receiver/BootReceiver.kt"	2026-08-11 10:22:37.355351317 +0000
+@@ -1,15 +1,29 @@
+ package com.todolist.app.receiver
+ 
++import android.app.AlarmManager
+ import android.content.BroadcastReceiver
+ import android.content.Context
+ import android.content.Intent
+-import com.todolist.app.service.FloatWindowService
++import android.util.Log
++import com.todolist.app.reminder.ReminderScheduler
+ 
+ class BootReceiver : BroadcastReceiver() {
++    companion object { private const val TAG = "BootReceiver" }
++
+     override fun onReceive(context: Context, intent: Intent) {
+-        if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
+-            val serviceIntent = Intent(context, FloatWindowService::class.java)
+-            context.startForegroundService(serviceIntent)
++        val action = intent.action ?: return
++        if (action == Intent.ACTION_BOOT_COMPLETED ||
++            action == Intent.ACTION_TIME_CHANGED ||
++            action == Intent.ACTION_TIMEZONE_CHANGED ||
++            action == Intent.ACTION_MY_PACKAGE_REPLACED ||
++            action == AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED
++        ) {
++            try {
++                ReminderScheduler.rescheduleAll(context, restoreFiredOverdue = true)
++                Log.i(TAG, "Rescheduled reminders after $action")
++            } catch (e: Exception) {
++                Log.w(TAG, "Reschedule failed after $action: ${e.message}")
++            }
+         }
+     }
+ }
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/src/main/java/com/todolist/app/receiver/MidnightReceiver.kt" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/src/main/java/com/todolist/app/receiver/MidnightReceiver.kt"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/src/main/java/com/todolist/app/receiver/MidnightReceiver.kt"	2026-07-06 15:14:29.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/src/main/java/com/todolist/app/receiver/MidnightReceiver.kt"	2026-08-11 10:22:37.367378006 +0000
+@@ -1,14 +1,13 @@
+ package com.todolist.app.receiver
+ 
+-import android.app.AlarmManager
+-import android.app.PendingIntent
+ import android.content.BroadcastReceiver
+ import android.content.Context
+ import android.content.Intent
++import android.os.Build
+ import android.util.Log
+-import com.todolist.app.MainActivity
++import com.todolist.app.reminder.ReminderScheduler
++import com.todolist.app.reminder.TodoSnapshotStore
+ import com.todolist.app.service.FloatWindowService
+-import java.util.Calendar
+ 
+ class MidnightReceiver : BroadcastReceiver() {
+ 
+@@ -16,78 +15,55 @@
+         private const val TAG = "MidnightReceiver"
+         const val ACTION_MIDNIGHT = "com.todolist.app.action.MIDNIGHT"
+ 
+-        fun schedule(context: Context) {
+-            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+-            val pi = makePendingIntent(context)
+-            alarmManager.cancel(pi)
+-
+-            val prefs = context.getSharedPreferences("banner_time", Context.MODE_PRIVATE)
+-            val hour = prefs.getInt("hour", 0)
+-            val minute = prefs.getInt("minute", 6)
+-
+-            val target = Calendar.getInstance().apply {
+-                val now = Calendar.getInstance()
+-                set(Calendar.HOUR_OF_DAY, hour)
+-                set(Calendar.MINUTE, minute)
+-                set(Calendar.SECOND, 0)
+-                set(Calendar.MILLISECOND, 0)
+-                if (before(now)) add(Calendar.DAY_OF_MONTH, 1)
+-            }
+-
+-            val showIntent = PendingIntent.getActivity(
+-                context, 1,
+-                Intent(context, MainActivity::class.java),
+-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+-            )
+-            // 用 set() 代替 setAlarmClock()，避免 SCHEDULE_EXACT_ALARM 权限崩溃
+-            alarmManager.set(AlarmManager.RTC_WAKEUP, target.timeInMillis, pi)
+-            Log.i(TAG, "Alarm set for ${target.time}")
+-        }
+-
+-        fun scheduleTest(context: Context) {
+-            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+-            val pi = makePendingIntent(context)
+-            alarmManager.cancel(pi)
+-
+-            val target = Calendar.getInstance().apply { add(Calendar.MINUTE, 1) }
+-            alarmManager.set(AlarmManager.RTC_WAKEUP, target.timeInMillis, pi)
+-            Log.i(TAG, "Test alarm set for ${target.time}")
+-        }
+-
+-        private fun makePendingIntent(context: Context): PendingIntent {
+-            val intent = Intent(context, MidnightReceiver::class.java).apply {
+-                action = ACTION_MIDNIGHT
+-            }
+-            return PendingIntent.getBroadcast(
+-                context, 0, intent,
+-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+-            )
+-        }
++        fun schedule(context: Context) = ReminderScheduler.scheduleDaily(context)
++        fun scheduleTest(context: Context) = ReminderScheduler.scheduleDailyTest(context)
+     }
+ 
+     override fun onReceive(context: Context, intent: Intent) {
+         if (intent.action != ACTION_MIDNIGHT) return
+-        Log.i(TAG, "Alarm triggered")
++        Log.i(TAG, "Daily reminder alarm triggered")
+ 
+-        // Re-schedule for next day
+-        schedule(context)
++        // Exact repeating alarms are intentionally implemented as one-shot + reschedule.
++        ReminderScheduler.scheduleDaily(context)
+ 
+-        // Start service to show banner
++        // Build the summary at alarm time from the last full WebView snapshot. This avoids
++        // carrying yesterday's precomputed "today" list across midnight when the app is closed.
++        val nativeSummary = TodoSnapshotStore.todaySummary(context)
+         val prefs = context.getSharedPreferences("daily_banner", Context.MODE_PRIVATE)
+         val serviceIntent = Intent(context, FloatWindowService::class.java).apply {
+             action = FloatWindowService.ACTION_SHOW
+-            putExtra(FloatWindowService.EXTRA_PERCENT, prefs.getFloat("percent", 0f))
+-            putExtra(FloatWindowService.EXTRA_COMPLETED, prefs.getInt("completed", 0))
+-            putExtra(FloatWindowService.EXTRA_TOTAL, prefs.getInt("total", 0))
+-            putStringArrayListExtra(FloatWindowService.EXTRA_IN_PROGRESS,
+-                ArrayList(prefs.getString("in_progress", "")?.split("|||")?.filter { it.isNotEmpty() } ?: emptyList()))
+-            putStringArrayListExtra(FloatWindowService.EXTRA_TODO,
+-                ArrayList(prefs.getString("todo", "")?.split("|||")?.filter { it.isNotEmpty() } ?: emptyList()))
+-            putStringArrayListExtra(FloatWindowService.EXTRA_COMPLETED_ITEMS,
+-                ArrayList(prefs.getString("completed_items", "")?.split("|||")?.filter { it.isNotEmpty() } ?: emptyList()))
++            if (nativeSummary != null) {
++                putExtra(FloatWindowService.EXTRA_PERCENT, nativeSummary.percent)
++                putExtra(FloatWindowService.EXTRA_COMPLETED, nativeSummary.completed)
++                putExtra(FloatWindowService.EXTRA_TOTAL, nativeSummary.total)
++                putStringArrayListExtra(FloatWindowService.EXTRA_IN_PROGRESS, nativeSummary.inProgress)
++                putStringArrayListExtra(FloatWindowService.EXTRA_TODO, nativeSummary.todo)
++                putStringArrayListExtra(FloatWindowService.EXTRA_COMPLETED_ITEMS, nativeSummary.completedItems)
++            } else {
++                // Backward-compatible fallback for an upgrade before the WebView has synced once.
++                putExtra(FloatWindowService.EXTRA_PERCENT, prefs.getFloat("percent", 0f))
++                putExtra(FloatWindowService.EXTRA_COMPLETED, prefs.getInt("completed", 0))
++                putExtra(FloatWindowService.EXTRA_TOTAL, prefs.getInt("total", 0))
++                putStringArrayListExtra(
++                    FloatWindowService.EXTRA_IN_PROGRESS,
++                    ArrayList(prefs.getString("in_progress", "")?.split("|||")?.filter { it.isNotEmpty() } ?: emptyList())
++                )
++                putStringArrayListExtra(
++                    FloatWindowService.EXTRA_TODO,
++                    ArrayList(prefs.getString("todo", "")?.split("|||")?.filter { it.isNotEmpty() } ?: emptyList())
++                )
++                putStringArrayListExtra(
++                    FloatWindowService.EXTRA_COMPLETED_ITEMS,
++                    ArrayList(prefs.getString("completed_items", "")?.split("|||")?.filter { it.isNotEmpty() } ?: emptyList())
++                )
++            }
+         }
+         try {
+-            context.startForegroundService(serviceIntent)
++            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
++                context.startForegroundService(serviceIntent)
++            } else {
++                context.startService(serviceIntent)
++            }
+         } catch (e: Exception) {
+             Log.w(TAG, "startForegroundService failed: ${e.message}")
+         }
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/src/main/java/com/todolist/app/receiver/TodoReminderReceiver.kt" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/src/main/java/com/todolist/app/receiver/TodoReminderReceiver.kt"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/src/main/java/com/todolist/app/receiver/TodoReminderReceiver.kt"	1970-01-01 00:00:00.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/src/main/java/com/todolist/app/receiver/TodoReminderReceiver.kt"	2026-08-11 10:22:37.324866524 +0000
+@@ -0,0 +1,42 @@
++package com.todolist.app.receiver
++
++import android.content.BroadcastReceiver
++import android.content.Context
++import android.content.Intent
++import android.os.Build
++import android.util.Log
++import com.todolist.app.reminder.ReminderStore
++import com.todolist.app.service.FloatWindowService
++
++class TodoReminderReceiver : BroadcastReceiver() {
++    companion object {
++        private const val TAG = "TodoReminderReceiver"
++        const val ACTION_TODO_REMINDER = "com.todolist.app.action.TODO_REMINDER"
++        const val EXTRA_TODO_ID = "todo_id"
++    }
++
++    override fun onReceive(context: Context, intent: Intent) {
++        if (intent.action != ACTION_TODO_REMINDER) return
++        val id = intent.getLongExtra(EXTRA_TODO_ID, -1L)
++        if (id <= 0L) return
++        val record = ReminderStore.get(context, id) ?: return
++        ReminderStore.markFired(context, id, true)
++
++        val serviceIntent = Intent(context, FloatWindowService::class.java).apply {
++            action = FloatWindowService.ACTION_SHOW_TODO_REMINDER
++            putExtra(FloatWindowService.EXTRA_TODO_ID, record.id)
++            putExtra(FloatWindowService.EXTRA_TODO_TEXT, record.text)
++            putExtra(FloatWindowService.EXTRA_TODO_STATUS, record.status)
++            putExtra(FloatWindowService.EXTRA_REMINDER_AT, record.reminderAt)
++        }
++        try {
++            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
++                context.startForegroundService(serviceIntent)
++            } else {
++                context.startService(serviceIntent)
++            }
++        } catch (e: Exception) {
++            Log.w(TAG, "Unable to start reminder service: ${e.message}")
++        }
++    }
++}
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/src/main/java/com/todolist/app/reminder/ReminderScheduler.kt" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/src/main/java/com/todolist/app/reminder/ReminderScheduler.kt"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/src/main/java/com/todolist/app/reminder/ReminderScheduler.kt"	1970-01-01 00:00:00.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/src/main/java/com/todolist/app/reminder/ReminderScheduler.kt"	2026-08-11 10:31:01.863984689 +0000
+@@ -0,0 +1,145 @@
++package com.todolist.app.reminder
++
++import android.app.AlarmManager
++import android.app.PendingIntent
++import android.content.Context
++import android.content.Intent
++import android.net.Uri
++import android.os.Build
++import android.util.Log
++import com.todolist.app.receiver.MidnightReceiver
++import com.todolist.app.receiver.TodoReminderReceiver
++import java.util.Calendar
++
++object ReminderScheduler {
++    private const val TAG = "ReminderScheduler"
++    private const val DAILY_REQUEST_CODE = 7001
++    private const val TEST_REQUEST_CODE = 7002
++
++    fun canScheduleExact(context: Context): Boolean {
++        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return true
++        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
++        return alarmManager.canScheduleExactAlarms()
++    }
++
++    fun scheduleDaily(context: Context) {
++        val prefs = context.getSharedPreferences("banner_time", Context.MODE_PRIVATE)
++        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
++        val pi = dailyPendingIntent(context)
++        val configured = prefs.getBoolean("enabled", false) || prefs.contains("hour") || prefs.contains("minute")
++        if (!configured) {
++            alarmManager.cancel(pi)
++            return
++        }
++
++        val hour = prefs.getInt("hour", 0).coerceIn(0, 23)
++        val minute = prefs.getInt("minute", 6).coerceIn(0, 59)
++
++        val now = Calendar.getInstance()
++        val target = Calendar.getInstance().apply {
++            set(Calendar.HOUR_OF_DAY, hour)
++            set(Calendar.MINUTE, minute)
++            set(Calendar.SECOND, 0)
++            set(Calendar.MILLISECOND, 0)
++            if (!after(now)) add(Calendar.DAY_OF_MONTH, 1)
++        }
++
++        alarmManager.cancel(pi)
++        scheduleAlarm(alarmManager, target.timeInMillis, pi, context)
++        Log.i(TAG, "Daily summary scheduled for ${target.time}; exact=${canScheduleExact(context)}")
++    }
++
++    fun scheduleDailyTest(context: Context) {
++        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
++        val pi = dailyPendingIntent(context, TEST_REQUEST_CODE)
++        alarmManager.cancel(pi)
++        scheduleAlarm(alarmManager, System.currentTimeMillis() + 60_000L, pi, context)
++    }
++
++    fun scheduleTodo(context: Context, record: TodoReminderRecord) {
++        val triggerAt = if (record.reminderAt <= System.currentTimeMillis()) {
++            // Overdue after reboot / process recovery: surface it promptly.
++            System.currentTimeMillis() + 2_000L
++        } else record.reminderAt
++        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
++        val pi = todoPendingIntent(context, record.id)
++        alarmManager.cancel(pi)
++        scheduleAlarm(alarmManager, triggerAt, pi, context)
++        Log.i(TAG, "Todo ${record.id} scheduled @ $triggerAt; exact=${canScheduleExact(context)}")
++    }
++
++    fun cancelTodo(context: Context, id: Long) {
++        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
++        alarmManager.cancel(todoPendingIntent(context, id))
++    }
++
++    fun syncTodoSnapshot(context: Context, todosJson: String) {
++        TodoSnapshotStore.save(context, todosJson)
++        val result = ReminderStore.syncSnapshot(context, todosJson)
++        result.removedIds.forEach { cancelTodo(context, it) }
++
++        // Do not re-arm a reminder after it has already fired. A fired reminder is kept in
++        // ReminderStore only so its persistent overlay can survive service/process restarts.
++        result.records
++            .filter { !it.fired }
++            .forEach { scheduleTodo(context, it) }
++    }
++
++    /**
++     * Recreate AlarmManager state after reboot/time changes/app cold start.
++     *
++     * restoreFiredOverdue=true is reserved for recovery entry points. It surfaces overdue or
++     * already-fired persistent reminders promptly, while normal foreground syncs must not keep
++     * creating new alarms for a banner that is already on screen.
++     */
++    fun rescheduleAll(context: Context, restoreFiredOverdue: Boolean = false) {
++        scheduleDaily(context)
++        val now = System.currentTimeMillis()
++        ReminderStore.getAll(context).forEach { record ->
++            when {
++                !record.fired && record.reminderAt > now -> scheduleTodo(context, record)
++                restoreFiredOverdue -> scheduleTodo(context, record)
++            }
++        }
++    }
++
++    private fun scheduleAlarm(
++        alarmManager: AlarmManager,
++        triggerAtMillis: Long,
++        pi: PendingIntent,
++        context: Context
++    ) {
++        if (canScheduleExact(context)) {
++            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
++        } else {
++            // Safe fallback while the user has not granted Alarms & reminders access.
++            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
++        }
++    }
++
++    private fun dailyPendingIntent(context: Context, requestCode: Int = DAILY_REQUEST_CODE): PendingIntent {
++        val intent = Intent(context, MidnightReceiver::class.java).apply {
++            action = MidnightReceiver.ACTION_MIDNIGHT
++        }
++        return PendingIntent.getBroadcast(
++            context,
++            requestCode,
++            intent,
++            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
++        )
++    }
++
++    private fun todoPendingIntent(context: Context, id: Long): PendingIntent {
++        val intent = Intent(context, TodoReminderReceiver::class.java).apply {
++            action = TodoReminderReceiver.ACTION_TODO_REMINDER
++            data = Uri.parse("todolist://reminder/$id")
++            putExtra(TodoReminderReceiver.EXTRA_TODO_ID, id)
++        }
++        return PendingIntent.getBroadcast(
++            context,
++            0,
++            intent,
++            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
++        )
++    }
++}
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/src/main/java/com/todolist/app/reminder/ReminderStore.kt" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/src/main/java/com/todolist/app/reminder/ReminderStore.kt"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/src/main/java/com/todolist/app/reminder/ReminderStore.kt"	1970-01-01 00:00:00.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/src/main/java/com/todolist/app/reminder/ReminderStore.kt"	2026-08-11 10:31:01.863650659 +0000
+@@ -0,0 +1,182 @@
++package com.todolist.app.reminder
++
++import android.content.Context
++import org.json.JSONArray
++import org.json.JSONObject
++
++data class TodoReminderRecord(
++    val id: Long,
++    val text: String,
++    val status: String,
++    val reminderAt: Long,
++    val fired: Boolean = false
++)
++
++object ReminderStore {
++    private const val PREFS = "todo_reminders"
++    private const val KEY_RECORDS = "records"
++    private const val MUTATION_PREFS = "todo_native_mutations"
++    private const val KEY_MUTATIONS = "mutations"
++
++    data class SyncResult(
++        val records: List<TodoReminderRecord>,
++        val removedIds: Set<Long>
++    )
++
++    fun getAll(context: Context): List<TodoReminderRecord> {
++        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
++            .getString(KEY_RECORDS, "[]") ?: "[]"
++        return try {
++            val array = JSONArray(raw)
++            buildList {
++                for (i in 0 until array.length()) {
++                    val obj = array.optJSONObject(i) ?: continue
++                    val id = obj.optLong("id", -1L)
++                    val reminderAt = obj.optLong("reminderAt", 0L)
++                    if (id <= 0L || reminderAt <= 0L) continue
++                    add(
++                        TodoReminderRecord(
++                            id = id,
++                            text = obj.optString("text", "待办提醒"),
++                            status = normalizeStatus(obj.optString("status", "todo")),
++                            reminderAt = reminderAt,
++                            fired = obj.optBoolean("fired", false)
++                        )
++                    )
++                }
++            }
++        } catch (_: Exception) {
++            emptyList()
++        }
++    }
++
++    fun get(context: Context, id: Long): TodoReminderRecord? =
++        getAll(context).firstOrNull { it.id == id }
++
++    /**
++     * WebView localStorage is still the source of truth. Native only mirrors todo rows that
++     * currently have a reminder, so alarms survive process death / reboot.
++     */
++    fun syncSnapshot(context: Context, todosJson: String): SyncResult {
++        val oldRecords = getAll(context).associateBy { it.id }
++        val newRecords = linkedMapOf<Long, TodoReminderRecord>()
++        val now = System.currentTimeMillis()
++
++        try {
++            val array = JSONArray(todosJson)
++            for (i in 0 until array.length()) {
++                val obj = array.optJSONObject(i) ?: continue
++                val id = obj.optLong("id", -1L)
++                if (id <= 0L) continue
++                val reminderAt = when {
++                    obj.has("reminderAt") && !obj.isNull("reminderAt") -> obj.optLong("reminderAt", 0L)
++                    else -> 0L
++                }
++                if (reminderAt <= 0L) continue
++
++                val old = oldRecords[id]
++                // Preserve an already-known reminder whose timestamp has just become overdue.
++                // This closes the small recovery race where the app opens, schedules an overdue
++                // native alarm, then WebView sync arrives before that alarm has had time to fire.
++                val sameKnownReminder = old != null && old.reminderAt == reminderAt
++                val preserveFired = sameKnownReminder && old?.fired == true
++                // A brand-new reminder is never allowed to be created in the past, but an existing
++                // missed reminder remains recoverable and will be surfaced promptly by the scheduler.
++                if (reminderAt <= now && !sameKnownReminder) continue
++
++                newRecords[id] = TodoReminderRecord(
++                    id = id,
++                    text = obj.optString("text", old?.text ?: "待办提醒"),
++                    status = normalizeStatus(obj.optString("status", old?.status ?: "todo")),
++                    reminderAt = reminderAt,
++                    fired = preserveFired
++                )
++            }
++        } catch (_: Exception) {
++            return SyncResult(oldRecords.values.toList(), emptySet())
++        }
++
++        // Keep active fired reminders even if a stale WebView snapshot temporarily omitted them.
++        oldRecords.values.filter { it.fired }.forEach { record ->
++            if (!newRecords.containsKey(record.id)) newRecords[record.id] = record
++        }
++
++        val removed = oldRecords.keys - newRecords.keys
++        saveAll(context, newRecords.values.toList())
++        return SyncResult(newRecords.values.toList(), removed)
++    }
++
++    fun markFired(context: Context, id: Long, fired: Boolean = true) {
++        val records = getAll(context).map {
++            if (it.id == id) it.copy(fired = fired) else it
++        }
++        saveAll(context, records)
++    }
++
++    fun updateStatus(context: Context, id: Long, status: String) {
++        val normalized = normalizeStatus(status)
++        val records = getAll(context).map {
++            if (it.id == id) it.copy(status = normalized) else it
++        }
++        saveAll(context, records)
++        enqueueMutation(context, JSONObject().apply {
++            put("type", "status")
++            put("id", id)
++            put("status", normalized)
++        })
++    }
++
++    fun dismiss(context: Context, id: Long) {
++        saveAll(context, getAll(context).filterNot { it.id == id })
++        enqueueMutation(context, JSONObject().apply {
++            put("type", "clearReminder")
++            put("id", id)
++        })
++    }
++
++    private fun saveAll(context: Context, records: List<TodoReminderRecord>) {
++        val array = JSONArray()
++        records.forEach { record ->
++            array.put(JSONObject().apply {
++                put("id", record.id)
++                put("text", record.text)
++                put("status", normalizeStatus(record.status))
++                put("reminderAt", record.reminderAt)
++                put("fired", record.fired)
++            })
++        }
++        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
++            .edit().putString(KEY_RECORDS, array.toString()).apply()
++    }
++
++    private fun enqueueMutation(context: Context, mutation: JSONObject) {
++        val prefs = context.getSharedPreferences(MUTATION_PREFS, Context.MODE_PRIVATE)
++        val current = try { JSONArray(prefs.getString(KEY_MUTATIONS, "[]") ?: "[]") }
++        catch (_: Exception) { JSONArray() }
++
++        // Coalesce by (type,id). The newest native interaction wins.
++        val next = JSONArray()
++        for (i in 0 until current.length()) {
++            val obj = current.optJSONObject(i) ?: continue
++            if (obj.optString("type") == mutation.optString("type") &&
++                obj.optLong("id") == mutation.optLong("id")) continue
++            next.put(obj)
++        }
++        next.put(mutation)
++        prefs.edit().putString(KEY_MUTATIONS, next.toString()).apply()
++    }
++
++    fun peekMutations(context: Context): String =
++        context.getSharedPreferences(MUTATION_PREFS, Context.MODE_PRIVATE)
++            .getString(KEY_MUTATIONS, "[]") ?: "[]"
++
++    fun clearMutations(context: Context) {
++        context.getSharedPreferences(MUTATION_PREFS, Context.MODE_PRIVATE)
++            .edit().putString(KEY_MUTATIONS, "[]").apply()
++    }
++
++    private fun normalizeStatus(status: String): String = when (status) {
++        "in-progress", "completed" -> status
++        else -> "todo"
++    }
++}
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/src/main/java/com/todolist/app/reminder/TodoSnapshotStore.kt" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/src/main/java/com/todolist/app/reminder/TodoSnapshotStore.kt"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/src/main/java/com/todolist/app/reminder/TodoSnapshotStore.kt"	1970-01-01 00:00:00.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/src/main/java/com/todolist/app/reminder/TodoSnapshotStore.kt"	2026-08-11 10:22:37.315704897 +0000
+@@ -0,0 +1,85 @@
++package com.todolist.app.reminder
++
++import android.content.Context
++import org.json.JSONArray
++import java.util.Calendar
++
++data class DailyTodoSnapshot(
++    val total: Int,
++    val completed: Int,
++    val percent: Float,
++    val inProgress: ArrayList<String>,
++    val todo: ArrayList<String>,
++    val completedItems: ArrayList<String>
++)
++
++/**
++ * Small native mirror of WebView todo data used only by background reminder components.
++ * localStorage remains the product source of truth; this mirror lets an alarm build the current
++ * day's summary without needing to launch a WebView process first.
++ */
++object TodoSnapshotStore {
++    private const val PREFS = "todo_snapshot_native"
++    private const val KEY_JSON = "todos"
++
++    fun save(context: Context, todosJson: String) {
++        // Validate before storing so a malformed bridge call cannot destroy the last good mirror.
++        try {
++            JSONArray(todosJson)
++            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
++                .edit().putString(KEY_JSON, todosJson).apply()
++        } catch (_: Exception) {
++            // Keep the previous valid snapshot.
++        }
++    }
++
++    fun todaySummary(context: Context, nowMillis: Long = System.currentTimeMillis()): DailyTodoSnapshot? {
++        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
++            .getString(KEY_JSON, null) ?: return null
++
++        return try {
++            val dayStart = Calendar.getInstance().apply {
++                timeInMillis = nowMillis
++                set(Calendar.HOUR_OF_DAY, 0)
++                set(Calendar.MINUTE, 0)
++                set(Calendar.SECOND, 0)
++                set(Calendar.MILLISECOND, 0)
++            }.timeInMillis
++            val nextDay = Calendar.getInstance().apply {
++                timeInMillis = dayStart
++                add(Calendar.DAY_OF_MONTH, 1)
++            }.timeInMillis
++
++            val inProgress = arrayListOf<String>()
++            val todo = arrayListOf<String>()
++            val completed = arrayListOf<String>()
++            var total = 0
++
++            val array = JSONArray(raw)
++            for (i in 0 until array.length()) {
++                val obj = array.optJSONObject(i) ?: continue
++                val createdAt = obj.optLong("createdAt", 0L)
++                if (createdAt < dayStart || createdAt >= nextDay) continue
++                val text = obj.optString("text", "").trim()
++                if (text.isEmpty()) continue
++                total++
++                when (obj.optString("status", "todo")) {
++                    "completed" -> completed.add(text)
++                    "in-progress" -> inProgress.add(text)
++                    else -> todo.add(text)
++                }
++            }
++            val completedCount = completed.size
++            DailyTodoSnapshot(
++                total = total,
++                completed = completedCount,
++                percent = if (total > 0) completedCount * 100f / total else 0f,
++                inProgress = inProgress,
++                todo = todo,
++                completedItems = completed
++            )
++        } catch (_: Exception) {
++            null
++        }
++    }
++}
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt"	2026-07-06 14:45:06.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt"	2026-08-11 10:22:37.402399357 +0000
+@@ -9,91 +9,332 @@
+ import android.content.Intent
+ import android.os.Build
+ import android.os.IBinder
++import android.provider.Settings
+ import com.todolist.app.MainActivity
++import com.todolist.app.manager.FloatWindowManager
++import com.todolist.app.reminder.ReminderScheduler
++import com.todolist.app.reminder.ReminderStore
+ 
+ class FloatWindowService : Service() {
+ 
+     companion object {
+-        const val CHANNEL_ID = "todo_banner_service"
+-        const val CHANNEL_NAME = "To-Do 每日总结"
++        const val CHANNEL_ID = "todo_banner_service_v2"
++        const val ALERT_CHANNEL_ID = "todo_reminder_alerts_v2"
++        const val CHANNEL_NAME = "To-Do 提醒服务"
++        const val ALERT_CHANNEL_NAME = "To-Do 重要提醒"
+         const val NOTIFICATION_ID = 1001
++        private const val FALLBACK_BASE_ID = 30000
+ 
+         const val ACTION_SHOW = "com.todolist.app.action.SHOW_BANNER"
++        const val ACTION_SHOW_TODO_REMINDER = "com.todolist.app.action.SHOW_TODO_REMINDER"
++        const val ACTION_CYCLE_TODO_STATUS = "com.todolist.app.action.CYCLE_TODO_STATUS"
++        const val ACTION_DISMISS_TODO_REMINDER = "com.todolist.app.action.DISMISS_TODO_REMINDER"
++
+         const val EXTRA_PERCENT = "percent"
+         const val EXTRA_COMPLETED = "completed"
+         const val EXTRA_TOTAL = "total"
+         const val EXTRA_IN_PROGRESS = "in_progress"
+         const val EXTRA_TODO = "todo"
+         const val EXTRA_COMPLETED_ITEMS = "completed_items"
++
++        const val EXTRA_TODO_ID = "todo_id"
++        const val EXTRA_TODO_TEXT = "todo_text"
++        const val EXTRA_TODO_STATUS = "todo_status"
++        const val EXTRA_REMINDER_AT = "reminder_at"
++
++        const val ACTION_NATIVE_TODO_MUTATED = "com.todolist.app.action.NATIVE_TODO_MUTATED"
+     }
+ 
+     override fun onCreate() {
+         super.onCreate()
+-        createNotificationChannel()
++        createNotificationChannels()
+     }
+ 
+     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+-        if (intent?.action == ACTION_SHOW) {
+-            startForeground(NOTIFICATION_ID, buildNotification())
+-            com.todolist.app.manager.FloatWindowManager.showBanner(
+-                this,
+-                intent.getFloatExtra(EXTRA_PERCENT, 0f),
+-                intent.getIntExtra(EXTRA_COMPLETED, 0),
+-                intent.getIntExtra(EXTRA_TOTAL, 0),
+-                intent.getStringArrayListExtra(EXTRA_IN_PROGRESS) ?: arrayListOf(),
+-                intent.getStringArrayListExtra(EXTRA_TODO) ?: arrayListOf(),
+-                intent.getStringArrayListExtra(EXTRA_COMPLETED_ITEMS) ?: arrayListOf()
+-            ) {
+-                val launchIntent = Intent(this, MainActivity::class.java).apply {
+-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+-                }
+-                startActivity(launchIntent)
+-            }
++        // startForegroundService() must be promoted immediately.
++        startForeground(NOTIFICATION_ID, buildServiceNotification("提醒服务正在运行"))
++
++        if (intent == null) {
++            restorePersistentReminderOverlays()
++            if (!FloatWindowManager.hasAnyOverlay()) stopSelf()
++            return if (FloatWindowManager.hasTodoOverlays()) START_STICKY else START_NOT_STICKY
++        }
++
++        when (intent.action) {
++            ACTION_SHOW -> showDailySummary(intent)
++            ACTION_SHOW_TODO_REMINDER -> showTodoReminder(intent)
++            ACTION_CYCLE_TODO_STATUS -> cycleTodoStatus(intent.getLongExtra(EXTRA_TODO_ID, -1L))
++            ACTION_DISMISS_TODO_REMINDER -> dismissTodoReminder(intent.getLongExtra(EXTRA_TODO_ID, -1L))
++            else -> if (!FloatWindowManager.hasAnyOverlay()) stopSelf()
+         }
+-        return START_NOT_STICKY
++        return if (FloatWindowManager.hasTodoOverlays()) START_STICKY else START_NOT_STICKY
+     }
+ 
+     override fun onBind(intent: Intent?): IBinder? = null
+ 
+     override fun onDestroy() {
+-        com.todolist.app.manager.FloatWindowManager.dismissBanner()
++        // Do not mark persistent todo reminders dismissed when Android kills the service.
++        FloatWindowManager.dismissAllSilently()
+         super.onDestroy()
+     }
+ 
+-    private fun createNotificationChannel() {
++    private fun showDailySummary(intent: Intent) {
++        val percent = intent.getFloatExtra(EXTRA_PERCENT, 0f)
++        val completed = intent.getIntExtra(EXTRA_COMPLETED, 0)
++        val total = intent.getIntExtra(EXTRA_TOTAL, 0)
++        val inProgress = intent.getStringArrayListExtra(EXTRA_IN_PROGRESS) ?: arrayListOf()
++        val todo = intent.getStringArrayListExtra(EXTRA_TODO) ?: arrayListOf()
++        val completedItems = intent.getStringArrayListExtra(EXTRA_COMPLETED_ITEMS) ?: arrayListOf()
++
++        if (!Settings.canDrawOverlays(this)) {
++            postFallbackSummaryNotification(percent, completed, total)
++            stopIfIdle()
++            return
++        }
++
++        FloatWindowManager.showBanner(
++            this,
++            percent,
++            completed,
++            total,
++            inProgress,
++            todo,
++            completedItems
++        ) {
++            openApp()
++        }
++        // showBanner() first replaces any previous daily banner and clears its old callback.
++        // Register the service lifecycle callback only after the new view has been attached.
++        FloatWindowManager.onDailyDismissed = { stopIfIdle() }
++    }
++
++    private fun showTodoReminder(intent: Intent) {
++        val id = intent.getLongExtra(EXTRA_TODO_ID, -1L)
++        if (id <= 0L) {
++            stopIfIdle()
++            return
++        }
++
++        val stored = ReminderStore.get(this, id)
++        val text = intent.getStringExtra(EXTRA_TODO_TEXT) ?: stored?.text ?: "待办提醒"
++        val status = intent.getStringExtra(EXTRA_TODO_STATUS) ?: stored?.status ?: "todo"
++
++        if (!Settings.canDrawOverlays(this)) {
++            postFallbackTodoNotification(id, text, status)
++            // The reminder remains active in ReminderStore, so it can be restored once overlay
++            // permission is later granted and the app reschedules reminders.
++            stopIfIdle()
++            return
++        }
++
++        FloatWindowManager.showTodoReminder(
++            context = this,
++            id = id,
++            text = text,
++            status = status,
++            onStatusChanged = { newStatus ->
++                ReminderStore.updateStatus(this, id, newStatus)
++                broadcastNativeMutation(id, "status", newStatus)
++            },
++            onDismiss = {
++                ReminderStore.dismiss(this, id)
++                ReminderScheduler.cancelTodo(this, id)
++                cancelFallbackNotification(id)
++                broadcastNativeMutation(id, "clearReminder", null)
++                stopIfIdle()
++            },
++            onOpenApp = { openApp(id) }
++        )
++    }
++
++    private fun cycleTodoStatus(id: Long) {
++        if (id <= 0L) {
++            stopIfIdle()
++            return
++        }
++        val record = ReminderStore.get(this, id) ?: run {
++            cancelFallbackNotification(id)
++            stopIfIdle()
++            return
++        }
++        val next = when (record.status) {
++            "todo" -> "in-progress"
++            "in-progress" -> "completed"
++            else -> "todo"
++        }
++        ReminderStore.updateStatus(this, id, next)
++        FloatWindowManager.updateTodoStatus(id, next)
++        broadcastNativeMutation(id, "status", next)
++        if (!Settings.canDrawOverlays(this)) postFallbackTodoNotification(id, record.text, next)
++        stopIfIdle()
++    }
++
++    private fun dismissTodoReminder(id: Long) {
++        if (id <= 0L) {
++            stopIfIdle()
++            return
++        }
++        FloatWindowManager.dismissTodoReminder(id, silent = true)
++        ReminderStore.dismiss(this, id)
++        ReminderScheduler.cancelTodo(this, id)
++        cancelFallbackNotification(id)
++        broadcastNativeMutation(id, "clearReminder", null)
++        stopIfIdle()
++    }
++
++    private fun restorePersistentReminderOverlays() {
++        if (!Settings.canDrawOverlays(this)) return
++        ReminderStore.getAll(this).filter { it.fired }.forEach { record ->
++            FloatWindowManager.showTodoReminder(
++                context = this,
++                id = record.id,
++                text = record.text,
++                status = record.status,
++                onStatusChanged = { newStatus ->
++                    ReminderStore.updateStatus(this, record.id, newStatus)
++                    broadcastNativeMutation(record.id, "status", newStatus)
++                },
++                onDismiss = {
++                    ReminderStore.dismiss(this, record.id)
++                    ReminderScheduler.cancelTodo(this, record.id)
++                    cancelFallbackNotification(record.id)
++                    broadcastNativeMutation(record.id, "clearReminder", null)
++                    stopIfIdle()
++                },
++                onOpenApp = { openApp(record.id) }
++            )
++        }
++    }
++
++    private fun openApp(todoId: Long? = null) {
++        val launchIntent = Intent(this, MainActivity::class.java).apply {
++            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
++            todoId?.let { putExtra(MainActivity.EXTRA_FOCUS_TODO_ID, it) }
++        }
++        startActivity(launchIntent)
++    }
++
++    private fun broadcastNativeMutation(id: Long, type: String, status: String?) {
++        sendBroadcast(Intent(ACTION_NATIVE_TODO_MUTATED).apply {
++            setPackage(packageName)
++            putExtra(EXTRA_TODO_ID, id)
++            putExtra("mutation_type", type)
++            if (status != null) putExtra(EXTRA_TODO_STATUS, status)
++        })
++    }
++
++    private fun stopIfIdle() {
++        if (!FloatWindowManager.hasAnyOverlay()) stopSelf()
++    }
++
++    private fun createNotificationChannels() {
+         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+-            val channel = NotificationChannel(
+-                CHANNEL_ID, CHANNEL_NAME,
+-                NotificationManager.IMPORTANCE_LOW
+-            ).apply { description = "To-Do 每日总结服务" }
+             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+-            nm.createNotificationChannel(channel)
++            nm.createNotificationChannel(
++                NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW).apply {
++                    description = "保持待办悬浮提醒持续显示"
++                    setShowBadge(false)
++                }
++            )
++            nm.createNotificationChannel(
++                NotificationChannel(ALERT_CHANNEL_ID, ALERT_CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH).apply {
++                    description = "当悬浮窗不可用时显示待办提醒"
++                    enableVibration(true)
++                }
++            )
+         }
+     }
+ 
+-    private fun buildNotification(): Notification {
++    private fun buildServiceNotification(text: String): Notification {
++        val pendingIntent = PendingIntent.getActivity(
++            this,
++            0,
++            Intent(this, MainActivity::class.java),
++            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
++        )
++        return Notification.Builder(this, CHANNEL_ID)
++            .setContentTitle("To-Do")
++            .setContentText(text)
++            .setSmallIcon(android.R.drawable.ic_dialog_info)
++            .setContentIntent(pendingIntent)
++            .setOngoing(true)
++            .build()
++    }
++
++    private fun postFallbackSummaryNotification(percent: Float, completed: Int, total: Int) {
++        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+         val pendingIntent = PendingIntent.getActivity(
+-            this, 0,
++            this,
++            10,
+             Intent(this, MainActivity::class.java),
+             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+         )
+-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+-            Notification.Builder(this, CHANNEL_ID)
+-                .setContentTitle("To-Do")
+-                .setContentText("每日总结已就绪")
++        val text = "今日完成 ${"%.0f".format(percent)}% · $completed/$total 项"
++        nm.notify(
++            FALLBACK_BASE_ID,
++            Notification.Builder(this, ALERT_CHANNEL_ID)
++                .setContentTitle("To-Do 每日总结")
++                .setContentText(text)
+                 .setSmallIcon(android.R.drawable.ic_dialog_info)
+                 .setContentIntent(pendingIntent)
+-                .setOngoing(true)
++                .setAutoCancel(true)
++                .setCategory(Notification.CATEGORY_REMINDER)
+                 .build()
+-        } else {
+-            @Suppress("DEPRECATION")
+-            Notification.Builder(this)
+-                .setContentTitle("To-Do")
+-                .setContentText("每日总结已就绪")
++        )
++    }
++
++    private fun postFallbackTodoNotification(id: Long, text: String, status: String = "todo") {
++        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
++        val pendingIntent = PendingIntent.getActivity(
++            this,
++            id.hashCode(),
++            Intent(this, MainActivity::class.java).apply {
++                putExtra(MainActivity.EXTRA_FOCUS_TODO_ID, id)
++            },
++            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
++        )
++        val cycleIntent = PendingIntent.getForegroundService(
++            this,
++            (id.hashCode() xor 0x51A7),
++            Intent(this, FloatWindowService::class.java).apply {
++                action = ACTION_CYCLE_TODO_STATUS
++                putExtra(EXTRA_TODO_ID, id)
++            },
++            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
++        )
++        val dismissIntent = PendingIntent.getForegroundService(
++            this,
++            (id.hashCode() xor 0x71D5),
++            Intent(this, FloatWindowService::class.java).apply {
++                action = ACTION_DISMISS_TODO_REMINDER
++                putExtra(EXTRA_TODO_ID, id)
++            },
++            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
++        )
++        val statusLabel = when (status) {
++            "in-progress" -> "进行中"
++            "completed" -> "已完成"
++            else -> "未完成"
++        }
++        nm.notify(
++            fallbackNotificationId(id),
++            Notification.Builder(this, ALERT_CHANNEL_ID)
++                .setContentTitle("待办提醒 · $statusLabel")
++                .setContentText(text)
+                 .setSmallIcon(android.R.drawable.ic_dialog_info)
+                 .setContentIntent(pendingIntent)
++                .addAction(Notification.Action.Builder(android.R.drawable.ic_menu_rotate, "切换状态", cycleIntent).build())
++                .addAction(Notification.Action.Builder(android.R.drawable.ic_menu_close_clear_cancel, "关闭提醒", dismissIntent).build())
+                 .setOngoing(true)
++                .setCategory(Notification.CATEGORY_REMINDER)
+                 .build()
+-        }
++        )
++    }
++
++    private fun cancelFallbackNotification(id: Long) {
++        (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
++            .cancel(fallbackNotificationId(id))
+     }
++
++    private fun fallbackNotificationId(id: Long): Int = FALLBACK_BASE_ID + (id.hashCode() and 0x3fff)
+ }
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/src/main/java/com/todolist/app/ui/TodoReminderBannerView.kt" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/src/main/java/com/todolist/app/ui/TodoReminderBannerView.kt"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/android/app/src/main/java/com/todolist/app/ui/TodoReminderBannerView.kt"	1970-01-01 00:00:00.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/app/src/main/java/com/todolist/app/ui/TodoReminderBannerView.kt"	2026-08-11 10:22:37.333718614 +0000
+@@ -0,0 +1,152 @@
++package com.todolist.app.ui
++
++import android.content.Context
++import android.graphics.Color
++import android.graphics.Paint
++import android.graphics.Typeface
++import android.graphics.drawable.GradientDrawable
++import android.view.Gravity
++import android.widget.FrameLayout
++import android.widget.LinearLayout
++import android.widget.TextView
++
++/**
++ * Persistent reminder overlay deliberately mirrors the in-app todo row: checkbox + status dot +
++ * todo text + close button. It does not auto-dismiss; only the explicit X clears the reminder.
++ */
++class TodoReminderBannerView(
++    context: Context,
++    val todoId: Long,
++    text: String,
++    initialStatus: String
++) : FrameLayout(context) {
++
++    private val density = context.resources.displayMetrics.density
++    private val checkbox: TextView
++    private val statusDot: TextView
++    private val todoText: TextView
++    private var currentStatus = normalize(initialStatus)
++
++    var onStatusChanged: ((String) -> Unit)? = null
++    var onDismiss: (() -> Unit)? = null
++    var onOpenApp: (() -> Unit)? = null
++
++    private fun dp(v: Float) = (v * density).toInt()
++    private fun dpf(v: Float) = v * density
++
++    init {
++        background = GradientDrawable().apply {
++            setColor(Color.parseColor("#FFFEFB"))
++            cornerRadius = dpf(18f)
++            setStroke(dp(1f), Color.parseColor("#EEE7DE"))
++        }
++        elevation = dpf(10f)
++        setPadding(dp(12f), dp(10f), dp(8f), dp(10f))
++
++        val row = LinearLayout(context).apply {
++            orientation = LinearLayout.HORIZONTAL
++            gravity = Gravity.CENTER_VERTICAL
++        }
++
++        checkbox = TextView(context).apply {
++            gravity = Gravity.CENTER
++            textSize = 15f
++            typeface = Typeface.DEFAULT_BOLD
++            setOnClickListener {
++                currentStatus = nextStatus(currentStatus)
++                renderStatus()
++                onStatusChanged?.invoke(currentStatus)
++            }
++        }
++        row.addView(checkbox, LinearLayout.LayoutParams(dp(30f), dp(30f)).apply {
++            marginEnd = dp(10f)
++        })
++
++        val content = LinearLayout(context).apply {
++            orientation = LinearLayout.HORIZONTAL
++            gravity = Gravity.CENTER_VERTICAL
++            setPadding(0, dp(1f), dp(4f), dp(1f))
++            setOnClickListener { onOpenApp?.invoke() }
++        }
++
++        statusDot = TextView(context).apply {
++            this.text = "●"
++            textSize = 11f
++            setPadding(0, 0, dp(7f), 0)
++        }
++        content.addView(statusDot)
++
++        todoText = TextView(context).apply {
++            this.text = text.ifBlank { "待办提醒" }
++            textSize = 15f
++            setTextColor(Color.parseColor("#2E2925"))
++            typeface = Typeface.DEFAULT_BOLD
++            maxLines = 2
++        }
++        content.addView(todoText, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
++        row.addView(content, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
++
++        row.addView(TextView(context).apply {
++            this.text = "✕"
++            textSize = 18f
++            gravity = Gravity.CENTER
++            setTextColor(Color.parseColor("#9D9186"))
++            setPadding(dp(8f), dp(2f), dp(8f), dp(2f))
++            setOnClickListener { onDismiss?.invoke() }
++        }, LinearLayout.LayoutParams(dp(42f), dp(42f)))
++
++        addView(row, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
++        renderStatus()
++    }
++
++    fun setStatus(status: String) {
++        currentStatus = normalize(status)
++        renderStatus()
++    }
++
++    fun setTodo(text: String, status: String) {
++        todoText.text = text.ifBlank { "待办提醒" }
++        setStatus(status)
++    }
++
++    private fun renderStatus() {
++        val bg = GradientDrawable().apply { cornerRadius = dpf(8f) }
++        todoText.paintFlags = todoText.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
++        todoText.setTextColor(Color.parseColor("#2E2925"))
++
++        when (currentStatus) {
++            "in-progress" -> {
++                bg.setColor(Color.parseColor("#F59E0B"))
++                checkbox.text = ""
++                checkbox.setTextColor(Color.WHITE)
++                statusDot.setTextColor(Color.parseColor("#F59E0B"))
++            }
++            "completed" -> {
++                bg.setColor(Color.parseColor("#7668E8"))
++                checkbox.text = "✓"
++                checkbox.setTextColor(Color.WHITE)
++                statusDot.setTextColor(Color.parseColor("#00C9A7"))
++                todoText.paintFlags = todoText.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
++                todoText.setTextColor(Color.parseColor("#9AA0AA"))
++            }
++            else -> {
++                bg.setColor(Color.TRANSPARENT)
++                bg.setStroke(dp(2f), Color.parseColor("#D3D8E0"))
++                checkbox.text = ""
++                statusDot.setTextColor(Color.parseColor("#FF8787"))
++            }
++        }
++        checkbox.background = bg
++    }
++
++    private fun nextStatus(status: String): String = when (status) {
++        "todo" -> "in-progress"
++        "in-progress" -> "completed"
++        else -> "todo"
++    }
++
++    private fun normalize(status: String): String = when (status) {
++        "in-progress", "completed" -> status
++        else -> "todo"
++    }
++}
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/android/build.gradle.kts" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/build.gradle.kts"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/android/build.gradle.kts"	2026-06-23 14:08:24.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/build.gradle.kts"	1970-01-01 00:00:00.000000000 +0000
+@@ -1,4 +0,0 @@
+-plugins {
+-    id("com.android.application") version "8.7.3" apply false
+-    id("org.jetbrains.kotlin.android") version "2.1.0" apply false
+-}
+Binary files /mnt/data/todo_v14_authoritative_base/To-Do List/android/gradle/wrapper/gradle-wrapper.jar and /mnt/data/To-Do-List-v1.4-Full/To-Do List/android/gradle/wrapper/gradle-wrapper.jar differ
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/android/gradle/wrapper/gradle-wrapper.properties" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/gradle/wrapper/gradle-wrapper.properties"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/android/gradle/wrapper/gradle-wrapper.properties"	2026-06-23 14:08:24.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/gradle/wrapper/gradle-wrapper.properties"	1970-01-01 00:00:00.000000000 +0000
+@@ -1,7 +0,0 @@
+-distributionBase=GRADLE_USER_HOME
+-distributionPath=wrapper/dists
+-distributionUrl=https\://services.gradle.org/distributions/gradle-8.11.1-bin.zip
+-networkTimeout=10000
+-validateDistributionUrl=true
+-zipStoreBase=GRADLE_USER_HOME
+-zipStorePath=wrapper/dists
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/android/gradle.properties" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/gradle.properties"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/android/gradle.properties"	2026-06-23 14:08:24.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/gradle.properties"	1970-01-01 00:00:00.000000000 +0000
+@@ -1,4 +0,0 @@
+-org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+-android.useAndroidX=true
+-kotlin.code.style=official
+-android.nonTransitiveRClass=true
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/android/gradlew" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/gradlew"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/android/gradlew"	2026-06-23 14:08:24.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/gradlew"	1970-01-01 00:00:00.000000000 +0000
+@@ -1,252 +0,0 @@
+-#!/bin/sh
+-
+-#
+-# Copyright © 2015-2021 the original authors.
+-#
+-# Licensed under the Apache License, Version 2.0 (the "License");
+-# you may not use this file except in compliance with the License.
+-# You may obtain a copy of the License at
+-#
+-#      https://www.apache.org/licenses/LICENSE-2.0
+-#
+-# Unless required by applicable law or agreed to in writing, software
+-# distributed under the License is distributed on an "AS IS" BASIS,
+-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-# See the License for the specific language governing permissions and
+-# limitations under the License.
+-#
+-# SPDX-License-Identifier: Apache-2.0
+-#
+-
+-##############################################################################
+-#
+-#   Gradle start up script for POSIX generated by Gradle.
+-#
+-#   Important for running:
+-#
+-#   (1) You need a POSIX-compliant shell to run this script. If your /bin/sh is
+-#       noncompliant, but you have some other compliant shell such as ksh or
+-#       bash, then to run this script, type that shell name before the whole
+-#       command line, like:
+-#
+-#           ksh Gradle
+-#
+-#       Busybox and similar reduced shells will NOT work, because this script
+-#       requires all of these POSIX shell features:
+-#         * functions;
+-#         * expansions «$var», «${var}», «${var:-default}», «${var+SET}»,
+-#           «${var#prefix}», «${var%suffix}», and «$( cmd )»;
+-#         * compound commands having a testable exit status, especially «case»;
+-#         * various built-in commands including «command», «set», and «ulimit».
+-#
+-#   Important for patching:
+-#
+-#   (2) This script targets any POSIX shell, so it avoids extensions provided
+-#       by Bash, Ksh, etc; in particular arrays are avoided.
+-#
+-#       The "traditional" practice of packing multiple parameters into a
+-#       space-separated string is a well documented source of bugs and security
+-#       problems, so this is (mostly) avoided, by progressively accumulating
+-#       options in "$@", and eventually passing that to Java.
+-#
+-#       Where the inherited environment variables (DEFAULT_JVM_OPTS, JAVA_OPTS,
+-#       and GRADLE_OPTS) rely on word-splitting, this is performed explicitly;
+-#       see the in-line comments for details.
+-#
+-#       There are tweaks for specific operating systems such as AIX, CygWin,
+-#       Darwin, MinGW, and NonStop.
+-#
+-#   (3) This script is generated from the Groovy template
+-#       https://github.com/gradle/gradle/blob/HEAD/platforms/jvm/plugins-application/src/main/resources/org/gradle/api/internal/plugins/unixStartScript.txt
+-#       within the Gradle project.
+-#
+-#       You can find Gradle at https://github.com/gradle/gradle/.
+-#
+-##############################################################################
+-
+-# Attempt to set APP_HOME
+-
+-# Resolve links: $0 may be a link
+-app_path=$0
+-
+-# Need this for daisy-chained symlinks.
+-while
+-    APP_HOME=${app_path%"${app_path##*/}"}  # leaves a trailing /; empty if no leading path
+-    [ -h "$app_path" ]
+-do
+-    ls=$( ls -ld "$app_path" )
+-    link=${ls#*' -> '}
+-    case $link in             #(
+-      /*)   app_path=$link ;; #(
+-      *)    app_path=$APP_HOME$link ;;
+-    esac
+-done
+-
+-# This is normally unused
+-# shellcheck disable=SC2034
+-APP_BASE_NAME=${0##*/}
+-# Discard cd standard output in case $CDPATH is set (https://github.com/gradle/gradle/issues/25036)
+-APP_HOME=$( cd -P "${APP_HOME:-./}" > /dev/null && printf '%s
+-' "$PWD" ) || exit
+-
+-# Use the maximum available, or set MAX_FD != -1 to use that value.
+-MAX_FD=maximum
+-
+-warn () {
+-    echo "$*"
+-} >&2
+-
+-die () {
+-    echo
+-    echo "$*"
+-    echo
+-    exit 1
+-} >&2
+-
+-# OS specific support (must be 'true' or 'false').
+-cygwin=false
+-msys=false
+-darwin=false
+-nonstop=false
+-case "$( uname )" in                #(
+-  CYGWIN* )         cygwin=true  ;; #(
+-  Darwin* )         darwin=true  ;; #(
+-  MSYS* | MINGW* )  msys=true    ;; #(
+-  NONSTOP* )        nonstop=true ;;
+-esac
+-
+-CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
+-
+-
+-# Determine the Java command to use to start the JVM.
+-if [ -n "$JAVA_HOME" ] ; then
+-    if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
+-        # IBM's JDK on AIX uses strange locations for the executables
+-        JAVACMD=$JAVA_HOME/jre/sh/java
+-    else
+-        JAVACMD=$JAVA_HOME/bin/java
+-    fi
+-    if [ ! -x "$JAVACMD" ] ; then
+-        die "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
+-
+-Please set the JAVA_HOME variable in your environment to match the
+-location of your Java installation."
+-    fi
+-else
+-    JAVACMD=java
+-    if ! command -v java >/dev/null 2>&1
+-    then
+-        die "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
+-
+-Please set the JAVA_HOME variable in your environment to match the
+-location of your Java installation."
+-    fi
+-fi
+-
+-# Increase the maximum file descriptors if we can.
+-if ! "$cygwin" && ! "$darwin" && ! "$nonstop" ; then
+-    case $MAX_FD in #(
+-      max*)
+-        # In POSIX sh, ulimit -H is undefined. That's why the result is checked to see if it worked.
+-        # shellcheck disable=SC2039,SC3045
+-        MAX_FD=$( ulimit -H -n ) ||
+-            warn "Could not query maximum file descriptor limit"
+-    esac
+-    case $MAX_FD in  #(
+-      '' | soft) :;; #(
+-      *)
+-        # In POSIX sh, ulimit -n is undefined. That's why the result is checked to see if it worked.
+-        # shellcheck disable=SC2039,SC3045
+-        ulimit -n "$MAX_FD" ||
+-            warn "Could not set maximum file descriptor limit to $MAX_FD"
+-    esac
+-fi
+-
+-# Collect all arguments for the java command, stacking in reverse order:
+-#   * args from the command line
+-#   * the main class name
+-#   * -classpath
+-#   * -D...appname settings
+-#   * --module-path (only if needed)
+-#   * DEFAULT_JVM_OPTS, JAVA_OPTS, and GRADLE_OPTS environment variables.
+-
+-# For Cygwin or MSYS, switch paths to Windows format before running java
+-if "$cygwin" || "$msys" ; then
+-    APP_HOME=$( cygpath --path --mixed "$APP_HOME" )
+-    CLASSPATH=$( cygpath --path --mixed "$CLASSPATH" )
+-
+-    JAVACMD=$( cygpath --unix "$JAVACMD" )
+-
+-    # Now convert the arguments - kludge to limit ourselves to /bin/sh
+-    for arg do
+-        if
+-            case $arg in                                #(
+-              -*)   false ;;                            # don't mess with options #(
+-              /?*)  t=${arg#/} t=/${t%%/*}              # looks like a POSIX filepath
+-                    [ -e "$t" ] ;;                      #(
+-              *)    false ;;
+-            esac
+-        then
+-            arg=$( cygpath --path --ignore --mixed "$arg" )
+-        fi
+-        # Roll the args list around exactly as many times as the number of
+-        # args, so each arg winds up back in the position where it started, but
+-        # possibly modified.
+-        #
+-        # NB: a `for` loop captures its iteration list before it begins, so
+-        # changing the positional parameters here affects neither the number of
+-        # iterations, nor the values presented in `arg`.
+-        shift                   # remove old arg
+-        set -- "$@" "$arg"      # push replacement arg
+-    done
+-fi
+-
+-
+-# Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
+-DEFAULT_JVM_OPTS='"-Xmx64m" "-Xms64m"'
+-
+-# Collect all arguments for the java command:
+-#   * DEFAULT_JVM_OPTS, JAVA_OPTS, JAVA_OPTS, and optsEnvironmentVar are not allowed to contain shell fragments,
+-#     and any embedded shellness will be escaped.
+-#   * For example: A user cannot expect ${Hostname} to be expanded, as it is an environment variable and will be
+-#     treated as '${Hostname}' itself on the command line.
+-
+-set -- \
+-        "-Dorg.gradle.appname=$APP_BASE_NAME" \
+-        -classpath "$CLASSPATH" \
+-        org.gradle.wrapper.GradleWrapperMain \
+-        "$@"
+-
+-# Stop when "xargs" is not available.
+-if ! command -v xargs >/dev/null 2>&1
+-then
+-    die "xargs is not available"
+-fi
+-
+-# Use "xargs" to parse quoted args.
+-#
+-# With -n1 it outputs one arg per line, with the quotes and backslashes removed.
+-#
+-# In Bash we could simply go:
+-#
+-#   readarray ARGS < <( xargs -n1 <<<"$var" ) &&
+-#   set -- "${ARGS[@]}" "$@"
+-#
+-# but POSIX shell has neither arrays nor command substitution, so instead we
+-# post-process each arg (as a line of input to sed) to backslash-escape any
+-# character that might be a shell metacharacter, then use eval to reverse
+-# that process (while maintaining the separation between arguments), and wrap
+-# the whole thing up as a single "set" statement.
+-#
+-# This will of course break if any of these variables contains a newline or
+-# an unmatched quote.
+-#
+-
+-eval "set -- $(
+-        printf '%s\n' "$DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS" |
+-        xargs -n1 |
+-        sed ' s~[^-[:alnum:]+,./:=@_]~\\&~g; ' |
+-        tr '\n' ' '
+-    )" '"$@"'
+-
+-exec "$JAVACMD" "$@"
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/android/gradlew.bat" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/gradlew.bat"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/android/gradlew.bat"	2026-06-23 14:08:24.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/gradlew.bat"	1970-01-01 00:00:00.000000000 +0000
+@@ -1,94 +0,0 @@
+-@rem
+-@rem Copyright 2015 the original author or authors.
+-@rem
+-@rem Licensed under the Apache License, Version 2.0 (the "License");
+-@rem you may not use this file except in compliance with the License.
+-@rem You may obtain a copy of the License at
+-@rem
+-@rem      https://www.apache.org/licenses/LICENSE-2.0
+-@rem
+-@rem Unless required by applicable law or agreed to in writing, software
+-@rem distributed under the License is distributed on an "AS IS" BASIS,
+-@rem WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-@rem See the License for the specific language governing permissions and
+-@rem limitations under the License.
+-@rem
+-@rem SPDX-License-Identifier: Apache-2.0
+-@rem
+-
+-@if "%DEBUG%"=="" @echo off
+-@rem ##########################################################################
+-@rem
+-@rem  Gradle startup script for Windows
+-@rem
+-@rem ##########################################################################
+-
+-@rem Set local scope for the variables with windows NT shell
+-if "%OS%"=="Windows_NT" setlocal
+-
+-set DIRNAME=%~dp0
+-if "%DIRNAME%"=="" set DIRNAME=.
+-@rem This is normally unused
+-set APP_BASE_NAME=%~n0
+-set APP_HOME=%DIRNAME%
+-
+-@rem Resolve any "." and ".." in APP_HOME to make it shorter.
+-for %%i in ("%APP_HOME%") do set APP_HOME=%%~fi
+-
+-@rem Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
+-set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
+-
+-@rem Find java.exe
+-if defined JAVA_HOME goto findJavaFromJavaHome
+-
+-set JAVA_EXE=java.exe
+-%JAVA_EXE% -version >NUL 2>&1
+-if %ERRORLEVEL% equ 0 goto execute
+-
+-echo. 1>&2
+-echo ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH. 1>&2
+-echo. 1>&2
+-echo Please set the JAVA_HOME variable in your environment to match the 1>&2
+-echo location of your Java installation. 1>&2
+-
+-goto fail
+-
+-:findJavaFromJavaHome
+-set JAVA_HOME=%JAVA_HOME:"=%
+-set JAVA_EXE=%JAVA_HOME%/bin/java.exe
+-
+-if exist "%JAVA_EXE%" goto execute
+-
+-echo. 1>&2
+-echo ERROR: JAVA_HOME is set to an invalid directory: %JAVA_HOME% 1>&2
+-echo. 1>&2
+-echo Please set the JAVA_HOME variable in your environment to match the 1>&2
+-echo location of your Java installation. 1>&2
+-
+-goto fail
+-
+-:execute
+-@rem Setup the command line
+-
+-set CLASSPATH=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
+-
+-
+-@rem Execute Gradle
+-"%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GRADLE_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -classpath "%CLASSPATH%" org.gradle.wrapper.GradleWrapperMain %*
+-
+-:end
+-@rem End local scope for the variables with windows NT shell
+-if %ERRORLEVEL% equ 0 goto mainEnd
+-
+-:fail
+-rem Set variable GRADLE_EXIT_CONSOLE if you need the _script_ return code instead of
+-rem the _cmd.exe /c_ return code!
+-set EXIT_CODE=%ERRORLEVEL%
+-if %EXIT_CODE% equ 0 set EXIT_CODE=1
+-if not ""=="%GRADLE_EXIT_CONSOLE%" exit %EXIT_CODE%
+-exit /b %EXIT_CODE%
+-
+-:mainEnd
+-if "%OS%"=="Windows_NT" endlocal
+-
+-:omega
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/android/local.properties" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/local.properties"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/android/local.properties"	2026-06-23 14:10:17.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/local.properties"	1970-01-01 00:00:00.000000000 +0000
+@@ -1 +0,0 @@
+-sdk.dir=C\:/Users/h'x'h/AppData/Local/Android/Sdk
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/android/settings.gradle.kts" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/settings.gradle.kts"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/android/settings.gradle.kts"	2026-06-23 14:08:55.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/android/settings.gradle.kts"	1970-01-01 00:00:00.000000000 +0000
+@@ -1,17 +0,0 @@
+-pluginManagement {
+-    repositories {
+-        google()
+-        mavenCentral()
+-        gradlePluginPortal()
+-    }
+-}
+-dependencyResolutionManagement {
+-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+-    repositories {
+-        google()
+-        mavenCentral()
+-    }
+-}
+-
+-rootProject.name = "ToDo"
+-include(":app")
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/build-apk.bat" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/build-apk.bat"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/build-apk.bat"	1970-01-01 00:00:00.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/build-apk.bat"	2026-08-11 10:26:44.087229653 +0000
+@@ -0,0 +1,19 @@
++@echo off
++setlocal
++cd /d "%~dp0"
++echo [To-Do] Building debug APK from project root...
++call gradlew.bat :app:assembleDebug
++if errorlevel 1 (
++  echo.
++  echo BUILD FAILED. See the Gradle error above.
++  exit /b 1
++)
++if not exist "dist" mkdir "dist"
++for %%F in ("android\app\build\outputs\apk\debug\*.apk") do (
++  copy /Y "%%~fF" "dist\To-Do-v1.4.apk" >nul
++  echo.
++  echo APK: %CD%\dist\To-Do-v1.4.apk
++  exit /b 0
++)
++echo Build finished but no APK was found under android\app\build\outputs\apk\debug
++exit /b 2
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/build.gradle.kts" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/build.gradle.kts"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/build.gradle.kts"	1970-01-01 00:00:00.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/build.gradle.kts"	2026-08-11 10:26:41.939229653 +0000
+@@ -0,0 +1,4 @@
++plugins {
++    id("com.android.application") version "8.7.3" apply false
++    id("org.jetbrains.kotlin.android") version "2.1.0" apply false
++}
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/dev-logs/2026-08-11.md" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/dev-logs/2026-08-11.md"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/dev-logs/2026-08-11.md"	1970-01-01 00:00:00.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/dev-logs/2026-08-11.md"	2026-08-11 10:33:11.787229653 +0000
+@@ -0,0 +1,8 @@
++# 2026-08-11 — V1.4
++
++- 纠正此前 AI 使用的错误无 Note 分支。
++- 从用户上传 ZIP 内 2026-07-22 的 merged asset 恢复 Note-mode 源码。
++- 在该基线上实现每日总结提醒链与条目级常驻提醒链。
++- 调整左滑为绿色提醒 + 红色删除两个独立按钮。
++- 将 Gradle 根文件提升到项目最外层，Android Studio 直接打开外层目录。
++- 执行 Note 核心区块 hash、JS parse、Manifest XML、源码副本一致性、Gradle 布局、ZIP 完整性等检查。
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/docs/requirements.md" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/docs/requirements.md"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/docs/requirements.md"	2026-06-23 14:05:53.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/docs/requirements.md"	2026-08-11 10:33:11.759229653 +0000
+@@ -1,74 +1,22 @@
+-# To-Do 移动应用 — 功能需求与验收标准
++# To-Do / Note — 当前需求与验收基线（V1.4）
+ 
+-## 项目概述
++## 已有能力（必须保留）
+ 
+-一款功能完整、界面精美的 To-Do List Android 应用（APK），采用毛玻璃视觉风格。
+-
+-## 功能需求
+-
+-### F1 — 标签页导航
+-- 三个标签页：全部、未完成、已完成
+-- 切换时流畅动画过渡
+-- 每个标签显示对应条目计数
+-
+-### F2 — 时间戳
+-- 每条待办显示精确到分钟的创建时间（HH:MM 格式）
+-- 等宽字体，确保数字对齐
+-
+-### F3 — 排序与日期分隔
+-- 按创建时间倒序排列（最新在上）
+-- 每日事项之间用明确的日期分隔线区分
+-- 过午夜 12 点自动创建新的日期分隔
+-- 今天标示为粉色高亮
+-
+-### F4 — 复选框与完成态
+-- 每条待办前有复选框
+-- 勾选后文字自动添加删除线并置灰
+-- 复选框勾选有弹跳动画
+-
+-### F5 — 搜索
+-- 顶部搜索栏，支持按关键词或日期搜索
+-- 过滤并高亮匹配条目（青色边框 + 光晕）
+-- 自动滚动定位到第一条匹配项
+-- 清除按钮一键重置
+-
+-### F6 — 行内编辑
+-- 点击卡片任意位置进入行内编辑
+-- 点文字 → 光标落在点击位置
+-- 点卡片空白区 → 光标跳到文末（追加模式）
+-- 蓝色虚线下划线标示编辑态
+-- Enter 提交，Escape 取消
+-- 清空文字 → 自动删除
+-
+-### F7 — 左滑删除
+-- 左滑露出粉色渐变删除背景
+-- 滑过阈值（40px）触发删除
+-- 删除有滑出动画 + Toast 提示
+-
+-### F8 — 快速添加
+-- 右下角 FAB 按钮（粉橙渐变）
+-- 点击即创建空白条目并进入编辑
+-
+-### F9 — 数据持久化
+-- localStorage 存储所有待办数据
+-- 支持已完成的条目长期保留
+-- 数据格式：JSON `[{id, text, completed, createdAt}]`
+-
+-### F10 — 毛玻璃视觉
+-- 背景：5 个浮动径向渐变光球（蓝/青/紫/粉/橙）
+-- 卡片：`backdrop-filter: blur` 半透明玻璃质感
+-- 搜索栏、标签栏同样使用毛玻璃
+-
+-## 验收标准
+-
+-| # | 标准 | 验证方式 |
+-|---|------|----------|
+-| AC1 | 三个标签切换流畅，计数准确 | 手动切换，添加/完成条目后检查计数 |
+-| AC2 | 时间戳显示 HH:MM，新建条目时间正确 | 对比系统时间 |
+-| AC3 | 日期分隔正确，过午夜自动更新 | 修改系统时间验证 |
+-| AC4 | 勾选复选框后文字出现删除线 | 目视检查 |
+-| AC5 | 搜索过滤正确，高亮可见，自动滚动 | 输入关键词验证 |
+-| AC6 | 点击卡片进入编辑，光标位置正确 | 点击不同位置验证 |
+-| AC7 | 左滑删除可用，滑不到位可回弹 | 触控操作验证 |
+-| AC8 | 数据刷新后不丢失 | 关闭浏览器/WebView 后重开 |
+-| AC9 | 打包为 APK 可在 Android 8.0+ 安装运行 | 真机安装测试 |
++- To-Do：全部 / 未完成 / 进行中 / 已完成、分类、搜索、日历、回收站、AI 助手、行内编辑、状态切换等。
++- Note：模式切换、笔记列表/树、文件夹、子笔记、编辑器、格式工具等 7 月 22 日版本功能。
++- 原每日总结悬浮 Banner 的视觉与“点开详情 → 进入 APP”交互。
++
++## V1.4 本轮新增 / 修复
++
++1. 右上角时钟选定时间后真正接通 Android 定时链路，并每天重复。
++2. 每日提醒到点时按当天实际数据计算完成进度，再显示原悬浮总结 Banner。
++3. 待办卡片改为实心背景。
++4. 左滑只露出两个独立按钮，不制作整块彩色动作卡：
++   - 绿色：提醒
++   - 红色：删除
++5. 单条提醒支持具体年月日、时、分。
++6. 单条提醒到点后在屏幕顶部常驻：复选框 + 状态点 + 待办文本 + 右上角 ✕。
++7. 悬浮待办复选框状态顺序：未完成 → 进行中 → 已完成；与 APP 双向同步。
++8. 除非点击悬浮待办右侧 ✕，否则提醒不主动自动消失。
++9. 点击悬浮待办正文进入 APP，并定位该待办；若当时处于 Note 模式，先切回 To-Do。
++10. 最外层必须可直接作为 Android Studio Gradle 工程打开。
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/docs/tech-spec.md" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/docs/tech-spec.md"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/docs/tech-spec.md"	2026-06-23 14:06:05.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/docs/tech-spec.md"	2026-08-11 10:33:11.747229653 +0000
+@@ -1,100 +1,50 @@
+-# To-Do 移动应用 — 技术规格
++# To-Do / Note Android 应用 — 技术规格（V1.4）
+ 
+-## 技术栈
+-
+-| 层 | 技术 | 版本 |
+-|---|------|------|
+-| UI | HTML5 + CSS3 + Vanilla JS | — |
+-| Android 壳 | Kotlin + WebView | — |
+-| 构建 | Gradle + AGP + Kotlin | 8.11.1 / 8.7.3 / 2.1.0 |
+-| 存储 | localStorage (WebView) | — |
+-| 最低 API | Android 8.0 (API 26) | — |
+-| 目标 API | Android 15 (API 35) | — |
+-
+-## 项目结构
+-
+-```
+-To-Do List/
+-├── docs/
+-│   ├── requirements.md       # 功能需求 + 验收标准
+-│   ├── tech-spec.md          # 本文档
+-│   ├── design-standards.md   # 编码规范 + 设计模式
+-│   └── execution-steps.md    # 分 Phase 计划
+-├── dev-logs/                 # 开发日志
+-├── ui/
+-│   └── todo.html             # 主应用（单文件）
+-├── CLAUDE.md                 # 项目指令
+-└── android/                  # Phase 4 创建（从模板复制）
+-    ├── build.gradle.kts
+-    ├── settings.gradle.kts
+-    ├── gradle.properties
+-    ├── gradlew / gradlew.bat
+-    ├── gradle/wrapper/
+-    └── app/
+-        ├── build.gradle.kts
+-        ├── proguard-rules.pro
+-        └── src/main/
+-            ├── AndroidManifest.xml
+-            ├── assets/todo.html
+-            ├── java/com/todo/app/MainActivity.kt
+-            └── res/
+-                ├── mipmap-*/ic_launcher.png
+-                └── values/
+-                    ├── styles.xml
+-                    └── strings.xml
+-```
+-
+-## 架构设计
+-
+-### 单文件 WebView 模式
++## 架构
+ 
+-```
+-┌─────────────────────────────┐
+-│         APK                 │
+-│  ┌───────────────────────┐  │
+-│  │   MainActivity.kt     │  │
+-│  │   WebView (全屏)      │  │
+-│  │  ┌─────────────────┐  │  │
+-│  │  │  todo.html      │  │  │
+-│  │  │  CSS + JS        │  │  │
+-│  │  │  localStorage    │  │  │
+-│  │  └─────────────────┘  │  │
+-│  └───────────────────────┘  │
+-└─────────────────────────────┘
+-```
+-
+-### 数据模型
+-
+-```javascript
+-todo = {
+-  id: Number,        // 唯一标识（Date.now()）
+-  text: String,      // 待办内容
+-  completed: Boolean, // 完成状态
+-  createdAt: Number   // 创建时间戳（毫秒）
+-}
++```text
++WebView todo.html
++  ├─ To-Do localStorage
++  ├─ Note localStorage
++  └─ AndroidBridge
++        ↓
++MainActivity
++  ├─ TodoSnapshotStore（每日总结轻量镜像）
++  ├─ ReminderStore（单条提醒 + Native mutation queue）
++  └─ ReminderScheduler（AlarmManager）
++        ↓
++BroadcastReceiver
++  ├─ MidnightReceiver
++  ├─ TodoReminderReceiver
++  └─ BootReceiver
++        ↓
++FloatWindowService (foreground service)
++        ↓
++FloatWindowManager
++  ├─ BannerView（日总结）
++  └─ TodoReminderBannerView（常驻条目提醒）
+ ```
+ 
+-### 状态管理
++## 数据边界
+ 
+-- **todos**: `Array<Todo>` — 主数据数组
+-- **currentTab**: `'all' | 'pending' | 'completed'` — 当前标签
+-- **searchQuery**: `String` — 搜索关键词
+-- **editingEl**: `HTMLElement | null` — 当前编辑中的 DOM 元素
++- `localStorage` 仍是 To-Do / Note 产品数据的主存储，不迁移数据库，不破坏旧数据 key。
++- Android 原生只镜像后台闹钟无法直接读取 WebView 时所需字段。
++- 单条待办 Native 状态修改通过 mutation queue 回写 WebView；APP 内编辑通过完整 snapshot 同步回 Native。
+ 
+-数据流：`localStorage ↔ JSON ↔ todos Array → filter() + sort() → grouped → DOM render`
++## 提醒策略
+ 
+-### 增量渲染策略
++- 每日总结使用“一次性闹钟，到点后重新排下一天”，避免依赖系统的不精确 repeating alarm。
++- 单条提醒按 todo id 创建独立 PendingIntent。
++- Android 12+ 在可用时使用 exact alarm；未获精确闹钟特殊访问时使用允许待机的非精确 fallback，并在 APP 中引导权限。
++- Android 13+ 请求通知权限；悬浮 Banner 使用 `SYSTEM_ALERT_WINDOW`。
++- 开机、系统时间/时区改变、APP 更新、精确闹钟权限改变后重排提醒。
++- 到点通过前台服务承载悬浮提醒；单条提醒只有显式点击 ✕ 才从 ReminderStore 清除。
+ 
+-- 编辑/勾选不触发全量重渲染（直接操作 DOM）
+-- 搜索/切换标签/添加/删除 → 全量重渲染
+-- 重渲染无需虚拟 DOM（条目数 < 1000 时 innerHTML 足够快）
++## Gradle 根目录
+ 
+-## API 对接
++V1.4 将 Gradle 根文件放在项目最外层，`:app` 映射到 `android/app`：
+ 
+-无外部 API 依赖。纯本地应用。
+-
+-## 安全考量
+-
+-- WebView 仅加载 `file:///android_asset/` 本地资源，无远程内容
+-- 不请求敏感权限（仅 INTERNET，供可能的扩展使用）
+-- localStorage 数据不包含敏感信息
++```kotlin
++include(":app")
++project(":app").projectDir = file("android/app")
++```
+Binary files /mnt/data/todo_v14_authoritative_base/To-Do List/gradle/wrapper/gradle-wrapper.jar and /mnt/data/To-Do-List-v1.4-Full/To-Do List/gradle/wrapper/gradle-wrapper.jar differ
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/gradle/wrapper/gradle-wrapper.properties" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/gradle/wrapper/gradle-wrapper.properties"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/gradle/wrapper/gradle-wrapper.properties"	1970-01-01 00:00:00.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/gradle/wrapper/gradle-wrapper.properties"	2026-08-11 10:26:41.917396943 +0000
+@@ -0,0 +1,7 @@
++distributionBase=GRADLE_USER_HOME
++distributionPath=wrapper/dists
++distributionUrl=https\://services.gradle.org/distributions/gradle-8.11.1-bin.zip
++networkTimeout=10000
++validateDistributionUrl=true
++zipStoreBase=GRADLE_USER_HOME
++zipStorePath=wrapper/dists
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/gradle.properties" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/gradle.properties"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/gradle.properties"	1970-01-01 00:00:00.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/gradle.properties"	2026-08-11 10:26:41.926736587 +0000
+@@ -0,0 +1,4 @@
++org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
++android.useAndroidX=true
++kotlin.code.style=official
++android.nonTransitiveRClass=true
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/gradlew" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/gradlew"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/gradlew"	1970-01-01 00:00:00.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/gradlew"	2026-08-11 10:26:41.880623837 +0000
+@@ -0,0 +1,252 @@
++#!/bin/sh
++
++#
++# Copyright © 2015-2021 the original authors.
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#      https://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++#
++# SPDX-License-Identifier: Apache-2.0
++#
++
++##############################################################################
++#
++#   Gradle start up script for POSIX generated by Gradle.
++#
++#   Important for running:
++#
++#   (1) You need a POSIX-compliant shell to run this script. If your /bin/sh is
++#       noncompliant, but you have some other compliant shell such as ksh or
++#       bash, then to run this script, type that shell name before the whole
++#       command line, like:
++#
++#           ksh Gradle
++#
++#       Busybox and similar reduced shells will NOT work, because this script
++#       requires all of these POSIX shell features:
++#         * functions;
++#         * expansions «$var», «${var}», «${var:-default}», «${var+SET}»,
++#           «${var#prefix}», «${var%suffix}», and «$( cmd )»;
++#         * compound commands having a testable exit status, especially «case»;
++#         * various built-in commands including «command», «set», and «ulimit».
++#
++#   Important for patching:
++#
++#   (2) This script targets any POSIX shell, so it avoids extensions provided
++#       by Bash, Ksh, etc; in particular arrays are avoided.
++#
++#       The "traditional" practice of packing multiple parameters into a
++#       space-separated string is a well documented source of bugs and security
++#       problems, so this is (mostly) avoided, by progressively accumulating
++#       options in "$@", and eventually passing that to Java.
++#
++#       Where the inherited environment variables (DEFAULT_JVM_OPTS, JAVA_OPTS,
++#       and GRADLE_OPTS) rely on word-splitting, this is performed explicitly;
++#       see the in-line comments for details.
++#
++#       There are tweaks for specific operating systems such as AIX, CygWin,
++#       Darwin, MinGW, and NonStop.
++#
++#   (3) This script is generated from the Groovy template
++#       https://github.com/gradle/gradle/blob/HEAD/platforms/jvm/plugins-application/src/main/resources/org/gradle/api/internal/plugins/unixStartScript.txt
++#       within the Gradle project.
++#
++#       You can find Gradle at https://github.com/gradle/gradle/.
++#
++##############################################################################
++
++# Attempt to set APP_HOME
++
++# Resolve links: $0 may be a link
++app_path=$0
++
++# Need this for daisy-chained symlinks.
++while
++    APP_HOME=${app_path%"${app_path##*/}"}  # leaves a trailing /; empty if no leading path
++    [ -h "$app_path" ]
++do
++    ls=$( ls -ld "$app_path" )
++    link=${ls#*' -> '}
++    case $link in             #(
++      /*)   app_path=$link ;; #(
++      *)    app_path=$APP_HOME$link ;;
++    esac
++done
++
++# This is normally unused
++# shellcheck disable=SC2034
++APP_BASE_NAME=${0##*/}
++# Discard cd standard output in case $CDPATH is set (https://github.com/gradle/gradle/issues/25036)
++APP_HOME=$( cd -P "${APP_HOME:-./}" > /dev/null && printf '%s
++' "$PWD" ) || exit
++
++# Use the maximum available, or set MAX_FD != -1 to use that value.
++MAX_FD=maximum
++
++warn () {
++    echo "$*"
++} >&2
++
++die () {
++    echo
++    echo "$*"
++    echo
++    exit 1
++} >&2
++
++# OS specific support (must be 'true' or 'false').
++cygwin=false
++msys=false
++darwin=false
++nonstop=false
++case "$( uname )" in                #(
++  CYGWIN* )         cygwin=true  ;; #(
++  Darwin* )         darwin=true  ;; #(
++  MSYS* | MINGW* )  msys=true    ;; #(
++  NONSTOP* )        nonstop=true ;;
++esac
++
++CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
++
++
++# Determine the Java command to use to start the JVM.
++if [ -n "$JAVA_HOME" ] ; then
++    if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
++        # IBM's JDK on AIX uses strange locations for the executables
++        JAVACMD=$JAVA_HOME/jre/sh/java
++    else
++        JAVACMD=$JAVA_HOME/bin/java
++    fi
++    if [ ! -x "$JAVACMD" ] ; then
++        die "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
++
++Please set the JAVA_HOME variable in your environment to match the
++location of your Java installation."
++    fi
++else
++    JAVACMD=java
++    if ! command -v java >/dev/null 2>&1
++    then
++        die "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
++
++Please set the JAVA_HOME variable in your environment to match the
++location of your Java installation."
++    fi
++fi
++
++# Increase the maximum file descriptors if we can.
++if ! "$cygwin" && ! "$darwin" && ! "$nonstop" ; then
++    case $MAX_FD in #(
++      max*)
++        # In POSIX sh, ulimit -H is undefined. That's why the result is checked to see if it worked.
++        # shellcheck disable=SC2039,SC3045
++        MAX_FD=$( ulimit -H -n ) ||
++            warn "Could not query maximum file descriptor limit"
++    esac
++    case $MAX_FD in  #(
++      '' | soft) :;; #(
++      *)
++        # In POSIX sh, ulimit -n is undefined. That's why the result is checked to see if it worked.
++        # shellcheck disable=SC2039,SC3045
++        ulimit -n "$MAX_FD" ||
++            warn "Could not set maximum file descriptor limit to $MAX_FD"
++    esac
++fi
++
++# Collect all arguments for the java command, stacking in reverse order:
++#   * args from the command line
++#   * the main class name
++#   * -classpath
++#   * -D...appname settings
++#   * --module-path (only if needed)
++#   * DEFAULT_JVM_OPTS, JAVA_OPTS, and GRADLE_OPTS environment variables.
++
++# For Cygwin or MSYS, switch paths to Windows format before running java
++if "$cygwin" || "$msys" ; then
++    APP_HOME=$( cygpath --path --mixed "$APP_HOME" )
++    CLASSPATH=$( cygpath --path --mixed "$CLASSPATH" )
++
++    JAVACMD=$( cygpath --unix "$JAVACMD" )
++
++    # Now convert the arguments - kludge to limit ourselves to /bin/sh
++    for arg do
++        if
++            case $arg in                                #(
++              -*)   false ;;                            # don't mess with options #(
++              /?*)  t=${arg#/} t=/${t%%/*}              # looks like a POSIX filepath
++                    [ -e "$t" ] ;;                      #(
++              *)    false ;;
++            esac
++        then
++            arg=$( cygpath --path --ignore --mixed "$arg" )
++        fi
++        # Roll the args list around exactly as many times as the number of
++        # args, so each arg winds up back in the position where it started, but
++        # possibly modified.
++        #
++        # NB: a `for` loop captures its iteration list before it begins, so
++        # changing the positional parameters here affects neither the number of
++        # iterations, nor the values presented in `arg`.
++        shift                   # remove old arg
++        set -- "$@" "$arg"      # push replacement arg
++    done
++fi
++
++
++# Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
++DEFAULT_JVM_OPTS='"-Xmx64m" "-Xms64m"'
++
++# Collect all arguments for the java command:
++#   * DEFAULT_JVM_OPTS, JAVA_OPTS, JAVA_OPTS, and optsEnvironmentVar are not allowed to contain shell fragments,
++#     and any embedded shellness will be escaped.
++#   * For example: A user cannot expect ${Hostname} to be expanded, as it is an environment variable and will be
++#     treated as '${Hostname}' itself on the command line.
++
++set -- \
++        "-Dorg.gradle.appname=$APP_BASE_NAME" \
++        -classpath "$CLASSPATH" \
++        org.gradle.wrapper.GradleWrapperMain \
++        "$@"
++
++# Stop when "xargs" is not available.
++if ! command -v xargs >/dev/null 2>&1
++then
++    die "xargs is not available"
++fi
++
++# Use "xargs" to parse quoted args.
++#
++# With -n1 it outputs one arg per line, with the quotes and backslashes removed.
++#
++# In Bash we could simply go:
++#
++#   readarray ARGS < <( xargs -n1 <<<"$var" ) &&
++#   set -- "${ARGS[@]}" "$@"
++#
++# but POSIX shell has neither arrays nor command substitution, so instead we
++# post-process each arg (as a line of input to sed) to backslash-escape any
++# character that might be a shell metacharacter, then use eval to reverse
++# that process (while maintaining the separation between arguments), and wrap
++# the whole thing up as a single "set" statement.
++#
++# This will of course break if any of these variables contains a newline or
++# an unmatched quote.
++#
++
++eval "set -- $(
++        printf '%s\n' "$DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS" |
++        xargs -n1 |
++        sed ' s~[^-[:alnum:]+,./:=@_]~\\&~g; ' |
++        tr '\n' ' '
++    )" '"$@"'
++
++exec "$JAVACMD" "$@"
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/gradlew.bat" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/gradlew.bat"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/gradlew.bat"	1970-01-01 00:00:00.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/gradlew.bat"	2026-08-11 10:26:41.890285863 +0000
+@@ -0,0 +1,94 @@
++@rem
++@rem Copyright 2015 the original author or authors.
++@rem
++@rem Licensed under the Apache License, Version 2.0 (the "License");
++@rem you may not use this file except in compliance with the License.
++@rem You may obtain a copy of the License at
++@rem
++@rem      https://www.apache.org/licenses/LICENSE-2.0
++@rem
++@rem Unless required by applicable law or agreed to in writing, software
++@rem distributed under the License is distributed on an "AS IS" BASIS,
++@rem WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++@rem See the License for the specific language governing permissions and
++@rem limitations under the License.
++@rem
++@rem SPDX-License-Identifier: Apache-2.0
++@rem
++
++@if "%DEBUG%"=="" @echo off
++@rem ##########################################################################
++@rem
++@rem  Gradle startup script for Windows
++@rem
++@rem ##########################################################################
++
++@rem Set local scope for the variables with windows NT shell
++if "%OS%"=="Windows_NT" setlocal
++
++set DIRNAME=%~dp0
++if "%DIRNAME%"=="" set DIRNAME=.
++@rem This is normally unused
++set APP_BASE_NAME=%~n0
++set APP_HOME=%DIRNAME%
++
++@rem Resolve any "." and ".." in APP_HOME to make it shorter.
++for %%i in ("%APP_HOME%") do set APP_HOME=%%~fi
++
++@rem Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
++set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
++
++@rem Find java.exe
++if defined JAVA_HOME goto findJavaFromJavaHome
++
++set JAVA_EXE=java.exe
++%JAVA_EXE% -version >NUL 2>&1
++if %ERRORLEVEL% equ 0 goto execute
++
++echo. 1>&2
++echo ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH. 1>&2
++echo. 1>&2
++echo Please set the JAVA_HOME variable in your environment to match the 1>&2
++echo location of your Java installation. 1>&2
++
++goto fail
++
++:findJavaFromJavaHome
++set JAVA_HOME=%JAVA_HOME:"=%
++set JAVA_EXE=%JAVA_HOME%/bin/java.exe
++
++if exist "%JAVA_EXE%" goto execute
++
++echo. 1>&2
++echo ERROR: JAVA_HOME is set to an invalid directory: %JAVA_HOME% 1>&2
++echo. 1>&2
++echo Please set the JAVA_HOME variable in your environment to match the 1>&2
++echo location of your Java installation. 1>&2
++
++goto fail
++
++:execute
++@rem Setup the command line
++
++set CLASSPATH=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
++
++
++@rem Execute Gradle
++"%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GRADLE_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -classpath "%CLASSPATH%" org.gradle.wrapper.GradleWrapperMain %*
++
++:end
++@rem End local scope for the variables with windows NT shell
++if %ERRORLEVEL% equ 0 goto mainEnd
++
++:fail
++rem Set variable GRADLE_EXIT_CONSOLE if you need the _script_ return code instead of
++rem the _cmd.exe /c_ return code!
++set EXIT_CODE=%ERRORLEVEL%
++if %EXIT_CODE% equ 0 set EXIT_CODE=1
++if not ""=="%GRADLE_EXIT_CONSOLE%" exit %EXIT_CODE%
++exit /b %EXIT_CODE%
++
++:mainEnd
++if "%OS%"=="Windows_NT" endlocal
++
++:omega
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/local.properties" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/local.properties"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/local.properties"	1970-01-01 00:00:00.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/local.properties"	2026-08-11 10:26:41.947229653 +0000
+@@ -0,0 +1 @@
++sdk.dir=D\:\\Android\\SDK
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/local.properties.example" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/local.properties.example"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/local.properties.example"	1970-01-01 00:00:00.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/local.properties.example"	2026-08-11 10:26:41.955229653 +0000
+@@ -0,0 +1,3 @@
++# Android Studio normally manages local.properties automatically.
++# If needed, replace this with your own Android SDK path.
++sdk.dir=D\:\\Android\\SDK
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/settings.gradle.kts" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/settings.gradle.kts"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/settings.gradle.kts"	1970-01-01 00:00:00.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/settings.gradle.kts"	2026-08-11 10:26:41.931229653 +0000
+@@ -0,0 +1,19 @@
++pluginManagement {
++    repositories {
++        google()
++        mavenCentral()
++        gradlePluginPortal()
++    }
++}
++
++dependencyResolutionManagement {
++    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
++    repositories {
++        google()
++        mavenCentral()
++    }
++}
++
++rootProject.name = "ToDo"
++include(":app")
++project(":app").projectDir = file("android/app")
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/start.bat" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/start.bat"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/start.bat"	2026-06-27 08:20:12.000000000 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/start.bat"	2026-08-11 10:26:44.100423897 +0000
+@@ -1,3 +1,4 @@
+ @echo off
+ cd /d "%~dp0"
+-start ui/todo.html
++call build-apk.bat
++pause
+diff -ruN --strip-trailing-cr '--exclude=dist' '--exclude=changes' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' "/mnt/data/todo_v14_authoritative_base/To-Do List/ui/todo.html" "/mnt/data/To-Do-List-v1.4-Full/To-Do List/ui/todo.html"
+--- "/mnt/data/todo_v14_authoritative_base/To-Do List/ui/todo.html"	2026-08-11 10:31:26.569438380 +0000
++++ "/mnt/data/To-Do-List-v1.4-Full/To-Do List/ui/todo.html"	2026-08-11 10:26:19.500642449 +0000
+@@ -338,12 +338,10 @@
+   position: relative;
+   display: flex; align-items: center;
+   margin-bottom: 6px;
+-  background: rgba(255,255,255,0.78);
+-  backdrop-filter: blur(14px);
+-  -webkit-backdrop-filter: blur(14px);
+-  border: 1px solid rgba(255,255,255,0.6);
++  background: #fffefa;
++  border: 1px solid #eee7de;
+   border-radius: var(--radius-md);
+-  box-shadow: 0 2px 10px rgba(139,119,101,0.06);
++  box-shadow: 0 2px 10px rgba(139,119,101,0.07);
+   overflow: hidden;
+   -webkit-user-select: none; user-select: none;
+   -webkit-touch-callout: none;
+@@ -353,28 +351,26 @@
+   display: flex; align-items: center; gap: 10px;
+   padding: 12px 14px;
+   width: 100%;
+-  background: rgba(255,255,255,0.78);
+-  backdrop-filter: blur(14px);
+-  -webkit-backdrop-filter: blur(14px);
++  background: #fffefa;
+   border-radius: var(--radius-md);
+   cursor: pointer;
+-  transition: transform 0.2s ease-out;
++  transition: transform 0.2s ease-out, background 0.2s ease;
+ }
+ .todo-item:active .todo-item__inner {
+-  background: rgba(255,255,255,0.9);
++  background: #fffaf3;
+ }
+ /* Completed state */
+ .todo-item.in-progress {
+-  border-color: rgba(255,255,255,0.6);
++  border-color: #f0e5cf;
+ }
+ .todo-item.in-progress .todo-item__inner {
+-  background: rgba(255,248,235,0.7);
++  background: #fff9ed;
+ }
+ .todo-item.completed {
+-  border-color: rgba(255,255,255,0.35);
++  border-color: #ece9e4;
+ }
+ .todo-item.completed .todo-item__inner {
+-  background: rgba(255,255,255,0.5);
++  background: #f8f8f6;
+ }
+ .todo-item.completed .todo-item__text {
+   text-decoration: line-through;
+@@ -543,20 +539,33 @@
+   border-top-color: #00a88a;
+ }
+ 
+-/* Swipe delete — just icon, no background bar */
++/* Swipe actions — two discrete buttons only, no colored action card */
+ .todo-item__swipe-bg {
+   position: absolute; z-index: 1; right: 0; top: 0; bottom: 0;
+-  width: 64px;
++  width: 124px;
+   background: transparent;
+-  display: flex; align-items: center; justify-content: center;
++  display: flex; align-items: center; justify-content: flex-end;
++  gap: 8px; padding: 0 8px;
+ }
+-.todo-item__delete-btn {
+-  background: none; border: none;
+-  color: #fff8e7; font-size: 14px; font-weight: 600;
+-  cursor: pointer; padding: 4px 0;
+-  transition: opacity 0.15s;
++.todo-item__swipe-btn {
++  width: 50px; height: 38px;
++  border: none; border-radius: 11px;
++  color: #fff; font-size: 11px; font-weight: 750;
++  cursor: pointer;
++  display: flex; flex-direction: column; align-items: center; justify-content: center;
++  gap: 1px;
++  box-shadow: 0 3px 10px rgba(70,60,52,0.12);
++  transition: transform 0.15s ease, filter 0.15s ease;
++}
++.todo-item__swipe-btn:active { transform: scale(0.95); filter: brightness(0.95); }
++.todo-item__remind-btn { background: #25b99a; }
++.todo-item__delete-btn { background: #ef6f6c; }
++.todo-item__swipe-icon { font-size: 14px; line-height: 1; }
++.todo-item__reminder-dot {
++  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
++  background: #25b99a; margin-left: 5px; vertical-align: middle;
++  box-shadow: 0 0 0 3px rgba(37,185,154,0.12);
+ }
+-.todo-item__delete-btn:active { opacity: 0.6; }
+ 
+ /* ===== Empty State ===== */
+ .empty-state {
+@@ -885,6 +894,42 @@
+   color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
+ }
+ 
++
++/* ===== Per-item Reminder Picker ===== */
++.reminder-picker-overlay {
++  position: fixed; inset: 0; z-index: 10020;
++  background: rgba(0,0,0,0.32);
++  backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
++  display: none; align-items: center; justify-content: center;
++  padding: 18px;
++}
++.reminder-picker-overlay.active { display: flex; }
++.reminder-picker {
++  width: min(92vw, 360px);
++  background: #fffefa;
++  border: 1px solid rgba(220,207,195,0.7);
++  border-radius: 22px;
++  box-shadow: 0 18px 60px rgba(76,60,46,0.2);
++  padding: 20px;
++}
++.reminder-picker__header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
++.reminder-picker__title { font-size: 17px; font-weight: 750; color: var(--text-primary); }
++.reminder-picker__close { width: 34px; height: 34px; border: none; border-radius: 50%; background: #f6f2ed; color: #8d8278; font-size: 17px; cursor: pointer; }
++.reminder-picker__todo { margin-bottom: 14px; padding: 10px 12px; border-radius: 12px; background: #f8f5f1; color: #5b5047; font-size: 13px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
++.reminder-picker__section-label { font-size: 11px; color: #9b8d81; margin: 10px 0 6px; font-weight: 650; }
++.reminder-picker__fields { display: grid; gap: 8px; }
++.reminder-picker__fields.date { grid-template-columns: 1.35fr .9fr .9fr; }
++.reminder-picker__fields.time { grid-template-columns: 1fr 1fr; }
++.reminder-field { position: relative; background: #f7f4f0; border: 1px solid #ece4dc; border-radius: 12px; padding: 7px 9px 5px; }
++.reminder-field label { display: block; font-size: 10px; color: #a09285; margin-bottom: 2px; }
++.reminder-field input { width: 100%; border: none; outline: none; background: transparent; color: #3f3832; font-size: 18px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
++.reminder-picker__quick { display: flex; gap: 8px; margin-top: 10px; }
++.reminder-picker__quick button { flex: 1; border: 1px solid #e8dfd6; background: #fffaf5; color: #75695f; border-radius: 10px; padding: 7px 4px; font-size: 12px; cursor: pointer; }
++.reminder-picker__actions { display: flex; gap: 10px; margin-top: 16px; }
++.reminder-picker__cancel-reminder { display: none; flex: 0 0 92px; border: none; border-radius: 12px; background: #f3efeb; color: #8a7c70; font-size: 13px; font-weight: 650; }
++.reminder-picker__cancel-reminder.visible { display: block; }
++.reminder-picker__confirm { flex: 1; border: none; border-radius: 12px; padding: 12px; background: linear-gradient(135deg, #21c8b1, #13a4d6); color: #fff; font-size: 14px; font-weight: 750; cursor: pointer; }
++
+ /* ===== Category Picker ===== */
+ .category-picker {
+   display: none;
+@@ -2081,6 +2126,35 @@
+     <button class="time-picker__confirm" id="timePickerConfirm">确定</button>
+   </div>
+ </div>
++<div class="reminder-picker-overlay" id="reminderPickerOverlay">
++  <div class="reminder-picker">
++    <div class="reminder-picker__header">
++      <span class="reminder-picker__title">⏰ 条目提醒</span>
++      <button class="reminder-picker__close" id="reminderPickerClose">✕</button>
++    </div>
++    <div class="reminder-picker__todo" id="reminderPickerTodo">待办事项</div>
++    <div class="reminder-picker__section-label">日期</div>
++    <div class="reminder-picker__fields date">
++      <div class="reminder-field"><label>年</label><input id="reminderYear" type="number" inputmode="numeric" min="2024" max="2099"></div>
++      <div class="reminder-field"><label>月</label><input id="reminderMonth" type="number" inputmode="numeric" min="1" max="12"></div>
++      <div class="reminder-field"><label>日</label><input id="reminderDay" type="number" inputmode="numeric" min="1" max="31"></div>
++    </div>
++    <div class="reminder-picker__section-label">时间</div>
++    <div class="reminder-picker__fields time">
++      <div class="reminder-field"><label>时</label><input id="reminderHour" type="number" inputmode="numeric" min="0" max="23"></div>
++      <div class="reminder-field"><label>分</label><input id="reminderMinute" type="number" inputmode="numeric" min="0" max="59"></div>
++    </div>
++    <div class="reminder-picker__quick">
++      <button data-reminder-quick="today">今天</button>
++      <button data-reminder-quick="tomorrow">明天</button>
++      <button data-reminder-quick="week">一周后</button>
++    </div>
++    <div class="reminder-picker__actions">
++      <button class="reminder-picker__cancel-reminder" id="reminderCancelExisting">取消提醒</button>
++      <button class="reminder-picker__confirm" id="reminderPickerConfirm">设定提醒</button>
++    </div>
++  </div>
++</div>
+ <button class="fab" id="fab" aria-label="添加待办">+</button>
+ <div class="toast" id="toast"></div>
+ <div class="confirm-overlay" id="confirmOverlay" style="display:none">
+@@ -2314,7 +2388,7 @@
+ }
+ 
+ function syncToAndroid() {
+-  if (typeof AndroidBridge === 'undefined' || !AndroidBridge.syncDailyData) return;
++  if (typeof AndroidBridge === 'undefined') return;
+   const today = new Date(); today.setHours(0,0,0,0);
+   const todayStart = today.getTime();
+   const todayEnd = todayStart + 86400000;
+@@ -2325,8 +2399,20 @@
+   const inProgress = todayTodos.filter(t => t.status === 'in-progress').map(t => t.text);
+   const todo = todayTodos.filter(t => t.status === 'todo').map(t => t.text);
+   const completedItems = todayTodos.filter(t => t.status === 'completed').map(t => t.text);
+-  AndroidBridge.syncDailyData(percent, completed, total,
+-    JSON.stringify(inProgress), JSON.stringify(todo), JSON.stringify(completedItems));
++  if (AndroidBridge.syncDailyData) {
++    AndroidBridge.syncDailyData(percent, completed, total,
++      JSON.stringify(inProgress), JSON.stringify(todo), JSON.stringify(completedItems));
++  }
++  if (AndroidBridge.syncTodoSnapshot) {
++    const nativeSnapshot = todos.map(t => ({
++      id: t.id,
++      text: t.text,
++      status: t.status,
++      createdAt: t.createdAt,
++      reminderAt: t.reminderAt || null
++    }));
++    AndroidBridge.syncTodoSnapshot(JSON.stringify(nativeSnapshot));
++  }
+ }
+ 
+ // ===== Notes Data Layer =====
+@@ -3064,14 +3150,16 @@
+       }
+       el.setAttribute('data-id', todo.id);
+       el.setAttribute('data-category', todo.category || '全部');
++      const hasReminder = todo.reminderAt && Number(todo.reminderAt) > Date.now();
+       el.innerHTML = `
+         <div class="todo-item__swipe-bg">
+-          <button class="todo-item__delete-btn" data-del="${todo.id}">delete</button>
++          <button class="todo-item__swipe-btn todo-item__remind-btn" data-remind="${todo.id}" aria-label="设置提醒"><span class="todo-item__swipe-icon">⏰</span><span>提醒</span></button>
++          <button class="todo-item__swipe-btn todo-item__delete-btn" data-del="${todo.id}" aria-label="删除"><span class="todo-item__swipe-icon">⌫</span><span>删除</span></button>
+         </div>
+         <div class="todo-item__inner">
+           <div class="checkbox${checkboxClass}"></div>
+           <div class="todo-item__content">
+-            <div class="todo-item__text"><span class="todo-item__status ${dotClass}"></span>${escapeHtml(todo.text)}</div>
++            <div class="todo-item__text"><span class="todo-item__status ${dotClass}"></span>${escapeHtml(todo.text)}${hasReminder ? '<span class="todo-item__reminder-dot" title="已设置提醒"></span>' : ''}</div>
+             <div class="todo-item__category has-menu${catActive ? ' active' : ''}" data-category="${escapeHtml(todo.category || '全部')}">${escapeHtml(todo.category || '全部')}</div>
+           </div>
+         </div>`;
+@@ -3385,8 +3473,10 @@
+     const stored = localStorage.getItem(BANNER_TIME_KEY);
+     if (stored) {
+       const parts = stored.split(':');
+-      bannerHour = parseInt(parts[0]) || 0;
+-      bannerMinute = parseInt(parts[1]) || 6;
++      const parsedHour = parseInt(parts[0], 10);
++      const parsedMinute = parseInt(parts[1], 10);
++      bannerHour = Number.isFinite(parsedHour) ? Math.max(0, Math.min(23, parsedHour)) : 0;
++      bannerMinute = Number.isFinite(parsedMinute) ? Math.max(0, Math.min(59, parsedMinute)) : 6;
+     }
+   } catch(e) {}
+ }
+@@ -3483,6 +3573,105 @@
+   showToast(`已设定 · ${label}`);
+ });
+ 
++
++// ===== Per-item reminders + native two-way sync =====
++let reminderEditingTodoId = null;
++function setReminderFields(date) {
++  document.getElementById('reminderYear').value = date.getFullYear();
++  document.getElementById('reminderMonth').value = date.getMonth() + 1;
++  document.getElementById('reminderDay').value = date.getDate();
++  document.getElementById('reminderHour').value = String(date.getHours()).padStart(2, '0');
++  document.getElementById('reminderMinute').value = String(date.getMinutes()).padStart(2, '0');
++}
++function openTodoReminderPicker(id) {
++  const todo = todos.find(t => t.id === id);
++  if (!todo) return;
++  reminderEditingTodoId = id;
++  document.getElementById('reminderPickerTodo').textContent = todo.text || '未命名待办';
++  const existing = Number(todo.reminderAt || 0);
++  let base = existing > Date.now() ? new Date(existing) : new Date(Date.now() + 30 * 60000);
++  base.setSeconds(0, 0);
++  setReminderFields(base);
++  document.getElementById('reminderCancelExisting').classList.toggle('visible', existing > 0);
++  document.getElementById('reminderPickerOverlay').classList.add('active');
++}
++function closeTodoReminderPicker() {
++  document.getElementById('reminderPickerOverlay').classList.remove('active');
++  reminderEditingTodoId = null;
++}
++function readReminderDate() {
++  const y = parseInt(document.getElementById('reminderYear').value, 10);
++  const mo = parseInt(document.getElementById('reminderMonth').value, 10);
++  const d = parseInt(document.getElementById('reminderDay').value, 10);
++  const h = parseInt(document.getElementById('reminderHour').value, 10);
++  const mi = parseInt(document.getElementById('reminderMinute').value, 10);
++  if (![y,mo,d,h,mi].every(Number.isFinite) || y < 2024 || y > 2099 || mo < 1 || mo > 12 || d < 1 || d > 31 || h < 0 || h > 23 || mi < 0 || mi > 59) return null;
++  const date = new Date(y, mo - 1, d, h, mi, 0, 0);
++  if (date.getFullYear() !== y || date.getMonth() !== mo - 1 || date.getDate() !== d || date.getHours() !== h || date.getMinutes() !== mi) return null;
++  return date;
++}
++function setReminderQuick(kind) {
++  const current = readReminderDate() || new Date(Date.now() + 30 * 60000);
++  const now = new Date();
++  if (kind === 'today') current.setFullYear(now.getFullYear(), now.getMonth(), now.getDate());
++  else if (kind === 'tomorrow') { const t = new Date(now); t.setDate(t.getDate() + 1); current.setFullYear(t.getFullYear(), t.getMonth(), t.getDate()); }
++  else if (kind === 'week') { const t = new Date(now); t.setDate(t.getDate() + 7); current.setFullYear(t.getFullYear(), t.getMonth(), t.getDate()); }
++  setReminderFields(current);
++}
++document.getElementById('reminderPickerClose').addEventListener('click', closeTodoReminderPicker);
++document.getElementById('reminderPickerOverlay').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeTodoReminderPicker(); });
++document.querySelectorAll('[data-reminder-quick]').forEach(btn => btn.addEventListener('click', () => setReminderQuick(btn.dataset.reminderQuick)));
++document.getElementById('reminderPickerConfirm').addEventListener('click', () => {
++  const todo = todos.find(t => t.id === reminderEditingTodoId);
++  const date = readReminderDate();
++  if (!todo || !date) { showToast('日期或时间不正确'); return; }
++  if (date.getTime() <= Date.now() + 5000) { showToast('提醒时间必须晚于现在'); return; }
++  todo.reminderAt = date.getTime();
++  saveTodos(); render(); closeTodoReminderPicker();
++  if (typeof AndroidBridge !== 'undefined' && AndroidBridge.requestReminderPermissions) { try { AndroidBridge.requestReminderPermissions(); } catch(e) {} }
++  const label = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
++  showToast(`提醒已设定 · ${label}`);
++});
++document.getElementById('reminderCancelExisting').addEventListener('click', () => {
++  const todo = todos.find(t => t.id === reminderEditingTodoId);
++  if (!todo) return;
++  todo.reminderAt = null;
++  saveTodos(); render(); closeTodoReminderPicker(); showToast('已取消该条提醒');
++});
++window.__pullNativeTodoMutations = function() {
++  if (typeof AndroidBridge === 'undefined' || !AndroidBridge.getTodoMutations) return;
++  let mutations = [];
++  try { mutations = JSON.parse(AndroidBridge.getTodoMutations() || '[]'); } catch(e) { return; }
++  if (!Array.isArray(mutations) || mutations.length === 0) return;
++  let changed = false;
++  mutations.forEach(m => {
++    const todo = todos.find(t => t.id === Number(m.id));
++    if (!todo) return;
++    if (m.type === 'status' && ['todo','in-progress','completed'].includes(m.status)) { todo.status = m.status; changed = true; }
++    else if (m.type === 'clearReminder') { todo.reminderAt = null; changed = true; }
++  });
++  try { if (AndroidBridge.ackTodoMutations) AndroidBridge.ackTodoMutations(); } catch(e) {}
++  if (changed) { saveTodos(); render(); updateStats(); }
++};
++window.__onNativeReminderPermissionState = function(state) {
++  if (state === 'ok') { showToast('提醒权限已就绪'); return; }
++  const missing = [];
++  if (state.includes('overlay')) missing.push('悬浮窗');
++  if (state.includes('exact_alarm')) missing.push('精确闹钟');
++  if (state.includes('notification')) missing.push('通知');
++  if (missing.length) showToast(`提醒已保存 · ${missing.join(' / ')}权限未开启`);
++};
++window.__focusTodoFromNative = function(id) {
++  if (typeof currentMode !== 'undefined' && currentMode !== 'todo' && typeof switchMode === 'function') switchMode('todo');
++  currentTab = 'all'; selectedCategory = '全部'; searchQuery = ''; searchInput.value = '';
++  tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === 'all'));
++  renderCategoryBar(); render();
++  setTimeout(() => {
++    const el = todoListEl.querySelector(`[data-id="${id}"]`);
++    if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('highlight-flash'); setTimeout(() => el.classList.remove('highlight-flash'), 1500); }
++  }, 120);
++};
++
+ fabBtn.addEventListener('click', () => {
+   if (currentMode === 'notes') {
+     var note = createNote('');
+@@ -3600,83 +3789,48 @@
+   }
+ });
+ 
+-// ===== Swipe to delete (Left Swipe) =====
++// ===== Swipe actions (Left Swipe: reminder + delete) =====
+ let swipeStartX = 0;
+ let swipeStartY = 0;
+ let swipeItemEl = null;
+ let swipeRevealed = false;
+-
++const SWIPE_ACTION_WIDTH = 124;
+ todoListEl.addEventListener('touchstart', (e) => {
+   const itemEl = e.target.closest('.todo-item');
+-  if (!itemEl || e.target.closest('.checkbox') || e.target.closest('.todo-item__text.editing') || e.target.closest('.todo-item__swipe-bg')) {
+-    swipeItemEl = null;
+-    return;
+-  }
+-  swipeItemEl = itemEl;
+-  swipeStartX = e.touches[0].clientX;
+-  swipeStartY = e.touches[0].clientY;
+-  swipeRevealed = false;
+-  const inner = swipeItemEl.querySelector('.todo-item__inner');
+-  if (inner) inner.style.transition = '';
++  if (!itemEl || e.target.closest('.checkbox') || e.target.closest('.todo-item__text.editing') || e.target.closest('.todo-item__swipe-bg')) { swipeItemEl = null; return; }
++  swipeItemEl = itemEl; swipeStartX = e.touches[0].clientX; swipeStartY = e.touches[0].clientY; swipeRevealed = false;
++  const inner = swipeItemEl.querySelector('.todo-item__inner'); if (inner) inner.style.transition = '';
+ }, { passive: true });
+-
+ todoListEl.addEventListener('touchmove', (e) => {
+   if (!swipeItemEl) return;
+-
+-  const dx = e.touches[0].clientX - swipeStartX;
+-  const dy = e.touches[0].clientY - swipeStartY;
+-
+-  // Only respond to horizontal swipe
++  const dx = e.touches[0].clientX - swipeStartX; const dy = e.touches[0].clientY - swipeStartY;
+   if (Math.abs(dy) > Math.abs(dx)) return;
+-
+   e.preventDefault();
+-
+   if (dx < 0) {
+-    const translateX = Math.max(dx, -64);
+-    const inner = swipeItemEl.querySelector('.todo-item__inner');
+-    if (inner) inner.style.transform = `translateX(${translateX}px)`;
+-    swipeRevealed = translateX < -32;
++    const translateX = Math.max(dx, -SWIPE_ACTION_WIDTH);
++    const inner = swipeItemEl.querySelector('.todo-item__inner'); if (inner) inner.style.transform = `translateX(${translateX}px)`;
++    swipeRevealed = translateX < -48;
+   }
+ }, { passive: false });
+-
+ todoListEl.addEventListener('touchend', () => {
+   if (!swipeItemEl) return;
+-
+   const inner = swipeItemEl.querySelector('.todo-item__inner');
+   if (!inner) { swipeItemEl = null; swipeRevealed = false; return; }
+-
+   inner.style.transition = 'transform 0.2s ease-out';
+-
+-  if (swipeRevealed) {
+-    inner.style.transform = 'translateX(-64px)';
+-  } else {
+-    inner.style.transform = '';
+-  }
+-
+-  swipeItemEl = null;
+-  swipeRevealed = false;
++  inner.style.transform = swipeRevealed ? `translateX(-${SWIPE_ACTION_WIDTH}px)` : '';
++  swipeItemEl = null; swipeRevealed = false;
+ });
+-
+-// Delete button click
+ todoListEl.addEventListener('click', (e) => {
++  const remindBtn = e.target.closest('.todo-item__remind-btn');
+   const deleteBtn = e.target.closest('.todo-item__delete-btn');
+-  if (!deleteBtn) return;
+-
++  if (!remindBtn && !deleteBtn) return;
+   e.stopPropagation();
+-  const itemEl = deleteBtn.closest('.todo-item');
+-  if (!itemEl) return;
+-
+-  const id = parseInt(itemEl.getAttribute('data-id'));
+-  // Reset inner swipe
+-  const inner = itemEl.querySelector('.todo-item__inner');
++  const actionBtn = remindBtn || deleteBtn; const itemEl = actionBtn.closest('.todo-item'); if (!itemEl) return;
++  const id = parseInt(itemEl.getAttribute('data-id'), 10); const inner = itemEl.querySelector('.todo-item__inner');
++  if (remindBtn) { if (inner) { inner.style.transition = 'transform 0.2s ease-out'; inner.style.transform = ''; } openTodoReminderPicker(id); return; }
+   if (inner) { inner.style.transition = 'none'; inner.style.transform = ''; }
+-  // Animate card out
+-  itemEl.style.opacity = '0';
+-  itemEl.style.transform = 'scale(0.9)';
+-  itemEl.style.transition = 'all 0.2s ease-in';
+-  itemEl.addEventListener('transitionend', () => {
+-    deleteTodoById(id);
+-  }, { once: true });
++  itemEl.style.opacity = '0'; itemEl.style.transform = 'scale(0.9)'; itemEl.style.transition = 'all 0.2s ease-in';
++  itemEl.addEventListener('transitionend', () => deleteTodoById(id), { once: true });
+ });
+ 
+ // ===== Search =====
+@@ -4530,6 +4684,8 @@
+ loadTodos();
+ loadRecycleBin();
+ loadSearchHistory();
++if (window.__pullNativeTodoMutations) window.__pullNativeTodoMutations();
++syncToAndroid();
+ render();
+ updateCounts();
+ renderCategoryBar();

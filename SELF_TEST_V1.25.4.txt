@@ -1,0 +1,20 @@
+STABLE V1.25.4 SELF TEST
+
+Target:
+- com.todolist.app
+- versionCode 52
+- versionName 1.25.4
+
+Required checks:
+[PASS] ui/todo.html == Android assets/todo.html
+[PASS] Read Mode History group computed visibility = hidden
+[PASS] Read Mode History group retains layout width
+[PASS] Edit Mode History group computed visibility = visible
+[PASS] Read -> Edit title-row height remains unchanged
+[PASS] Undo/Redo hooked SVG artwork unchanged from V1.25.3
+[PASS] Note/Topic Rail lifecycle source unchanged from V1.25.3
+[PASS] IME/caret locked functions unchanged from V1.25.3
+[PASS] JS syntax
+[PASS] Android XML parse
+[PASS] Native Kotlin/Java unchanged from V1.25.3
+[PASS] ZIP integrity/path safety

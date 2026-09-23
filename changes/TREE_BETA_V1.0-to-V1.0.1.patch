@@ -1,0 +1,189 @@
+diff --git a/todo_tree_beta_v100_base/android/app/src/main/java/com/todolist/app/MainActivity.kt b/todo_tree_beta_v101_work/android/app/src/main/java/com/todolist/app/MainActivity.kt
+index 6a3a6e8..b058677 100644
+--- a/todo_tree_beta_v100_base/android/app/src/main/java/com/todolist/app/MainActivity.kt
++++ b/todo_tree_beta_v101_work/android/app/src/main/java/com/todolist/app/MainActivity.kt
+@@ -233,18 +233,22 @@ class MainActivity : AppCompatActivity() {
+         }
+     }
+ 
++    private fun dispatchImeInsetsToWeb(insets: WindowInsetsCompat?) {
++        if (insets == null || !pageReady) return
++        val imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
++        val imeBottom = if (imeVisible) insets.getInsets(WindowInsetsCompat.Type.ime()).bottom else 0
++        webView.post {
++            if (!pageReady) return@post
++            webView.evaluateJavascript(
++                "window.__onNativeImeInset && window.__onNativeImeInset(${imeBottom},${if (imeVisible) "true" else "false"});",
++                null
++            )
++        }
++    }
++
+     private fun installImeInsetsBridge() {
+         ViewCompat.setOnApplyWindowInsetsListener(webView) { _, insets ->
+-            val imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
+-            val imeBottom = if (imeVisible) insets.getInsets(WindowInsetsCompat.Type.ime()).bottom else 0
+-            if (pageReady) {
+-                webView.post {
+-                    webView.evaluateJavascript(
+-                        "window.__onNativeImeInset && window.__onNativeImeInset(${imeBottom},${if (imeVisible) "true" else "false"});",
+-                        null
+-                    )
+-                }
+-            }
++            dispatchImeInsetsToWeb(insets)
+             insets
+         }
+         ViewCompat.requestApplyInsets(webView)
+@@ -813,6 +817,14 @@ class MainActivity : AppCompatActivity() {
+             return "ok"
+         }
+ 
++        @JavascriptInterface
++        fun requestNoteImeInsets(): String {
++            runOnUiThread {
++                dispatchImeInsetsToWeb(ViewCompat.getRootWindowInsets(webView))
++            }
++            return "ok"
++        }
++
+         @JavascriptInterface
+         fun openExternalUrl(urlRaw: String): String {
+             val uri = try { Uri.parse(urlRaw.trim()) } catch (_: Exception) { return "invalid" }
+diff --git a/todo_tree_beta_v100_base/ui/todo.html b/todo_tree_beta_v101_work/ui/todo.html
+index a5ce37e..c63d0f2 100644
+--- a/todo_tree_beta_v100_base/ui/todo.html
++++ b/todo_tree_beta_v101_work/ui/todo.html
+@@ -4443,6 +4443,7 @@ function suspendNoteEditorForModeSwitch() {
+     editor.style.setProperty('--note-viewport-offset','0px');
+     editor.classList.remove('note-ime-visible');
+   }
++  clearNativeNoteImeProbes();
+   noteImeSpacePx = 0;
+   noteImeBaseHeight = 0;
+   noteNativeImeKnown = false;
+@@ -4502,6 +4503,7 @@ function setNoteEditorMode(mode, options) {
+   bodyEl.setAttribute('contenteditable', editing ? 'true' : 'false');
+   if(titleEl) titleEl.readOnly = !editing;
+   if(history) history.style.display = editing ? 'flex' : 'none';
++  if(!editing) clearNativeNoteImeProbes();
+   if(!editing && options.hideKeyboard !== false){
+     rememberNoteSelection();
+     if(bodyEl) bodyEl.blur(); if(titleEl) titleEl.blur();
+@@ -4532,9 +4534,11 @@ function enterNoteEditMode(options) {
+   requestAnimationFrame(function(){
+     if(options.focusTitle&&titleEl){
+       titleEl.focus(); if(options.selectTitle) titleEl.select(); else { var len=titleEl.value.length; try{titleEl.setSelectionRange(len,len);}catch(e){} }
++      scheduleNativeNoteImeProbes();
+       return;
+     }
+     try{bodyEl.focus({preventScroll:true});}catch(e){bodyEl.focus();}
++    scheduleNativeNoteImeProbes();
+     if(Number.isFinite(options.x)&&Number.isFinite(options.y)) placeNoteCaretAtPoint(options.x,options.y);
+     else if(noteLastSelectionRange){ try{var sel=window.getSelection();sel.removeAllRanges();sel.addRange(noteLastSelectionRange);}catch(e){} }
+     else placeNoteCaretAtPoint(window.innerWidth/2, Math.min(window.innerHeight*.55, bodyEl.getBoundingClientRect().bottom-10));
+@@ -4574,7 +4578,7 @@ function openNoteEditor(id, options) {
+ function hideNoteEditorShell() {
+   var editor=document.getElementById('noteEditor');
+   if(editor){ editor.style.display='none'; editor.style.bottom='0px'; editor.style.setProperty('--note-ime-space','0px'); editor.style.setProperty('--note-viewport-offset','0px'); editor.classList.remove('note-ime-visible','read-mode','edit-mode'); }
+-  noteImeSpacePx=0; noteImeBaseHeight=0; noteNativeImeKnown=false; noteNativeImeSpacePx=0; noteVisualImeSpacePx=0;
++  clearNativeNoteImeProbes(); noteImeSpacePx=0; noteImeBaseHeight=0; noteNativeImeKnown=false; noteNativeImeSpacePx=0; noteVisualImeSpacePx=0;
+   clearTimeout(noteCaretRevealTimer); if(noteCaretRevealRaf)cancelAnimationFrame(noteCaretRevealRaf); noteCaretRevealRaf=0;
+   document.documentElement.classList.remove('note-editor-open'); document.body.classList.remove('note-editor-open');
+ }
+@@ -8672,6 +8676,30 @@ var noteNativeImeSpacePx = 0;
+ var noteVisualImeSpacePx = 0;
+ var noteCaretRevealTimer = 0;
+ var noteCaretRevealRaf = 0;
++var noteImeProbeTimers = [];
++
++function clearNativeNoteImeProbes() {
++  noteImeProbeTimers.forEach(function(timer){ clearTimeout(timer); });
++  noteImeProbeTimers = [];
++}
++
++function requestNativeNoteImeInsets() {
++  try {
++    if (typeof AndroidBridge !== 'undefined' && AndroidBridge.requestNoteImeInsets) {
++      AndroidBridge.requestNoteImeInsets();
++    }
++  } catch(e) {}
++}
++
++function scheduleNativeNoteImeProbes() {
++  clearNativeNoteImeProbes();
++  // MagicOS can occasionally miss the single WindowInsets callback when a previously
++  // read-only contenteditable becomes editable and opens the IME. Re-query the current
++  // root insets across the keyboard opening animation; this never scrolls or edits content.
++  [0, 70, 160, 300, 480].forEach(function(delay){
++    noteImeProbeTimers.push(setTimeout(requestNativeNoteImeInsets, delay));
++  });
++}
+ 
+ function measureVisualImeSpace() {
+   var vv = window.visualViewport;
+@@ -8684,10 +8712,11 @@ function measureVisualImeSpace() {
+ }
+ 
+ function resolveNoteImeSpace() {
+-  // Android WindowInsets is the stable source on the packaged app. A WebView can expose
+-  // visualViewport while still failing to resize it for the IME, so feature-existence alone
+-  // must never suppress the native inset bridge.
+-  return noteNativeImeKnown ? noteNativeImeSpacePx : noteVisualImeSpacePx;
++  // A positive Android WindowInsets value remains authoritative. If the last native value
++  // is still zero while visualViewport already reports a real keyboard-sized shrink, use
++  // that visual value as a temporary fallback until the native probe catches up.
++  if (noteNativeImeKnown && noteNativeImeSpacePx > 0) return noteNativeImeSpacePx;
++  return noteVisualImeSpacePx;
+ }
+ 
+ function getNoteCaretRect(bodyEl) {
+diff --git a/todo_tree_beta_v100_base/android/app/build.gradle.kts b/todo_tree_beta_v101_work/android/app/build.gradle.kts
+index 8ef3fae..1a6ad28 100644
+--- a/todo_tree_beta_v100_base/android/app/build.gradle.kts
++++ b/todo_tree_beta_v101_work/android/app/build.gradle.kts
+@@ -11,8 +11,8 @@ android {
+         applicationId = "com.todolist.app.beta"
+         minSdk = 26
+         targetSdk = 35
+-        versionCode = 1000
+-        versionName = "1.0.0-beta1"
++        versionCode = 1001
++        versionName = "1.0.1-beta1"
+     }
+ 
+     buildTypes {
+@@ -37,7 +37,7 @@ android {
+     applicationVariants.all {
+         outputs.all {
+             (this as com.android.build.gradle.internal.api.ApkVariantOutputImpl).outputFileName =
+-                "To-Do-Tree-Beta-V1.0.apk"
++                "To-Do-Tree-Beta-V1.0.1.apk"
+         }
+     }
+ }
+diff --git a/todo_tree_beta_v100_base/build-apk.bat b/todo_tree_beta_v101_work/build-apk.bat
+index c36cc89..1df60ef 100644
+--- a/todo_tree_beta_v100_base/build-apk.bat
++++ b/todo_tree_beta_v101_work/build-apk.bat
+@@ -1,7 +1,7 @@
+ @echo off
+ setlocal
+ cd /d "%~dp0"
+-echo [To-Do Tree Beta V1.0] Building debug APK from project root...
++echo [To-Do Tree Beta V1.0.1] Building debug APK from project root...
+ call gradlew.bat :app:assembleDebug
+ if errorlevel 1 (
+   echo.
+@@ -10,9 +10,9 @@ if errorlevel 1 (
+ )
+ if not exist "dist" mkdir "dist"
+ for %%F in ("android\app\build\outputs\apk\debug\*.apk") do (
+-  copy /Y "%%~fF" "dist\To-Do-Tree-Beta-V1.0.apk" >nul
++  copy /Y "%%~fF" "dist\To-Do-Tree-Beta-V1.0.1.apk" >nul
+   echo.
+-  echo APK: %CD%\dist\To-Do-Tree-Beta-V1.0.apk
++  echo APK: %CD%\dist\To-Do-Tree-Beta-V1.0.1.apk
+   exit /b 0
+ )
+ echo Build finished but no APK was found under android\app\build\outputs\apk\debug

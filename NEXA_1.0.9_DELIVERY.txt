@@ -1,0 +1,21 @@
+Nexa 1.0.9 / 2026-09-08
+
+Stable source: Nexa-1.0.9-Stable.zip
+  applicationId: com.nexa.app
+  app name: Nexa
+  versionName: 1.0.9
+  versionCode: 14
+  expected APK name: Nexa-Stable-1.0.9-<buildType>.apk
+
+Beta source: Nexa-1.0.9-Beta.zip
+  applicationId: com.nexa.app.beta
+  app name: Nexa β
+  versionName: 1.0.9-beta.1
+  versionCode: 14
+  expected APK name: Nexa-Beta-1.0.9-beta.1-<buildType>.apk
+
+Changes: compact Todo/Note/topic/folder cards; remove duplicate Todo shared-tag chip; reversible animated Todo category picker; keep the new-Todo IME open while choosing category; add reminder-time selection during new-Todo creation.
+
+Final runtime acceptance also restored missing category-picker helper/listener functions discovered before packaging. No persistence schema changes. Shared Space labels remain intact and editable in Space.
+
+Validation evidence: dev-logs/nexa-1.0.9.md. Android compilation is only claimed if Gradle/SDK actually completes in the current environment; it did not here because services.gradle.org could not be resolved.

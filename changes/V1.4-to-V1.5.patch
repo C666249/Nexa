@@ -1,0 +1,266 @@
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' a/README.md b/README.md
+--- a/README.md	2026-08-11 10:33:11.000000000 +0000
++++ b/README.md	2026-08-11 10:43:33.827823459 +0000
+@@ -1,7 +1,18 @@
+-# To-Do List V1.4
++# List-Note V1.5
+ 
+ 本地优先的 To-Do + Note Android 应用。UI 使用 HTML/CSS/Vanilla JS，Android 原生层使用 Kotlin WebView，并负责精确定时、开机恢复、前台服务与悬浮提醒。
+ 
++## V1.5 测试版应用身份
++
++为与手机上的稳定版并存，本版本仅修改 Android 安装身份与显示名称：
++
++- Launcher 名称：`List-Note`
++- applicationId：`com.listnote.app`
++- Kotlin/Java namespace 仍保持 `com.todolist.app`，避免无必要搬迁核心源码。
++- 因 applicationId 不同，Android 会把它识别为独立 App；应用数据、通知权限、悬浮窗权限、精确闹钟权限也与稳定版相互独立。
++- 内部提醒 action 前缀同步改为 `com.listnote.app.action.*`，避免测试版与稳定版在旧 Android 上发生隐式广播串扰。
++
++
+ ## 当前功能
+ 
+ - **To-Do 模式**：全部 / 未完成 / 进行中 / 已完成、分类、搜索、日历、回收站、AI 助手等原有功能。
+@@ -39,7 +50,7 @@
+ 成功后 APK 会复制到：
+ 
+ ```text
+-dist/To-Do-v1.4.apk
++dist/List-Note-v1.5.apk
+ ```
+ 
+ ## 技术栈
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' a/android/app/build.gradle.kts b/android/app/build.gradle.kts
+--- a/android/app/build.gradle.kts	2026-08-11 10:26:43.000000000 +0000
++++ b/android/app/build.gradle.kts	2026-08-11 10:41:05.008925324 +0000
+@@ -8,11 +8,11 @@
+     compileSdk = 35
+ 
+     defaultConfig {
+-        applicationId = "com.todolist.app"
++        applicationId = "com.listnote.app"
+         minSdk = 26
+         targetSdk = 35
+-        versionCode = 14
+-        versionName = "1.4"
++        versionCode = 15
++        versionName = "1.5"
+     }
+ 
+     buildTypes {
+@@ -37,7 +37,7 @@
+     applicationVariants.all {
+         outputs.all {
+             (this as com.android.build.gradle.internal.api.ApkVariantOutputImpl).outputFileName =
+-                "TodoList-v${versionName}.apk"
++                "List-Note-v${versionName}.apk"
+         }
+     }
+ }
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' a/android/app/src/main/AndroidManifest.xml b/android/app/src/main/AndroidManifest.xml
+--- a/android/app/src/main/AndroidManifest.xml	2026-08-11 10:22:37.000000000 +0000
++++ b/android/app/src/main/AndroidManifest.xml	2026-08-11 10:43:06.427229653 +0000
+@@ -52,7 +52,7 @@
+             android:name=".receiver.MidnightReceiver"
+             android:exported="false">
+             <intent-filter>
+-                <action android:name="com.todolist.app.action.MIDNIGHT" />
++                <action android:name="com.listnote.app.action.MIDNIGHT" />
+             </intent-filter>
+         </receiver>
+ 
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' a/android/app/src/main/java/com/todolist/app/receiver/MidnightReceiver.kt b/android/app/src/main/java/com/todolist/app/receiver/MidnightReceiver.kt
+--- a/android/app/src/main/java/com/todolist/app/receiver/MidnightReceiver.kt	2026-08-11 10:22:37.000000000 +0000
++++ b/android/app/src/main/java/com/todolist/app/receiver/MidnightReceiver.kt	2026-08-11 10:43:06.429253370 +0000
+@@ -13,7 +13,7 @@
+ 
+     companion object {
+         private const val TAG = "MidnightReceiver"
+-        const val ACTION_MIDNIGHT = "com.todolist.app.action.MIDNIGHT"
++        const val ACTION_MIDNIGHT = "com.listnote.app.action.MIDNIGHT"
+ 
+         fun schedule(context: Context) = ReminderScheduler.scheduleDaily(context)
+         fun scheduleTest(context: Context) = ReminderScheduler.scheduleDailyTest(context)
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' a/android/app/src/main/java/com/todolist/app/receiver/TodoReminderReceiver.kt b/android/app/src/main/java/com/todolist/app/receiver/TodoReminderReceiver.kt
+--- a/android/app/src/main/java/com/todolist/app/receiver/TodoReminderReceiver.kt	2026-08-11 10:22:37.000000000 +0000
++++ b/android/app/src/main/java/com/todolist/app/receiver/TodoReminderReceiver.kt	2026-08-11 10:43:06.429866534 +0000
+@@ -11,7 +11,7 @@
+ class TodoReminderReceiver : BroadcastReceiver() {
+     companion object {
+         private const val TAG = "TodoReminderReceiver"
+-        const val ACTION_TODO_REMINDER = "com.todolist.app.action.TODO_REMINDER"
++        const val ACTION_TODO_REMINDER = "com.listnote.app.action.TODO_REMINDER"
+         const val EXTRA_TODO_ID = "todo_id"
+     }
+ 
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' a/android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt b/android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt
+--- a/android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt	2026-08-11 10:22:37.000000000 +0000
++++ b/android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt	2026-08-11 10:43:06.431631171 +0000
+@@ -25,10 +25,10 @@
+         const val NOTIFICATION_ID = 1001
+         private const val FALLBACK_BASE_ID = 30000
+ 
+-        const val ACTION_SHOW = "com.todolist.app.action.SHOW_BANNER"
+-        const val ACTION_SHOW_TODO_REMINDER = "com.todolist.app.action.SHOW_TODO_REMINDER"
+-        const val ACTION_CYCLE_TODO_STATUS = "com.todolist.app.action.CYCLE_TODO_STATUS"
+-        const val ACTION_DISMISS_TODO_REMINDER = "com.todolist.app.action.DISMISS_TODO_REMINDER"
++        const val ACTION_SHOW = "com.listnote.app.action.SHOW_BANNER"
++        const val ACTION_SHOW_TODO_REMINDER = "com.listnote.app.action.SHOW_TODO_REMINDER"
++        const val ACTION_CYCLE_TODO_STATUS = "com.listnote.app.action.CYCLE_TODO_STATUS"
++        const val ACTION_DISMISS_TODO_REMINDER = "com.listnote.app.action.DISMISS_TODO_REMINDER"
+ 
+         const val EXTRA_PERCENT = "percent"
+         const val EXTRA_COMPLETED = "completed"
+@@ -42,7 +42,7 @@
+         const val EXTRA_TODO_STATUS = "todo_status"
+         const val EXTRA_REMINDER_AT = "reminder_at"
+ 
+-        const val ACTION_NATIVE_TODO_MUTATED = "com.todolist.app.action.NATIVE_TODO_MUTATED"
++        const val ACTION_NATIVE_TODO_MUTATED = "com.listnote.app.action.NATIVE_TODO_MUTATED"
+     }
+ 
+     override fun onCreate() {
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' a/android/app/src/main/res/values/strings.xml b/android/app/src/main/res/values/strings.xml
+--- a/android/app/src/main/res/values/strings.xml	2026-06-23 14:08:51.000000000 +0000
++++ b/android/app/src/main/res/values/strings.xml	2026-08-11 10:41:05.009215446 +0000
+@@ -1,4 +1,4 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
+-    <string name="app_name">To-Do</string>
++    <string name="app_name">List-Note</string>
+ </resources>
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' a/build-apk.bat b/build-apk.bat
+--- a/build-apk.bat	2026-08-11 10:26:44.000000000 +0000
++++ b/build-apk.bat	2026-08-11 10:41:05.009402829 +0000
+@@ -1,7 +1,7 @@
+ @echo off
+ setlocal
+ cd /d "%~dp0"
+-echo [To-Do] Building debug APK from project root...
++echo [List-Note] Building debug APK from project root...
+ call gradlew.bat :app:assembleDebug
+ if errorlevel 1 (
+   echo.
+@@ -10,9 +10,9 @@
+ )
+ if not exist "dist" mkdir "dist"
+ for %%F in ("android\app\build\outputs\apk\debug\*.apk") do (
+-  copy /Y "%%~fF" "dist\To-Do-v1.4.apk" >nul
++  copy /Y "%%~fF" "dist\List-Note-v1.5.apk" >nul
+   echo.
+-  echo APK: %CD%\dist\To-Do-v1.4.apk
++  echo APK: %CD%\dist\List-Note-v1.5.apk
+   exit /b 0
+ )
+ echo Build finished but no APK was found under android\app\build\outputs\apk\debug
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' a/dev-logs/2026-08-11.md b/dev-logs/2026-08-11.md
+--- a/dev-logs/2026-08-11.md	2026-08-11 10:33:11.000000000 +0000
++++ b/dev-logs/2026-08-11.md	2026-08-11 10:43:33.828297393 +0000
+@@ -6,3 +6,11 @@
+ - 调整左滑为绿色提醒 + 红色删除两个独立按钮。
+ - 将 Gradle 根文件提升到项目最外层，Android Studio 直接打开外层目录。
+ - 执行 Note 核心区块 hash、JS parse、Manifest XML、源码副本一致性、Gradle 布局、ZIP 完整性等检查。
++
++
++# 2026-08-11 — V1.5
++- Base: V1.4 Full。
++- 将测试版 Android applicationId 改为 `com.listnote.app`，可与稳定版并存。
++- Launcher 名称改为 `List-Note`。
++- 保持 namespace 与全部提醒/Note/To-Do 核心源码不变。
++- 内部 action 前缀同步隔离为 `com.listnote.app.action.*`。
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' a/docs/execution-steps.md b/docs/execution-steps.md
+--- a/docs/execution-steps.md	2026-06-23 14:06:31.000000000 +0000
++++ b/docs/execution-steps.md	2026-08-11 10:42:40.993659188 +0000
+@@ -1,4 +1,4 @@
+-# To-Do 移动应用 — 执行计划
++# List-Note / To-Do 移动应用 — 执行与构建说明
+ 
+ ## 阶段总览
+ 
+@@ -15,16 +15,16 @@
+ ### 步骤
+ 1. **复制模板** → `cp -r D:/Claude/android-template D:/Claude/projects/To-Do List/android`
+ 2. **修改配置**
+-   - `app/build.gradle.kts` → `namespace = "com.todo.app"`, `applicationId = "com.todo.app"`
+-   - `strings.xml` → `<string name="app_name">To-Do</string>`
++   - `app/build.gradle.kts` → `namespace = "com.todolist.app"`, `applicationId = "com.listnote.app"`
++   - `strings.xml` → `<string name="app_name">List-Note</string>`
+    - `AndroidManifest.xml` → 更新 label 引用
+ 3. **集成 HTML** → 复制 `ui/todo.html` → `app/src/main/assets/todo.html`
+ 4. **更新 MainActivity** → `loadUrl("file:///android_asset/todo.html")`
+-5. **构建调试 APK** → `./gradlew assembleDebug`
+-6. **安装到设备** → `adb install app/build/outputs/apk/debug/app-debug.apk`
++5. **构建调试 APK** → `./gradlew :app:assembleDebug`
++6. **安装到设备** → `adb install android/app/build/outputs/apk/debug/List-Note-v1.5.apk`
+ 
+ ### 验收标准
+-- [ ] `./gradlew assembleDebug` 成功
++- [ ] `./gradlew :app:assembleDebug` 成功
+ - [ ] APK 可安装在 Android 8.0+ 设备
+ - [ ] 应用启动后显示 To-Do 界面
+ - [ ] 所有 Phase 2 原型功能在 WebView 中正常工作
+@@ -57,10 +57,9 @@
+ | T14 | 过午夜 | 日期分隔自动更新 |
+ 
+ ### 中国 ROM 兼容
+-- 本应用无需悬浮窗、前台服务权限
+-- 仅 INTERNET 权限（无需用户授权）
+-- 无自启动需求
+-- **预期所有 ROM 无兼容问题**
++- 本版本包含悬浮提醒、前台服务、通知、精确闹钟与开机恢复能力。
++- `List-Note` 与稳定版 applicationId 不同，通知/悬浮窗/精确闹钟等特殊权限需要单独授权。
++- 中国 ROM 还可能需要用户在系统后台管理中允许相关后台运行能力；以真机行为为准。
+ 
+ ## Phase 3 跳过说明
+ 
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' a/docs/requirements.md b/docs/requirements.md
+--- a/docs/requirements.md	2026-08-11 10:33:11.000000000 +0000
++++ b/docs/requirements.md	2026-08-11 10:43:33.828087775 +0000
+@@ -1,4 +1,4 @@
+-# To-Do / Note — 当前需求与验收基线（V1.4）
++# To-Do / Note — 当前需求与验收基线（V1.5）
+ 
+ ## 已有能力（必须保留）
+ 
+@@ -20,3 +20,10 @@
+ 8. 除非点击悬浮待办右侧 ✕，否则提醒不主动自动消失。
+ 9. 点击悬浮待办正文进入 APP，并定位该待办；若当时处于 Note 模式，先切回 To-Do。
+ 10. 最外层必须可直接作为 Android Studio Gradle 工程打开。
++
++
++## V1.5 测试安装身份
++- 保持 V1.4 功能与数据逻辑不变。
++- Android `applicationId` 改为 `com.listnote.app`，Launcher 名称改为 `List-Note`，用于与稳定版并存安装。
++- namespace / Kotlin package 不迁移，遵守最小 Diff。
++- 内部广播 action 使用 `com.listnote.app.action.*`，与稳定版彻底隔离。
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' a/docs/tech-spec.md b/docs/tech-spec.md
+--- a/docs/tech-spec.md	2026-08-11 10:33:11.000000000 +0000
++++ b/docs/tech-spec.md	2026-08-11 10:43:33.828202881 +0000
+@@ -1,4 +1,4 @@
+-# To-Do / Note Android 应用 — 技术规格（V1.4）
++# To-Do / Note Android 应用 — 技术规格（V1.5）
+ 
+ ## 架构
+ 
+@@ -48,3 +48,10 @@
+ include(":app")
+ project(":app").projectDir = file("android/app")
+ ```
++
++
++## V1.5 App Identity
++- `applicationId = "com.listnote.app"`：Android 安装身份，和稳定版隔离。
++- `namespace = "com.todolist.app"`：保持 V1.4 源码 namespace，不做包目录迁移。
++- `app_name = "List-Note"`：Launcher/系统显示名称。
++- Internal action namespace：`com.listnote.app.action.*`，避免与稳定版广播串扰。
+diff -ruN '--exclude=changes' '--exclude=SHA256SUMS.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.4.txt' '--exclude=PROJECT_FILE_MANIFEST_V1.5.txt' '--exclude=SELF_TEST_V1.4.txt' '--exclude=SELF_TEST_V1.5.txt' a/settings.gradle.kts b/settings.gradle.kts
+--- a/settings.gradle.kts	2026-08-11 10:26:41.000000000 +0000
++++ b/settings.gradle.kts	2026-08-11 10:41:05.009316754 +0000
+@@ -14,6 +14,6 @@
+     }
+ }
+ 
+-rootProject.name = "ToDo"
++rootProject.name = "List-Note"
+ include(":app")
+ project(":app").projectDir = file("android/app")

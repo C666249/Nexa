@@ -1,0 +1,34 @@
+Locked Core Guard — V1.13 -> V1.14
+
+Android native source/Manifest byte-level guard: 20/20 PASS
+- PASS  android/app/src/main/java/com/todolist/app/MainActivity.kt  e12962a7736a924d99d9aeb4117ea6bf95f9a286d6c746042186fedbb665fffe
+- PASS  android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt  789858a486a41614a7c1835b7ac3490404d308aef02fc57cc953cad5880ffed9
+- PASS  android/app/src/main/java/com/todolist/app/receiver/BootReceiver.kt  5c749c6186e9ba2e9226e29e93856753879c898e8b2dcbe5d7a9922c4d27ca7d
+- PASS  android/app/src/main/java/com/todolist/app/receiver/DailyTaskActionReceiver.kt  9bd9bb60566ee86da41ce282cf3b1b845f4f4caa05b34567cc5612ac33c092de
+- PASS  android/app/src/main/java/com/todolist/app/receiver/DailyTaskReminderReceiver.kt  44420980ffbe182983e5dd9e2a3079d21208d6a0557abcb309afeea583ddffae
+- PASS  android/app/src/main/java/com/todolist/app/receiver/MidnightReceiver.kt  49ebf2634854cd20c6d03656d4c1da7de3a6c0a30f542cdf23e7b0c9b9f1219e
+- PASS  android/app/src/main/java/com/todolist/app/receiver/ReminderActionReceiver.kt  ba2b57ee965759555fe4913827b2aa4fdeb1499854fb40c298efeb2bcfc3e361
+- PASS  android/app/src/main/java/com/todolist/app/receiver/TodoReminderReceiver.kt  461c22942251cc352333f433629df785c7dca51d5e64a2700450d33fae04bc50
+- PASS  android/app/src/main/java/com/todolist/app/reminder/DailyTaskStore.kt  5770232c61f413fa8e88dadd07182f1a3a81d04a8758d9e3b4e37d43d417162e
+- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderDiagnostics.kt  445283809d9ecbafd08e80e8cd882444372127ef7aebea8d38c30a9857be4898
+- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderNotifier.kt  868f94b11dcb8e5045ee77388633f111dd088f86115bd4c108b31cb21d84ae8d
+- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderScheduler.kt  c8ca1e8372528c5292d2b43ec06342a624bafc4917fe5d98e14b5991093f2f57
+- PASS  android/app/src/main/java/com/todolist/app/reminder/ReminderStore.kt  f2e941bc491f4d743697136e135888e98c14324236abb8814b9632669a183df6
+- PASS  android/app/src/main/java/com/todolist/app/reminder/TodoSnapshotStore.kt  74ea806ecddc1680c3e7cb5f7e0abb9db8ba1a69ab9a4b3ac2e90a7cd5e9c1b3
+- PASS  android/app/src/main/java/com/todolist/app/service/FloatWindowService.kt  8dd4536dd76090e633310122dfecd3de5ec0b09b4837d2c0059691c8abab21ca
+- PASS  android/app/src/main/java/com/todolist/app/ui/BannerView.kt  5d6a1a7bd5b1731c21b3a611244448d87657540b0e2abda19a0bf71517abbe49
+- PASS  android/app/src/main/java/com/todolist/app/ui/DailyTaskBannerView.kt  e2659a6213bee7ff7c5516204954e4cfb9eeb951f47c127b9b7864693702aa1d
+- PASS  android/app/src/main/java/com/todolist/app/ui/TodoReminderBannerView.kt  3483ba005f799846592fcee91d5228cba63b69c2b47321c86ff87ca3b98012e4
+- PASS  android/app/src/main/java/com/todolist/app/util/Dp.kt  4076197dac4258610e66978ffa4d4347ba1c1eb75ec364ddca9344c99ee617e8
+- PASS  android/app/src/main/AndroidManifest.xml  649d3296824f6ae14fae2238778cd41b314822c1141c66f3ab75d845996821ac
+
+Note core block guards:
+- Notes Data Layer: PASS  d474360b14a045ebf3e7a542c07428dccab5bdee39e6e43176e39f466715e80b
+- Notes Event Handlers: PASS  dfddbdcea248cafb17a22ee8f83267be9a8b29e861f6eec6f6f16dd79a9be9b5
+- Folder Sidebar: PASS  434656429e7e89bbfeec075a188216ff7626ca1ccef7db07380803a8686660fc
+
+Authorized V1.14 changes:
+- ui/todo.html + Android asset mirror: Feature Coach UI/controller/triggers/help hub only.
+- android/app/build.gradle.kts: version bump only.
+- build-apk.bat: output filename bump only.
+- README/docs/changes/self-test/manifests/checksums.

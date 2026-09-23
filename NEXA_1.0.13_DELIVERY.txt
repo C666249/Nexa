@@ -1,0 +1,11 @@
+Nexa 1.0.13 Stable source delivery
+
+Change scope:
+- Slow Todo search-history curtain to ~0.5 s parent motion.
+- Reveal four recent-search rows one-by-one at 120 ms intervals.
+- Use progressively deeper entry offsets for a multi-level drawer feel.
+- Reverse collapse bottom-to-top with matching spacing.
+- Delay hidden-history DOM refresh until the reverse cascade has completed.
+
+Identity: com.nexa.app / Nexa / 1.0.13 / code 18
+No storage schema changes.

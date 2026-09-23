@@ -1,0 +1,39 @@
+SELF TEST — To-Do V1.17
+Base: V1.16 Full
+Target: V1.17 Full
+
+FUNCTION / STATIC REVIEW
+- PASS  Banner remains one-row at rest; gesture controls are revealed only during drag.
+- PASS  Right swipe: ~18% width -> +5 min; ~38% width -> +10 min; haptic on level change; short drag rebounds.
+- PASS  Left swipe: thresholded + haptic; release executes the same dismiss callback as X.
+- PASS  Up swipe: thresholded + haptic; real Todo/Daily checkbox/status visually changes to completed before exit.
+- PASS  Up-swipe release adds no further translation; exit is opacity-only after a 70 ms checkmark hold.
+- PASS  Todo up-swipe writes completed status before clearing reminder, preserving native mutation sync back to WebView.
+- PASS  Daily up-swipe reuses existing complete callback / DailyTaskStore completed-date mutation path.
+- PASS  Down swipe: thresholded + haptic; maps to the existing banner-body open behavior.
+- PASS  New Feature Coach V2 keys teach ↑ complete / ← close / → +5,+10 / ↓ open once after upgrade.
+- PASS  Daily drawer entry precomposes hidden/off-screen across two animation frames before activation.
+- PASS  Daily drawer uses translate3d + will-change + backface-visibility to reduce compositor flash.
+
+NOTIFICATION / ICON REVIEW
+- PASS  Manifest icon -> @mipmap/ic_launcher_v2 and roundIcon -> @mipmap/ic_launcher_v2_round.
+- PASS  Launcher V2 resources exist at mdpi/hdpi/xhdpi/xxhdpi/xxxhdpi for normal + round (10/10 dimensions verified).
+- PASS  Notification small icon is custom monochrome calendar-check vector: @drawable/ic_notification_todo.
+- PASS  ReminderNotifier daily/Todo/DailyTask notifications all set the custom small icon and selected large icon.
+- PASS  FloatWindowService Reminder Keeper notification also sets the custom small icon and selected large icon.
+- PASS  Notification large icon is 192x192 RGBA with transparent outer corners; selected source artwork preserved at assets/icons/ic_launcher_v1.17_source.png.
+
+DATA / LOCKED CORE
+- PASS  applicationId / namespace remain com.todolist.app.
+- PASS  Existing todo_glass_* business storage keys are byte-for-byte set-equivalent to V1.16 (7 keys).
+- PASS  11/11 unchanged core Android files are byte-identical to V1.16.
+- PASS  ui/todo.html and Android asset mirror are byte-identical.
+- PASS  No business data migration/wipe logic added.
+
+TECHNICAL CHECKS
+- PASS  Inline JavaScript: node --check.
+- PASS  AndroidManifest.xml / strings.xml / styles.xml / ic_notification_todo.xml parse as XML.
+- PASS  Changed Kotlin files pass delimiter/string/comment lexical balance scan.
+- PASS  Standalone kotlinc reported no targeted syntax diagnostics: no "syntax error", "unexpected tokens", "expecting", or "cannot be reassigned". Android unresolved references/overload noise are expected without an Android SDK classpath.
+- PASS  Notification/launcher image size checks.
+- LIMIT Full :app:compileDebugKotlin could not run because Gradle wrapper still needs Gradle 8.11.1 from services.gradle.org, which is unreachable in this sandbox (UnknownHostException). See v117_gradle_build.log. This is not reported as a successful Android build.

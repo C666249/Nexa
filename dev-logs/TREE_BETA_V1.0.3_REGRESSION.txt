@@ -1,0 +1,63 @@
+Tree Beta V1.0.3 — IME Toolbar Architecture Regression
+=====================================================
+
+USER VIDEO REVIEW
+PASS | video readable | 584x1280 | ~4.88s | ~60.4fps
+PASS | frame 0.4s | keyboard closed, format bar at editor bottom
+PASS | frame 0.8s | keyboard rising, format bar briefly visible above animation
+PASS | frame 1.0-1.6s | keyboard fully open, format bar disappears under IME/accessory region
+PASS | frame 1.8-2.4s | keyboard closes, format bar returns
+VERDICT | outer Beta Edit shell viewport sizing conflict confirmed
+
+ARCHITECTURE ESCALATION
+PASS | no new WindowInsets polling/probe patch added
+PASS | visualViewport dock is Beta-shell-only
+PASS | edit shell follows visibleBottom = vv.offsetTop + vv.height
+PASS | full animation listeners: visualViewport resize + scroll
+PASS | Read/close reset dock state
+PASS | no visualViewport fallback => Golden layout remains fallback
+
+GOLDEN V1.22.12 IME CORE EXACT
+PASS | measureVisualImeSpace
+PASS | resolveNoteImeSpace
+PASS | getNoteCaretRect
+PASS | revealNoteCaretAboveIme
+PASS | scheduleNoteCaretReveal
+PASS | applyNoteImeSpace
+PASS | syncResolvedNoteImeSpace
+PASS | syncNoteViewportOffset
+PASS | syncNoteImeLayout
+PASS | __onNativeImeInset
+PASS | MainActivity.kt exact
+PASS | NoteFileViewerActivity.kt exact
+PASS | ImportReceiverActivity.kt exact
+
+BETA DOCK LOGIC TEST
+PASS | closed 1280 -> visible bottom 1280
+PASS | opening 1040 -> visible bottom 1040
+PASS | fully open 820 -> visible bottom 820
+PASS | panned viewport offset120 + height700 -> visible bottom 820
+PASS | close -> visible bottom 1280
+PASS | Read Mode reset removes Beta dock
+
+PROTECTED NOTE FUNCTIONS EXACT vs V1.0.2
+PASS | syncCollapsedNoteTypingFormat
+PASS | toggleManualInlineCommand
+PASS | toggleHighlight
+PASS | openNoteImagePreview / close / reset transform
+PASS | createNoteFileCard / insertPickedFileItems / openNoteFileActions
+PASS | applyNoteAutoLinkCandidate / openNoteHttpUrl
+PASS | attachment protected-node/range/caret/delete helpers
+PASS | captureNoteSurfaceContext / restoreNoteSurfaceContext
+
+NATIVE LOCKED CORE
+PASS | Reminder/Daily/Banner/Snooze 20/20 exact vs Stable V1.22.12
+
+STATIC
+PASS | applicationId com.todolist.app.beta
+PASS | versionCode 1003
+PASS | versionName 1.0.3-beta1
+PASS | fixed Beta signing key unchanged
+PASS | ui/todo.html == Android asset
+PASS | inline runtime script == script_0.js
+PASS | node --check script_0.js

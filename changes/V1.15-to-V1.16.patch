@@ -1,0 +1,129 @@
+To-Do V1.15 -> V1.16 patch
+
+--- /mnt/data/todo_v115_baseline/android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt	2026-08-12 04:51:37.000000000 +0000
++++ /mnt/data/todo_v116_work/android/app/src/main/java/com/todolist/app/manager/FloatWindowManager.kt	2026-08-12 05:06:57.788007712 +0000
+@@ -8,6 +8,7 @@
+ import android.os.Build
+ import android.provider.Settings
+ import android.view.Gravity
++import android.view.View
+ import android.view.WindowInsets
+ import android.view.WindowManager
+ import android.widget.TextView
+@@ -226,9 +227,16 @@
+     fun showSnoozeToast(context: Context, minutes: Int) {
+         if (!canShowOverlay(context)) return
+         val wm = ensureWindowManager(context)
++
++        // If the user snoozes again while a toast is still visible, remove the previous overlay
++        // only after making it invisible. This avoids a one-frame compositor flash on some OEMs.
+         snoozeToastView?.let { old ->
+-            try { wm.removeView(old) } catch (_: Exception) {}
++            old.animate().cancel()
++            old.alpha = 0f
++            old.visibility = View.INVISIBLE
++            try { wm.removeViewImmediate(old) } catch (_: Exception) {}
+         }
++
+         val density = context.resources.displayMetrics.density
+         val toast = TextView(context).apply {
+             text = "$minutes 分钟后再提醒"
+@@ -244,7 +252,8 @@
+             }
+             elevation = 10f * density
+             alpha = 0f
+-            translationY = -8f * density
++            translationY = 5f * density
++            setLayerType(View.LAYER_TYPE_HARDWARE, null)
+         }
+         snoozeToastView = toast
+         val lp = makeParams(context, wm, WindowManager.LayoutParams.WRAP_CONTENT, yDp = 14f).apply {
+@@ -252,17 +261,45 @@
+             gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+             y = (72f * density).toInt()
+         }
+-        try { wm.addView(toast, lp) } catch (_: Exception) { snoozeToastView = null; return }
+-        toast.animate().alpha(1f).translationY(0f).setDuration(150L).start()
++        try {
++            wm.addView(toast, lp)
++        } catch (_: Exception) {
++            snoozeToastView = null
++            return
++        }
++
++        // Entrance keeps the tiny bit of lift, but exit is opacity-only. Translating an overlay
++        // while its WindowManager surface is being removed can flash on some MagicOS/Android builds.
++        toast.animate()
++            .alpha(1f)
++            .translationY(0f)
++            .setDuration(170L)
++            .withLayer()
++            .start()
++
+         toast.postDelayed({
+             if (snoozeToastView !== toast) return@postDelayed
+-            toast.animate().alpha(0f).translationY(-6f*density).setDuration(170L).withEndAction {
+-                if (snoozeToastView === toast) {
+-                    try { windowManager?.removeView(toast) } catch (_: Exception) {}
+-                    snoozeToastView = null
+-                    clearWindowManagerIfIdle()
++            toast.animate().cancel()
++            toast.animate()
++                .alpha(0f)
++                .setDuration(220L)
++                .withLayer()
++                .withEndAction {
++                    if (snoozeToastView !== toast) return@withEndAction
++
++                    // Hold one fully transparent frame before detaching the overlay surface.
++                    // This prevents the final frame from briefly being re-composited at full alpha.
++                    toast.alpha = 0f
++                    toast.visibility = View.INVISIBLE
++                    toast.postOnAnimation {
++                        if (snoozeToastView !== toast) return@postOnAnimation
++                        try { windowManager?.removeViewImmediate(toast) } catch (_: Exception) {}
++                        toast.setLayerType(View.LAYER_TYPE_NONE, null)
++                        snoozeToastView = null
++                        clearWindowManagerIfIdle()
++                    }
+                 }
+-            }.start()
++                .start()
+         }, 1450L)
+     }
+ 
+--- /mnt/data/todo_v115_baseline/android/app/build.gradle.kts	2026-08-12 04:44:27.000000000 +0000
++++ /mnt/data/todo_v116_work/android/app/build.gradle.kts	2026-08-12 05:06:59.282245781 +0000
+@@ -11,8 +11,8 @@
+         applicationId = "com.todolist.app"
+         minSdk = 26
+         targetSdk = 35
+-        versionCode = 26
+-        versionName = "1.15"
++        versionCode = 27
++        versionName = "1.16"
+     }
+ 
+     buildTypes {
+--- /mnt/data/todo_v115_baseline/build-apk.bat	2026-08-12 04:44:27.000000000 +0000
++++ /mnt/data/todo_v116_work/build-apk.bat	2026-08-12 05:06:59.282473245 +0000
+@@ -10,9 +10,9 @@
+ )
+ if not exist "dist" mkdir "dist"
+ for %%F in ("android\app\build\outputs\apk\debug\*.apk") do (
+-  copy /Y "%%~fF" "dist\To-Do-v1.15.apk" >nul
++  copy /Y "%%~fF" "dist\To-Do-v1.16.apk" >nul
+   echo.
+-  echo APK: %CD%\dist\To-Do-v1.15.apk
++  echo APK: %CD%\dist\To-Do-v1.16.apk
+   exit /b 0
+ )
+ echo Build finished but no APK was found under android\app\build\outputs\apk\debug
+
+Binary/resource changes:
+- REPLACED android/app/src/main/res/mipmap-mdpi/ic_launcher.png
+- REPLACED android/app/src/main/res/mipmap-hdpi/ic_launcher.png
+- REPLACED android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
+- REPLACED android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+- REPLACED android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+- ADDED assets/icons/ic_launcher_v1.16_source.png

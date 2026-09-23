@@ -1,0 +1,11 @@
+AI Assistant Native IME Dock regression
+
+PASS criteria:
+1. Native physical IME inset converts to CSS px using devicePixelRatio.
+2. Active AI modal bottom is anchored above IME.
+3. Available AI sheet height shrinks with IME.
+4. Native zero remains authoritative even if visualViewport is stale.
+5. visualViewport works as fallback before native inset is known.
+6. Inactive AI modal is never moved by another screen's keyboard.
+7. Locked Note __onNativeImeInset function body remains byte-identical to baseline.
+8. All Native Kotlin/Java files remain byte-identical to baseline.

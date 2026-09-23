@@ -1,0 +1,37 @@
+SELF TEST — List-Note V1.6
+Base: V1.5 Full
+Target: V1.6 Full
+
+Requirement / regression review:
+PASS - Project remains List-Note with applicationId com.listnote.app, isolated from the stable app.
+PASS - To-Do + Note project remains intact; Note mode section hashes are unchanged.
+PASS - Left-swipe actions remain two independent buttons: green reminder and red delete.
+PASS - Daily reminder still uses the existing time picker and daily one-shot re-arm model.
+PASS - Per-item reminder still uses year/month/day/hour/minute and existing ReminderStore format.
+PASS - Alarm receiver now creates a user-visible high-priority notification before attempting the overlay service.
+PASS - Overlay success removes the safety notification; overlay/service failure keeps the reminder visible.
+PASS - Per-item safety notification supports status cycle + explicit dismiss without requiring foreground-service actions.
+PASS - Added 10-second daily reminder test path.
+PASS - Android 13+ exact alarms use USE_EXACT_ALARM; Android 12/12L use SCHEDULE_EXACT_ALARM.
+
+Static checks:
+PASS - AndroidManifest.xml XML parse.
+PASS - strings.xml XML parse.
+PASS - ui/todo.html and android/app/src/main/assets/todo.html are byte-identical.
+PASS - Inline JavaScript parse via node --check.
+PASS - Manifest contains ReminderActionReceiver.
+PASS - Reminder test button and bridge call are present.
+PASS - Reminder/notification action namespace remains com.listnote.app.action.*.
+PASS - Kotlin compiler parser produced no syntax-like diagnostics (full Android symbol resolution is unavailable without Android SDK).
+
+Locked Core:
+Whole-file locks: 9/9 PASS
+Note section locks: 4/4 PASS
+Overall: PASS
+
+Build status:
+NOT RUN / BLOCKED - Full Gradle APK build attempted, but this environment cannot resolve services.gradle.org and has no matching Android SDK. The failure is environmental (Gradle distribution download), not claimed as a successful compile.
+NOT RUN - Real-device test.
+
+Device note:
+HONOR/MagicOS background app-launch management and battery optimization are separate from ordinary runtime permissions. V1.6 no longer depends on the overlay-service leg as the only visible signal, but device background-launch policy should still allow List-Note to run in the background for best reliability.

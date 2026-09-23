@@ -1,0 +1,22 @@
+To-Do V1.30.10 SELF TEST
+=============================
+Variant: Stable
+VersionCode: 1310
+
+Fix targets
+-----------
+1. Checklist edit / cancel-edit must not flash To-Do swipe action buttons on the right edge.
+2. New-todo category picker must remain physically anchored immediately above the 分类 button while the IME opens/closes.
+3. Existing checklist state machine and category create/select behavior must remain intact.
+4. ui/todo.html and Android asset todo.html must remain byte-identical.
+5. Stable package/signing policy must remain unchanged.
+
+Static regression expectations
+------------------------------
+- Closed To-Do swipe rails are visibility:hidden / opacity:0 / pointer-events:none.
+- Rail becomes visible only under `.rail-active` or `.swipe-open`.
+- Swipe JS uses a lifecycle with `setTodoRailActive`, `setTodoSwipeRowX`, and delayed hide after close-settle.
+- Composer category picker receives `.composer-anchored` and is appended to `todoCreateFoot`.
+- Composer picker positioning does not subscribe to visualViewport resize/scroll.
+- Stable: applicationId com.todolist.app, no signingConfig/keystore.
+- Beta: applicationId com.todolist.app.beta.
