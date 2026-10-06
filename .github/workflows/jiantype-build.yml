@@ -1,0 +1,117 @@
+name: JianType Mobile Cloud Build
+
+on:
+  push:
+    branches: [ jiantype-mobile-v1 ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jiantype-mobile-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  NDK_VERSION: 28.2.13676358
+  ANDROID_API_LEVEL: 36
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore exact JianType source snapshot
+        shell: bash
+        run: |
+          cat source.part-* | base64 -d > /tmp/JianType-Mobile-v1.0.0-source.tar.gz
+          echo "17099b7cc5e72c389ca3ade9d8271da1381c990e0052644694b91ddc542004c5  /tmp/JianType-Mobile-v1.0.0-source.tar.gz" | sha256sum -c -
+          mkdir source
+          tar -xzf /tmp/JianType-Mobile-v1.0.0-source.tar.gz -C source
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platform and NDK
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-${ANDROID_API_LEVEL}" "build-tools;36.0.0" "ndk;${NDK_VERSION}"
+          echo "ANDROID_NDK_HOME=${ANDROID_SDK_ROOT}/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,x86_64-linux-android
+          components: rustfmt,clippy
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: source/native/qingjian-mobile-core
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --locked
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.4.1'
+
+      - name: Fetch pinned Qingjian data
+        working-directory: source
+        run: bash scripts/fetch_qingjian_data.sh
+
+      - name: Check Rust bridge
+        working-directory: source/native/qingjian-mobile-core
+        run: |
+          cargo fmt --check
+          cargo check
+          cargo clippy --all-targets -- -D warnings
+
+      - name: Build native Android libraries
+        working-directory: source
+        run: bash scripts/build_native.sh
+
+      - name: Verify native ABIs
+        working-directory: source
+        run: |
+          test -s app/src/main/jniLibs/arm64-v8a/libqingjian_mobile.so
+          test -s app/src/main/jniLibs/x86_64/libqingjian_mobile.so
+
+      - name: Android lint and APK build
+        working-directory: source
+        run: |
+          gradle :app:lintDebug --stacktrace
+          gradle :app:assembleDebug --stacktrace
+
+      - name: Verify APK payload
+        shell: bash
+        run: |
+          APK="source/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          unzip -l "$APK" | grep -q 'lib/arm64-v8a/libqingjian_mobile.so'
+          unzip -l "$APK" | grep -q 'lib/x86_64/libqingjian_mobile.so'
+          unzip -l "$APK" | grep -q 'assets/dict.tsv'
+          unzip -l "$APK" | grep -q 'assets/glossary-en.tsv'
+          cp "$APK" JianType-Mobile-v1.0.0.apk
+          sha256sum JianType-Mobile-v1.0.0.apk > JianType-Mobile-v1.0.0.apk.sha256
+
+      - name: Upload installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: JianType-Mobile-v1.0.0
+          path: |
+            JianType-Mobile-v1.0.0.apk
+            JianType-Mobile-v1.0.0.apk.sha256
+          retention-days: 30
+          if-no-files-found: error

@@ -1,7 +1,0 @@
-每轮开发必须以用户本轮提供的最新 Nexa 完整源码 ZIP 为基线，并在一次对话中尽可能完成：读取交接文档 → 架构/行为检查 → 产品设计 → 实现 → 自检 → 修复 → 回归 → 打包。
-每轮最终同时交付两份完整、独立、可直接由 Android Studio 打开的源码 ZIP：Stable 正式渠道与 Beta 测试渠道。Stable 固定 applicationId `com.nexa.app`，保持现有 Nexa 升级链和本地数据连续性；Beta 固定 `com.nexa.app.beta`、独立数据，显示名 `Nexa β`，并使用明显 β 启动图标，可与 Stable 共存。
-Android Studio / Gradle 是官方 Android 构建路径。APK 输出名称必须可读可追踪，推荐 `<Project>-<Channel>-<versionName>-<buildType>.apk`；ZIP 使用 `<Project>-<Version>-Stable.zip` / `<Project>-<Version>-Beta.zip`。
-WebView UI 改动必须同步 `ui/` 与 `android/app/src/main/assets/`，尤其 `todo.html` 及全部 Nexa JS/CSS 模块，交付前做字节一致性检查。
-交互改动必须检查：返回键层级、pointer/overlay 可达性、重复监听器、动画结束后的真实数据状态、持久化污染、reduced-motion 降级。动画不得替代业务完成回调。
-若当前环境缺少 Android SDK/Gradle 编译条件，只能明确记录“未完成 Android 编译验证”，不得把 Node/JS/静态检查描述为 APK 编译成功。
-每份 ZIP 必须保留本规则、WORKFLOW.md、PROJECT_STATE.md 和当轮交接日志，供后续会话直接继续。
