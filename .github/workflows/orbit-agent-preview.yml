@@ -1,0 +1,43 @@
+name: Orbit Agent Preview APK
+on:
+  push:
+    branches: [orbit-agent-preview-v0.9]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android 35 SDK
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.11.1
+      - name: Unpack independent Orbit source
+        run: unzip -q orbitagent-cloud-src.zip
+      - name: Source contract validation
+        working-directory: OrbitAgent-v0.9-Release
+        run: python3 tests/release_checks.py
+      - name: Build Android APK
+        working-directory: OrbitAgent-v0.9-Release
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+      - name: Verify signed debug artifact
+        run: |
+          test -s OrbitAgent-v0.9-Release/app/build/outputs/apk/debug/app-debug.apk
+          sha256sum OrbitAgent-v0.9-Release/app/build/outputs/apk/debug/app-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OrbitAgent-v0.9-Debug-APK
+          path: OrbitAgent-v0.9-Release/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30

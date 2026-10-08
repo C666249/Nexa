@@ -1,6 +1,0 @@
-Nexa 1.0.18 Stable source delivery
-
-Identity: com.nexa.app / Nexa / 1.0.18 / code 23
-Change: remove the inline bottom-left Note-image ellipsis; keep full-screen preview Share as the single share entry. Legacy stored ellipsis controls are removed on note render.
-No storage schema migration. Full validation logs are under dev-logs/.
-Android compile attempt: blocked before project compilation by UnknownHostException for services.gradle.org while fetching Gradle 8.11.1; see dev-logs/nexa-1.0.18-gradle-compile.log.
