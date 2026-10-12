@@ -183,8 +183,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cp .clou34/focus.b64 /tmp/nexa-1034.patch.gz.b64
-          test -s .clou34/focus.b64
+          cat .clou34/focus-00.b64 .clou34/focus-01.b64 > /tmp/nexa-1034.patch.gz.b64
+          echo "3b376e94e1d8e49d130fd0fdca014c141b13b887ac737875e104dc32639c03b6  /tmp/nexa-1034.patch.gz.b64" | sha256sum -c -
           base64 -d /tmp/nexa-1034.patch.gz.b64 > /tmp/nexa-1034.patch.gz
           gzip -dc /tmp/nexa-1034.patch.gz > /tmp/nexa-1034.patch
           patch -p1 --batch < /tmp/nexa-1034.patch
