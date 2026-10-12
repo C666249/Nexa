@@ -197,7 +197,7 @@ jobs:
           grep -F 'versionCode = 39' android/app/build.gradle.kts
           grep -F 'versionName = "1.0.34-clou.1"' android/app/build.gradle.kts
           grep -F 'openFrom(portal)' android/app/src/main/assets/nexa-timeline.js
-          grep -F 'function openFrom(source){open(source);}' android/app/src/main/assets/nexa-mindspace.js
+          grep -F 'function openFrom(source){return open(source);}' android/app/src/main/assets/nexa-mindspace.js
           grep -F 'getBoundingClientRect' android/app/src/main/assets/nexa-mindspace.js
           grep -F "clipPath:'circle(" android/app/src/main/assets/nexa-mindspace.js
           grep -F 'liveClip=root.getComputedStyle?.(el)?.clipPath' android/app/src/main/assets/nexa-mindspace.js
