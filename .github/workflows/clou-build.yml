@@ -1,9 +1,9 @@
-name: Build Nexa Clou 1.0.33
+name: Build Nexa Clou 1.0.34
 
 on:
   push:
     branches:
-      - clou-v1.0.33-build
+      - clou-v1.0.34-build
   workflow_dispatch:
 
 jobs:
@@ -179,65 +179,49 @@ jobs:
           for f in ui/*.js; do node --check "$f"; done
           echo "1.0.33 focused regression OK"
 
-      - name: Package Stable Beta Clou source ZIPs
+      - name: Apply Nexa 1.0.34 shared-portal transition
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf /tmp/nexa-src /tmp/deliver
-          mkdir -p /tmp/nexa-src /tmp/deliver
-          rsync -a --exclude='.git' --exclude='.github' --exclude='.clou' --exclude='.clou31' --exclude='.clou32' --exclude='android/.gradle' --exclude='android/app/build' --exclude='SHA256SUMS.txt' ./ /tmp/nexa-src/clou/
-          cp -a /tmp/nexa-src/clou /tmp/nexa-src/stable
-          cp -a /tmp/nexa-src/clou /tmp/nexa-src/beta
+          cp .clou34/focus.b64 /tmp/nexa-1034.patch.gz.b64
+          echo "3b376e94e1d8e49d130fd0fdca014c141b13b887ac737875e104dc32639c03b6  /tmp/nexa-1034.patch.gz.b64" | sha256sum -c -
+          base64 -d /tmp/nexa-1034.patch.gz.b64 > /tmp/nexa-1034.patch.gz
+          gzip -dc /tmp/nexa-1034.patch.gz > /tmp/nexa-1034.patch
+          patch -p1 --batch < /tmp/nexa-1034.patch
 
-          python3 - <<'PY'
-          from pathlib import Path
-          roots=Path('/tmp/nexa-src')
-          def replace(path,pairs):
-              p=Path(path); s=p.read_text()
-              for a,b in pairs: s=s.replace(a,b)
-              p.write_text(s)
+      - name: Verify 1.0.34 portal continuity
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'applicationId = "com.nexa.app.clou"' android/app/build.gradle.kts
+          grep -F 'versionCode = 39' android/app/build.gradle.kts
+          grep -F 'versionName = "1.0.34-clou.1"' android/app/build.gradle.kts
+          grep -F 'openFrom(portal)' android/app/src/main/assets/nexa-timeline.js
+          grep -F 'function openFrom(source){open(source);}' android/app/src/main/assets/nexa-mindspace.js
+          grep -F 'getBoundingClientRect' android/app/src/main/assets/nexa-mindspace.js
+          grep -F "clipPath:'circle(" android/app/src/main/assets/nexa-mindspace.js
+          grep -F 'liveClip=root.getComputedStyle?.(el)?.clipPath' android/app/src/main/assets/nexa-mindspace.js
+          grep -F '.mindspace-portal-echo' android/app/src/main/assets/nexa.css
+          grep -F 'body.nexa-mindspace-under #nexaTimeline' android/app/src/main/assets/nexa.css
+          cmp ui/nexa-mindspace.js android/app/src/main/assets/nexa-mindspace.js
+          cmp ui/nexa-timeline.js android/app/src/main/assets/nexa-timeline.js
+          cmp ui/nexa.css android/app/src/main/assets/nexa.css
+          for f in ui/*.js; do node --check "$f"; done
+          node --test tests/nexa-mindspace-v1.0.34.test.cjs
 
-          r=roots/'stable'
-          replace(r/'android/app/build.gradle.kts',[
-              ('applicationId = "com.nexa.app.clou"','applicationId = "com.nexa.app"'),
-              ('versionName = "1.0.33-clou.1"','versionName = "1.0.33"'),
-              ('Nexa-Clou-1.0.33-clou.1-${variantBuildType}.apk','Nexa-Stable-1.0.33-${variantBuildType}.apk')])
-          replace(r/'android/app/src/main/res/values/strings.xml',[('<string name="app_name">Nexa Clou</string>','<string name="app_name">Nexa</string>')])
-          (r/'CHANNEL.txt').write_text('Nexa Stable / production channel\napplicationId: com.nexa.app\napp name: Nexa\nversionName: 1.0.33\nversionCode: 38\n')
-
-          r=roots/'beta'
-          replace(r/'android/app/build.gradle.kts',[
-              ('applicationId = "com.nexa.app.clou"','applicationId = "com.nexa.app.beta"'),
-              ('versionName = "1.0.33-clou.1"','versionName = "1.0.33-beta.1"'),
-              ('Nexa-Clou-1.0.33-clou.1-${variantBuildType}.apk','Nexa-Beta-1.0.33-beta.1-${variantBuildType}.apk')])
-          replace(r/'android/app/src/main/res/values/strings.xml',[('<string name="app_name">Nexa Clou</string>','<string name="app_name">Nexa β</string>')])
-          replace(r/'android/app/src/main/AndroidManifest.xml',[('android:icon="@mipmap/ic_nexa"','android:icon="@mipmap/ic_nexa_beta"'),('android:roundIcon="@mipmap/ic_nexa"','android:roundIcon="@mipmap/ic_nexa_beta"')])
-          (r/'CHANNEL.txt').write_text('Nexa Beta / isolated test channel\napplicationId: com.nexa.app.beta\napp name: Nexa β\nversionName: 1.0.33-beta.1\nversionCode: 38\n')
-          PY
-
-          for channel in stable beta clou; do
-            root="/tmp/nexa-src/$channel"
-            (cd "$root" && find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt)
-          done
-          (cd /tmp/nexa-src/stable && zip -qr /tmp/deliver/Nexa-V1.0.33-Stable.zip .)
-          (cd /tmp/nexa-src/beta && zip -qr /tmp/deliver/Nexa-V1.0.33-Beta.zip .)
-          (cd /tmp/nexa-src/clou && zip -qr /tmp/deliver/Nexa-V1.0.33-Clou.zip .)
-          unzip -t /tmp/deliver/Nexa-V1.0.33-Stable.zip | tail -1
-          unzip -t /tmp/deliver/Nexa-V1.0.33-Beta.zip | tail -1
-          unzip -t /tmp/deliver/Nexa-V1.0.33-Clou.zip | tail -1
-
-      - name: Build Clou debug APK
+      - name: Build Clou 1.0.34 debug APK
         shell: bash
         run: |
           set -euo pipefail
           chmod +x gradlew
           ./gradlew :app:assembleDebug --no-daemon
-          cp android/app/build/outputs/apk/debug/*.apk /tmp/deliver/Nexa-Clou-1.0.33-Debug.apk
-          sha256sum /tmp/deliver/*
+          mkdir -p /tmp/deliver
+          cp android/app/build/outputs/apk/debug/*.apk /tmp/deliver/Nexa-Clou-1.0.34-Debug.apk
+          sha256sum /tmp/deliver/Nexa-Clou-1.0.34-Debug.apk
 
-      - name: Upload 1.0.33 deliverables
+      - name: Upload Nexa 1.0.34 APK
         uses: actions/upload-artifact@v4
         with:
-          name: Nexa-1.0.33-Deliverables
-          path: /tmp/deliver/*
+          name: Nexa-Clou-1.0.34-Debug
+          path: /tmp/deliver/Nexa-Clou-1.0.34-Debug.apk
           if-no-files-found: error
