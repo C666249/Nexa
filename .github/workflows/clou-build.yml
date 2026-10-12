@@ -1,9 +1,9 @@
-name: Build Nexa Clou 1.0.30
+name: Build Nexa Clou 1.0.31
 
 on:
   push:
     branches:
-      - clou-v1.0.30-build
+      - clou-v1.0.31-build
   workflow_dispatch:
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Reconstruct Clou patch
+      - name: Reconstruct 1.0.30 Clou base
         shell: bash
         run: |
           set -euo pipefail
@@ -29,15 +29,27 @@ jobs:
           gzip -dc /tmp/nexa.patch.gz > /tmp/nexa.patch
           patch -p1 < /tmp/nexa.patch
 
-      - name: Verify Clou identity and 1.0.30 layout engine
+      - name: Apply 1.0.31 crystal-node patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .clou31/part-*.b64 > /tmp/nexa31.patch.gz.b64
+          echo "a6d972ebc236a4d5f1e5238ab3ae4f565a8589026718358ea9f60e2f4f966321  /tmp/nexa31.patch.gz.b64" | sha256sum -c -
+          base64 -d /tmp/nexa31.patch.gz.b64 > /tmp/nexa31.patch.gz
+          gzip -dc /tmp/nexa31.patch.gz > /tmp/nexa31.patch
+          patch -p1 < /tmp/nexa31.patch
+
+      - name: Verify Clou identity and 1.0.31 crystal nodes
         shell: bash
         run: |
           set -euo pipefail
           grep -F 'applicationId = "com.nexa.app.clou"' android/app/build.gradle.kts
-          grep -F 'versionCode = 35' android/app/build.gradle.kts
-          grep -F 'versionName = "1.0.30-clou.1"' android/app/build.gradle.kts
-          grep -F 'computeScreenLayout' android/app/src/main/assets/nexa-mindspace.js
-          grep -F 'chooseOpenSpawn' android/app/src/main/assets/nexa-mindspace.js
+          grep -F 'versionCode = 36' android/app/build.gradle.kts
+          grep -F 'versionName = "1.0.31-clou.1"' android/app/build.gradle.kts
+          grep -F 'mindspace-node-mark' android/app/src/main/assets/nexa-mindspace.js
+          grep -F 'data-mindspace-node-title' android/app/src/main/assets/nexa-mindspace.js
+          grep -F 'mindspaceCrystalBreath' android/app/src/main/assets/nexa.css
+          ! grep -F 'mindspace-node-orb' android/app/src/main/assets/nexa-mindspace.js
 
       - name: Build debug APK
         shell: bash
@@ -55,6 +67,6 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Nexa-Clou-1.0.30-Debug
+          name: Nexa-Clou-1.0.31-Debug
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
