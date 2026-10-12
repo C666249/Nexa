@@ -1,0 +1,60 @@
+name: Build Nexa Clou 1.0.30
+
+on:
+  push:
+    branches:
+      - clou-v1.0.30-build
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Reconstruct Clou patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .clou/patch-*.b64 > /tmp/nexa.patch.gz.b64
+          echo "613cd993eab8839e2a40cd535f549b4f07401de4605e40711e56a657fe8dab9e  /tmp/nexa.patch.gz.b64" | sha256sum -c -
+          base64 -d /tmp/nexa.patch.gz.b64 > /tmp/nexa.patch.gz
+          gzip -dc /tmp/nexa.patch.gz > /tmp/nexa.patch
+          patch -p1 < /tmp/nexa.patch
+
+      - name: Verify Clou identity and 1.0.30 layout engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'applicationId = "com.nexa.app.clou"' android/app/build.gradle.kts
+          grep -F 'versionCode = 35' android/app/build.gradle.kts
+          grep -F 'versionName = "1.0.30-clou.1"' android/app/build.gradle.kts
+          grep -F 'computeScreenLayout' android/app/src/main/assets/nexa-mindspace.js
+          grep -F 'chooseOpenSpawn' android/app/src/main/assets/nexa-mindspace.js
+
+      - name: Build debug APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug --no-daemon
+
+      - name: Verify APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          find android/app/build/outputs/apk -type f -name '*.apk' -print -exec sha256sum {} \;
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nexa-Clou-1.0.30-Debug
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
