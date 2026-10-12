@@ -1,9 +1,9 @@
-name: Build Nexa Clou 1.0.30
+name: Build Nexa Clou 1.0.32
 
 on:
   push:
     branches:
-      - clou-v1.0.30-build
+      - clou-v1.0.32-build
   workflow_dispatch:
 
 jobs:
@@ -19,25 +19,36 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Reconstruct Clou patch
+      - name: Reconstruct Clou 1.0.30 baseline
         shell: bash
         run: |
           set -euo pipefail
-          cat .clou/patch-*.b64 > /tmp/nexa.patch.gz.b64
-          echo "613cd993eab8839e2a40cd535f549b4f07401de4605e40711e56a657fe8dab9e  /tmp/nexa.patch.gz.b64" | sha256sum -c -
-          base64 -d /tmp/nexa.patch.gz.b64 > /tmp/nexa.patch.gz
-          gzip -dc /tmp/nexa.patch.gz > /tmp/nexa.patch
-          patch -p1 < /tmp/nexa.patch
+          cat .clou/patch-*.b64 > /tmp/nexa-1030.patch.gz.b64
+          echo "613cd993eab8839e2a40cd535f549b4f07401de4605e40711e56a657fe8dab9e  /tmp/nexa-1030.patch.gz.b64" | sha256sum -c -
+          base64 -d /tmp/nexa-1030.patch.gz.b64 > /tmp/nexa-1030.patch.gz
+          gzip -dc /tmp/nexa-1030.patch.gz > /tmp/nexa-1030.patch
+          patch -p1 < /tmp/nexa-1030.patch
 
-      - name: Verify Clou identity and 1.0.30 layout engine
+      - name: Apply Clou 1.0.32 delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .clou32/patch.b64 /tmp/nexa-1032.patch.gz.b64
+          echo "66a15474a9a286dc671d34238b9c085bdb074edb9d0e00c863c7c7b1bf7cca26  /tmp/nexa-1032.patch.gz.b64" | sha256sum -c -
+          base64 -d /tmp/nexa-1032.patch.gz.b64 > /tmp/nexa-1032.patch.gz
+          gzip -dc /tmp/nexa-1032.patch.gz > /tmp/nexa-1032.patch
+          patch -p1 < /tmp/nexa-1032.patch
+
+      - name: Verify Clou identity and 1.0.32 Mindspace Back
         shell: bash
         run: |
           set -euo pipefail
           grep -F 'applicationId = "com.nexa.app.clou"' android/app/build.gradle.kts
-          grep -F 'versionCode = 35' android/app/build.gradle.kts
-          grep -F 'versionName = "1.0.30-clou.1"' android/app/build.gradle.kts
-          grep -F 'computeScreenLayout' android/app/src/main/assets/nexa-mindspace.js
-          grep -F 'chooseOpenSpawn' android/app/src/main/assets/nexa-mindspace.js
+          grep -F 'versionCode = 37' android/app/build.gradle.kts
+          grep -F 'versionName = "1.0.32-clou.1"' android/app/build.gradle.kts
+          grep -F "function back(){if(!state.open)return 'none'" android/app/src/main/assets/nexa-mindspace.js
+          grep -F 'timeline-mindspace-portal' android/app/src/main/assets/nexa-timeline.js
+          grep -F "typeof NexaMindspace.back==='function'" android/app/src/main/assets/nexa-shell.js
 
       - name: Build debug APK
         shell: bash
@@ -55,6 +66,6 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Nexa-Clou-1.0.30-Debug
+          name: Nexa-Clou-1.0.32-Debug
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
