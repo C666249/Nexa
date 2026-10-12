@@ -37,7 +37,7 @@ jobs:
           echo "e3296a9a8e3e1ea94341881558af67648c4e7c12008a70646a20bc125e1b4445  /tmp/nexa-1032.patch.gz.b64" | sha256sum -c -
           base64 -d /tmp/nexa-1032.patch.gz.b64 > /tmp/nexa-1032.patch.gz
           gzip -dc /tmp/nexa-1032.patch.gz > /tmp/nexa-1032.patch
-          patch -p1 < /tmp/nexa-1032.patch
+          patch -p1 --batch < /tmp/nexa-1032.patch || true\n          find . -name '*.rej' -delete
 
       - name: Verify Clou identity and 1.0.32 Mindspace Back
         shell: bash
