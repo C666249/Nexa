@@ -46,8 +46,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cp .clou32/patch.b64 /tmp/nexa-1032.patch.gz.b64
-          test -s .clou32/patch.b64
+          cat .clou32/part-*.b64 > /tmp/nexa-1032.patch.gz.b64
+          echo "294bc7303e238becfbeac26269ecb92740c038c0bb0ccfc6e85d6354cbc21549  /tmp/nexa-1032.patch.gz.b64" | sha256sum -c -
           base64 -d /tmp/nexa-1032.patch.gz.b64 > /tmp/nexa-1032.patch.gz
           gzip -dc /tmp/nexa-1032.patch.gz > /tmp/nexa-1032.patch
           patch -p1 --batch < /tmp/nexa-1032.patch || true
