@@ -1,16 +1,20 @@
-name: Build Nexa Clou 1.0.33
+name: Build Nexa Clou 1.0.34 Rebuild
 
 on:
   push:
     branches:
-      - clou-v1.0.33-build
+      - clou-v1.0.34-rebuild
   workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout workflow branch
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -19,225 +23,173 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Reconstruct Clou 1.0.30 baseline
+      - name: Restore exact Nexa 1.0.33 Clou source
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          cat .clou/patch-*.b64 > /tmp/nexa-1030.patch.gz.b64
-          echo "613cd993eab8839e2a40cd535f549b4f07401de4605e40711e56a657fe8dab9e  /tmp/nexa-1030.patch.gz.b64" | sha256sum -c -
-          base64 -d /tmp/nexa-1030.patch.gz.b64 > /tmp/nexa-1030.patch.gz
-          gzip -dc /tmp/nexa-1030.patch.gz > /tmp/nexa-1030.patch
-          patch -p1 < /tmp/nexa-1030.patch
+          rm -rf /tmp/nexa-prev /tmp/nexa-work
+          mkdir -p /tmp/nexa-prev /tmp/nexa-work
+          curl -fL             -H "Authorization: Bearer $GITHUB_TOKEN"             -H "Accept: application/vnd.github+json"             "https://api.github.com/repos/C666249/Nexa/actions/artifacts/11744015548/zip"             -o /tmp/nexa-prev/artifact.zip
+          unzip -q /tmp/nexa-prev/artifact.zip -d /tmp/nexa-prev
+          test -f /tmp/nexa-prev/Nexa-V1.0.33-Clou.zip
+          unzip -q /tmp/nexa-prev/Nexa-V1.0.33-Clou.zip -d /tmp/nexa-work
+          grep -F 'versionName = "1.0.33-clou.1"' /tmp/nexa-work/android/app/build.gradle.kts
+          grep -F 'versionCode = 38' /tmp/nexa-work/android/app/build.gradle.kts
 
-      - name: Apply Clou 1.0.31 crystal-node patch
+      - name: Apply free 3D thought graph and larger Overview
         shell: bash
         run: |
           set -euo pipefail
-          cat .clou31/part-*.b64 > /tmp/nexa-1031.patch.gz.b64
-          test "$(find .clou31 -maxdepth 1 -name 'part-*.b64' | wc -l)" -eq 8
-          base64 -d /tmp/nexa-1031.patch.gz.b64 > /tmp/nexa-1031.patch.gz
-          gzip -dc /tmp/nexa-1031.patch.gz > /tmp/nexa-1031.patch
-          patch -p1 --batch < /tmp/nexa-1031.patch || true
-          find . -name '*.rej' -delete
-          grep -F 'versionName = "1.0.31-clou.1"' android/app/build.gradle.kts
-          grep -F 'mindspace-node-mark' android/app/src/main/assets/nexa-mindspace.js
-
-      - name: Apply Clou 1.0.32 Mindspace patch
-        shell: bash
-        run: |
-          set -euo pipefail
-          cat .clou32/part-*.b64 > /tmp/nexa-1032.patch.gz.b64
-          echo "294bc7303e238becfbeac26269ecb92740c038c0bb0ccfc6e85d6354cbc21549  /tmp/nexa-1032.patch.gz.b64" | sha256sum -c -
-          base64 -d /tmp/nexa-1032.patch.gz.b64 > /tmp/nexa-1032.patch.gz
-          gzip -dc /tmp/nexa-1032.patch.gz > /tmp/nexa-1032.patch
-          patch -p1 --batch < /tmp/nexa-1032.patch || true
-          find . -name '*.rej' -delete
-          for f in nexa-mindspace.js nexa-shell.js nexa-timeline.js nexa.css; do cp "android/app/src/main/assets/$f" "ui/$f"; done
-
-      - name: Apply Clou 1.0.33 Timeline back and circular Mindspace entry
-        shell: bash
-        run: |
-          set -euo pipefail
+          cd /tmp/nexa-work
           python3 - <<'PY'
           from pathlib import Path
-
           root=Path('.')
-          timeline_files=[
-              root/'android/app/src/main/assets/nexa-timeline.js',
-              root/'ui/nexa-timeline.js',
-          ]
-          shell_files=[
-              root/'android/app/src/main/assets/nexa-shell.js',
-              root/'ui/nexa-shell.js',
-          ]
-          css_files=[
-              root/'android/app/src/main/assets/nexa.css',
-              root/'ui/nexa.css',
-          ]
+          p=root/'ui/nexa-mindspace.js'
+          s=p.read_text()
 
-          old_close="function closeEditor(){const o=hasDOM()&&document.getElementById('timelineEditorOverlay');if(!o)return;o.classList.remove('active');state.editor=null;applyTimelineImeSpace(0);setTimeout(()=>{if(!o.classList.contains('active'))o.style.display='none';},220);}"
-          new_close=old_close+"\n function back(){if(editorOpen()){closeEditor();return 'editor';}return 'none';}"
-          old_export="return {KEY,VERSION,empty,validate,load,save,upsertEvent,removeEvent,upsertPlan,removePlan,monthSequence,statusFor,formatMarkerDate,render,install,openEventEditor,get model(){return ensureModel();}};"
-          new_export="return {KEY,VERSION,empty,validate,load,save,upsertEvent,removeEvent,upsertPlan,removePlan,monthSequence,statusFor,formatMarkerDate,render,install,openEventEditor,back,get model(){return ensureModel();}};"
-          for p in timeline_files:
-              s=p.read_text()
-              assert old_close in s, f"timeline close marker missing: {p}"
-              assert old_export in s, f"timeline export marker missing: {p}"
-              s=s.replace(old_close,new_close,1).replace(old_export,new_export,1)
-              p.write_text(s)
+          s=s.replace('<div class="mindspace-core" aria-hidden="true"><span></span><small>becoming</small></div>','')
 
-          old_shell="function back(){if(window.NexaMindspace?.isOpen?.()){const layer=NexaMindspace.back?.()||'none';if(layer!=='none')return 'mindspace-'+layer;NexaMindspace.close();return 'mindspace';}const next=NexaCore.back(active);if(next===null)return 'none';navigate(next);return 'nexa-home';}"
-          new_shell="function back(){const timelineLayer=window.NexaTimeline?.back?.()||'none';if(timelineLayer!=='none')return 'timeline-'+timelineLayer;if(window.NexaMindspace?.isOpen?.()){const layer=NexaMindspace.back?.()||'none';if(layer!=='none')return 'mindspace-'+layer;NexaMindspace.close();return 'mindspace';}const next=NexaCore.back(active);if(next===null)return 'none';navigate(next);return 'nexa-home';}"
-          for p in shell_files:
-              s=p.read_text()
-              assert old_shell in s, f"shell back marker missing: {p}"
-              p.write_text(s.replace(old_shell,new_shell,1))
-
-          old_css='''.timeline-mindspace-entry{--portal-accent:#9b7db8;position:relative;isolation:isolate;overflow:hidden;flex:none;border:1px solid #dfd3e7;background:linear-gradient(145deg,#fbf8fc 0%,#f1eaf5 52%,#e9dff0 100%);color:#5f5268;border-radius:20px;min-height:54px;padding:0 14px 0 10px;display:flex;align-items:center;gap:9px;box-shadow:0 7px 18px #5d496913,inset 0 1px 0 #ffffffc9;transition:transform 220ms var(--nexa-ease-emphasized),box-shadow 260ms ease,border-color 260ms ease}
-          .timeline-mindspace-entry::before{content:"";position:absolute;inset:-55% -20%;z-index:-1;background:radial-gradient(circle at 70% 42%,#b797d321,transparent 34%),radial-gradient(circle at 24% 70%,#ffffffa8,transparent 24%);opacity:.78;transform:translate3d(-8%,0,0);transition:transform 560ms var(--nexa-ease-emphasized),opacity 260ms ease}
-          .timeline-mindspace-entry>span:last-child{display:grid;gap:1px;text-align:left;line-height:1}.timeline-mindspace-entry>span:last-child b{font-size:11px;font-weight:680;letter-spacing:.01em}.timeline-mindspace-entry>span:last-child small{font-size:7px;font-weight:500;color:#8d7e96;letter-spacing:.03em;white-space:nowrap}
-          .timeline-mindspace-portal{position:relative;width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:50%;background:radial-gradient(circle at 44% 38%,#ffffffee 0 9%,#efe5f5 24%,#d8c4e5 48%,#8f72a73d 69%,transparent 72%);box-shadow:0 0 0 1px #ffffffb8,0 5px 12px #6b547622,inset 0 0 12px #ffffffb8}
+          start=s.index(' function categoryAnchor(category,index,total){')
+          end=s.index(' function rotate(point){',start)
+          engine=r''' function categoryAnchor(category,index,total){
+            if(state.clusterAnchors.has(category))return state.clusterAnchors.get(category);
+            const hx=hash('x:'+category)>>>0,hy=hash('y:'+category)>>>0,hz=hash('z:'+category)>>>0;
+            const nx=((hx%10007)/10006)-.5,ny=((hy%10009)/10008)-.5,nz=((hz%10037)/10036)-.5;
+            const p={x:nx*660,y:ny*440,z:nz*360};state.clusterAnchors.set(category,p);return p;
+           }
+           function shortTitle(value,max=11){const chars=[...String(value||'')];return chars.length>max?chars.slice(0,max).join('')+'…':chars.join('');}
+           function importanceScore(item){const linked=Math.min(4,connectionCount(item.id));return clamp(1+(item.pinned?.24:0)+linked*.11,1,1.62);}
+           function spawnCandidate(item,index,attempt,cats){
+            const anchor=categoryAnchor(item.category,cats.indexOf(item.category),cats.length),hx=hash(item.id+'#x#'+attempt)>>>0,hy=hash(item.id+'#y#'+attempt)>>>0,hz=hash(item.id+'#z#'+attempt)>>>0;
+            const rx=((hx%10007)/10006)-.5,ry=((hy%10009)/10008)-.5,rz=((hz%10037)/10036)-.5,blend=.16;
+            return {x:clamp(rx*930*(1-blend)+anchor.x*blend,-510,510),y:clamp(ry*650*(1-blend)+anchor.y*blend,-360,360),z:clamp(rz*560*(1-blend)+anchor.z*blend,-330,330),vx:0,vy:0,vz:0};
+           }
+           function chooseOpenSpawn(item,index,cats,existing){
+            let best=null,bestScore=-Infinity;for(let attempt=0;attempt<48;attempt++){const p=spawnCandidate(item,index,attempt,cats),nearest=existing.length?Math.min(...existing.map(q=>Math.hypot(p.x-q.x,p.y-q.y,p.z-q.z))):999,anchor=categoryAnchor(item.category,cats.indexOf(item.category),cats.length),catDist=Math.hypot(p.x-anchor.x,p.y-anchor.y,p.z-anchor.z),edge=Math.max(0,Math.abs(p.x)-455)+Math.max(0,Math.abs(p.y)-320)+Math.max(0,Math.abs(p.z)-295),score=nearest*1.72-Math.max(0,catDist-430)*.09-edge*.34;if(score>bestScore){bestScore=score;best=p;}}return best||spawnCandidate(item,index,0,cats);
+           }
+           function seedPreview(items){const list=(items||[]).map(normalize).filter(x=>!x.archived),cats=uniqueCategories(list),map=new Map(),existing=[];list.forEach((item,index)=>{const p=chooseOpenSpawn(item,index,cats,existing);map.set(item.id,p);existing.push(p);});return map;}
+           function seedWorld(){
+            const items=activeItems(),cats=uniqueCategories(items),valid=new Set(items.map(x=>x.id));
+            for(const key of [...state.world.keys()])if(!valid.has(key))state.world.delete(key);
+            for(const key of [...state.clusterAnchors.keys()])if(!cats.includes(key))state.clusterAnchors.delete(key);
+            cats.forEach((cat,i)=>categoryAnchor(cat,i,cats.length));
+            const existing=[...state.world.values()];items.forEach((item,index)=>{if(state.world.has(item.id))return;const p=chooseOpenSpawn(item,index,cats,existing);state.world.set(item.id,p);existing.push(p);});
+           }
+           function simulateGraph(dt){
+            const items=activeItems();if(!items.length)return;seedWorld();const cats=uniqueCategories(items);
+            for(const item of items){const p=state.world.get(item.id),anchor=categoryAnchor(item.category,cats.indexOf(item.category),cats.length),dx=anchor.x-p.x,dy=anchor.y-p.y,dz=anchor.z-p.z,dist=Math.max(1,Math.hypot(dx,dy,dz));if(dist>390){const force=(dist-390)*.00011*dt;p.vx+=dx/dist*force;p.vy+=dy/dist*force;p.vz+=dz/dist*force;}}
+            for(const l of activeLinks()){const a=state.world.get(l.from),b=state.world.get(l.to);if(!a||!b)continue;let dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,dist=Math.max(1,Math.hypot(dx,dy,dz)),force=(dist-245)*.00066*dt,fx=dx/dist*force,fy=dy/dist*force,fz=dz/dist*force;a.vx+=fx;a.vy+=fy;a.vz+=fz;b.vx-=fx;b.vy-=fy;b.vz-=fz;}
+            const cap=Math.min(items.length,120);for(let i=0;i<cap;i++){const a=state.world.get(items[i].id);for(let j=i+1;j<cap;j++){const b=state.world.get(items[j].id),dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,d2=dx*dx+dy*dy+dz*dz;if(d2>1&&d2<52900){const d=Math.sqrt(d2),f=(1-d/230)*.092*dt,fx=dx/d*f,fy=dy/d*f,fz=dz/d*f;a.vx-=fx;a.vy-=fy;a.vz-=fz;b.vx+=fx;b.vy+=fy;b.vz+=fz;}}}
+            for(const item of items){const p=state.world.get(item.id);if(Math.abs(p.x)>510)p.vx-=Math.sign(p.x)*(Math.abs(p.x)-510)*.005*dt;if(Math.abs(p.y)>360)p.vy-=Math.sign(p.y)*(Math.abs(p.y)-360)*.005*dt;if(Math.abs(p.z)>330)p.vz-=Math.sign(p.z)*(Math.abs(p.z)-330)*.004*dt;const damp=Math.pow(.835,dt);p.vx*=damp;p.vy*=damp;p.vz*=damp;p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;}
+           }
           '''
-          new_css='''.timeline-mindspace-entry{--portal-accent:#9b7db8;position:relative;flex:none;width:54px;height:54px;min-height:54px;padding:0;border:0;background:transparent;color:#5f5268;border-radius:50%;display:grid;place-items:center;box-shadow:none;overflow:visible;transition:transform 220ms var(--nexa-ease-emphasized),filter 260ms ease}
-          .timeline-mindspace-entry::before{content:none}
-          .timeline-mindspace-entry>span:last-child{display:none}
-          .timeline-mindspace-portal{position:relative;width:46px;height:46px;flex:none;display:grid;place-items:center;border-radius:50%;background:radial-gradient(circle at 44% 38%,#ffffffee 0 9%,#f1e8f6 24%,#ddcce9 52%,#a888be5c 76%,#8a6fa036 100%);border:1px solid #d9c7e4;box-shadow:0 5px 13px #6b54761a,inset 0 0 14px #ffffffc4}
+          s=s[:start]+engine+s[end:]
+
+          old="function nodeMarkup(item,index){return '<button class=\"mindspace-node '+(item.pinned?'is-pinned ':'')+'\" data-mindspace-node=\"'+esc(item.id)+'\" style=\"--mind-index:'+index+'\" aria-label=\"'+esc(item.title)+'\"><span class=\"mindspace-node-halo\"></span><span class=\"mindspace-node-mark\" aria-hidden=\"true\"><i></i></span><span class=\"mindspace-node-copy\"><strong data-mindspace-node-title>'+esc(shortTitle(item.title))+'</strong><small>'+esc(item.category||'状态')+'</small></span></button>';}"
+          new="function nodeMarkup(item,index){const weight=importanceScore(item),font=clamp(14.5+(weight-1)*11.5,14.5,21.5);return '<button class=\"mindspace-node '+(item.pinned?'is-pinned ':'')+'\" data-mindspace-node=\"'+esc(item.id)+'\" style=\"--mind-index:'+index+';--mind-font:'+font.toFixed(2)+'px;--mind-weight:'+weight.toFixed(3)+'\" aria-label=\"'+esc(item.title)+'\"><span class=\"mindspace-node-halo\"></span><span class=\"mindspace-node-mark\" aria-hidden=\"true\"><i></i></span><span class=\"mindspace-node-copy\"><strong data-mindspace-node-title>'+esc(shortTitle(item.title,13))+'</strong></span></button>';}"
+          assert old in s
+          s=s.replace(old,new,1)
+          s=s.replace("function clusterMarkup(category){return '<div class=\"mindspace-cluster-label\" data-mindspace-cluster=\"'+esc(category)+'\"><span></span><b>'+esc(category)+'</b></div>';}", "function clusterMarkup(){return '';}",1)
+          s=s.replace("clusters.innerHTML=uniqueCategories(items).map(clusterMarkup).join('');","clusters.innerHTML='';",1)
+
+          old="function estimateNodeBox(item,pt,lod,selected){const title=lod==='near'?item.title:shortTitle(item.title),chars=[...title].length,label=selected||lod==='far'?0:clamp(26+chars*(lod==='near'?9.1:8.2),46,lod==='near'?170:126),scale=clamp(pt.scale*(selected?1.18:1),.72,1.68),w=(label?30+label:32)*scale,h=(selected?34:lod==='near'?43:lod==='mid'?34:27)*scale;return {w,h};}"
+          new="function estimateNodeBox(item,pt,lod,selected){const title=lod==='near'?item.title:shortTitle(item.title,lod==='far'?8:13),chars=[...title].length,weight=importanceScore(item),font=clamp(14.5+(weight-1)*11.5,14.5,21.5)*(lod==='far'?.84:lod==='near'?1.06:1),scale=clamp(pt.scale*(selected?1.12:1),.7,1.62),w=clamp(22+chars*font*.58,48,246)*scale,h=(font*1.42+8)*scale;return {w,h};}"
+          assert old in s
+          s=s.replace(old,new,1)
+          s=s.replace("translate(-10px,-50%) scale(","translate(-6px,-50%) scale(",1)
+          s=s.replace("const next=screen.lod==='near'?item.title:shortTitle(item.title);","const next=screen.lod==='near'?item.title:shortTitle(item.title,screen.lod==='far'?8:13);",1)
+
+          cluster="  const cats=uniqueCategories(items);cats.forEach((cat,i)=>{const el=scene.querySelector('[data-mindspace-cluster=\"'+cssEscape(cat)+'\"]'),base=categoryAnchor(cat,i,cats.length);if(!el)return;const pt=project(base,r.width,r.height);el.style.transform='translate3d('+clamp(pt.x,42,r.width-42)+'px,'+clamp(pt.y,110,r.height-90)+'px,0) translate(-50%,-50%) scale('+clamp(pt.scale,.68,1.1)+')';el.style.opacity=screen.lod==='far'?String(clamp(.85-pt.z/1100,.36,.82)):'0';});"
+          s=s.replace(cluster,'',1)
+          s=s.replace("ctx.strokeStyle=hot?'rgba(205,181,246,.78)':dim?'rgba(191,202,226,.055)':'rgba(191,202,226,.16)';ctx.lineWidth=hot?1.35:.72;","ctx.strokeStyle=hot?'rgba(210,196,238,.72)':dim?'rgba(196,207,229,.035)':'rgba(176,190,220,.19)';ctx.lineWidth=hot?1.15:.58;",1)
+          s=s.replace("root.showToast?.('已回到星域中心')","root.showToast?.('已回到思想星图全景')",1)
+          s=s.replace('<span>放得更靠近中心</span>','<span>在星图中显示得更醒目</span>',1)
+          p.write_text(s)
+          (root/'android/app/src/main/assets/nexa-mindspace.js').write_text(s)
+
+          p=root/'ui/nexa.css'
+          s=p.read_text()
+          start=s.index('.mindspace-core{')
+          end=s.index('@keyframes mindspaceCrystalBreath',start)
+          visual=r'''.mindspace-core{display:none!important}
+          .mindspace-clusters,.mindspace-nodes{position:absolute;inset:0;pointer-events:none}.mindspace-cluster-label{display:none!important}
+          .mindspace-node{pointer-events:auto;position:absolute;left:0;top:0;border:0;background:transparent;color:#f4f1f7;padding:0;display:grid;grid-template-columns:12px minmax(0,auto);align-items:center;gap:6px;text-align:left;transform-origin:6px 50%;will-change:transform,opacity;filter:none;min-width:0;max-width:270px}
+          .mindspace-node-mark{position:relative;width:12px;height:12px;display:grid;place-items:center;isolation:isolate;filter:drop-shadow(0 0 6px #d8c8ec64);animation:mindspaceCrystalBreath 4.8s ease-in-out calc(var(--mind-index)*-191ms) infinite}
+          .mindspace-node-mark i{position:relative;z-index:2;width:4px;height:4px;display:block;transform:rotate(45deg);border-radius:1px;background:#f8f4ff;box-shadow:0 0 0 .6px #ffffff9c,0 0 7px #eee6f7bd,0 0 14px #c2a9e34d}
+          .mindspace-node-mark::before,.mindspace-node-mark::after{content:"";position:absolute;left:50%;top:50%;z-index:1;transform:translate(-50%,-50%);pointer-events:none;background:linear-gradient(90deg,transparent,#f6f1ffbf 43%,#fff 50%,#f6f1ffbf 57%,transparent)}
+          .mindspace-node-mark::before{width:13px;height:.7px}.mindspace-node-mark::after{width:.7px;height:13px;background:linear-gradient(180deg,transparent,#f6f1ffbf 43%,#fff 50%,#f6f1ffbf 57%,transparent)}
+          .mindspace-node-halo{position:absolute;left:6px;top:50%;width:28px;height:28px;border-radius:50%;transform:translate(-50%,-50%) scale(.78);background:radial-gradient(circle,#d8cbed18 0,#b99fd510 35%,transparent 72%);opacity:.34;pointer-events:none;transition:opacity 180ms ease,transform 280ms var(--nexa-ease-emphasized);animation:mindspaceHaloBreath 5.2s ease-in-out calc(var(--mind-index)*-223ms) infinite}
+          .mindspace-node-copy{min-width:0;white-space:nowrap;text-shadow:0 2px 12px #000,0 0 14px #000;transition:opacity 200ms ease,transform 260ms var(--nexa-ease-emphasized)}
+          .mindspace-node strong{display:block;max-width:238px;overflow:hidden;text-overflow:ellipsis;font-size:var(--mind-font,15px);line-height:1.08;font-weight:560;letter-spacing:-.015em;color:#e9e5ee}.mindspace-node small{display:none!important}
+          .mindspace-node.is-pinned strong{color:#fff;font-weight:650;text-shadow:0 2px 14px #000,0 0 16px #e4d8f02a}.mindspace-node.is-pinned .mindspace-node-mark{filter:drop-shadow(0 0 8px #f4e8d087);animation-duration:4.1s}.mindspace-node.is-pinned .mindspace-node-mark i{background:#fff8e8;box-shadow:0 0 0 .6px #fff7dfbd,0 0 8px #ffe3b0a8,0 0 17px #d7aa6642}
+          .mindspace-node.is-related strong{color:#f5edff}.mindspace-node.is-related .mindspace-node-mark{filter:drop-shadow(0 0 9px #dfcdf69c)}
+          .mindspace-node.is-selected .mindspace-node-mark{animation:mindspaceSelectedStar 2.2s ease-in-out infinite;filter:drop-shadow(0 0 10px #f2e9ffcc)}.mindspace-node.is-selected .mindspace-node-mark i{width:6px;height:6px;box-shadow:0 0 0 .7px #fff,0 0 11px #fff,0 0 24px #c9a9ee96}.mindspace-node.is-selected .mindspace-node-mark::before{width:21px}.mindspace-node.is-selected .mindspace-node-mark::after{height:21px}.mindspace-node.is-selected .mindspace-node-halo{opacity:1;transform:translate(-50%,-50%) scale(1.28);background:radial-gradient(circle,#eee4ff28 0,#c5a9e813 36%,transparent 74%)}
+          .mindspace-node.is-selected .mindspace-node-copy{opacity:0!important;transform:translateX(-4px) scale(.97);pointer-events:none}
+          .mindspace-node.is-link-target .mindspace-node-mark{transform:scale(1.25);filter:drop-shadow(0 0 14px #fff)}.mindspace-node.is-link-target .mindspace-node-halo{opacity:1;transform:translate(-50%,-50%) scale(1.48)}
+          .mindspace.is-linking .mindspace-node:not(.is-link-target){transition:opacity 160ms ease}.mindspace.has-selection .mindspace-node.is-dimmed .mindspace-node-copy{opacity:.08}.mindspace.has-selection .mindspace-node.is-related .mindspace-node-copy{opacity:.82}
+          .mindspace[data-mindspace-lod="far"] .mindspace-node-copy{opacity:.54;transform:translateX(-2px)}.mindspace[data-mindspace-lod="far"] .mindspace-node-mark{transform:scale(.76)}.mindspace[data-mindspace-lod="far"] .mindspace-node strong{font-size:calc(var(--mind-font,15px)*.84);font-weight:500}.mindspace[data-mindspace-lod="mid"] .mindspace-node-copy{opacity:.82}.mindspace[data-mindspace-lod="near"] .mindspace-node-copy{opacity:1}.mindspace[data-mindspace-lod="near"] .mindspace-node strong{font-size:calc(var(--mind-font,15px)*1.06)}
           '''
-          old_active='.timeline-mindspace-entry:active{transform:scale(.955)}.timeline-mindspace-entry:active::before{transform:translate3d(5%,0,0);opacity:1}.timeline-mindspace-entry:focus-visible{outline:2px solid #a88bc0;outline-offset:3px}'
-          new_active='.timeline-mindspace-entry:active{transform:scale(.92)}.timeline-mindspace-entry:active .timeline-mindspace-portal{filter:brightness(1.04)}.timeline-mindspace-entry:focus-visible{outline:2px solid #a88bc0;outline-offset:3px}'
-          old_mobile='.timeline-mindspace-entry>span:last-child{display:none}.timeline-mindspace-entry{width:50px;min-height:50px;padding:0;justify-content:center}.timeline-mindspace-portal{width:34px;height:34px}'
-          new_mobile='.timeline-mindspace-entry{width:50px;height:50px;min-height:50px;padding:0}.timeline-mindspace-portal{width:42px;height:42px}'
-          for p in css_files:
-              s=p.read_text()
-              assert old_css in s, f"portal CSS marker missing: {p}"
-              assert old_active in s, f"portal active marker missing: {p}"
-              assert old_mobile in s, f"portal mobile marker missing: {p}"
-              s=s.replace(old_css,new_css,1).replace(old_active,new_active,1).replace(old_mobile,new_mobile,1)
-              p.write_text(s)
+          s=s[:start]+visual+s[end:]
+
+          start=s.index('.mindspace-overview-backdrop{')
+          end=s.index('/* Mindspace editor',start)
+          overview=r'''.mindspace-overview-backdrop{position:absolute;z-index:940;inset:0;background:#03040778;opacity:0;pointer-events:none;transition:opacity 220ms ease;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}.mindspace-overview{position:absolute;z-index:950;top:0;right:0;bottom:0;width:min(92vw,430px);box-sizing:border-box;padding:calc(22px + env(safe-area-inset-top)) 20px calc(22px + env(safe-area-inset-bottom));background:linear-gradient(160deg,#11131cf8,#090b11fb);border-left:1px solid #ffffff18;box-shadow:-20px 0 65px #000a;transform:translate3d(104%,0,0);transition:transform 420ms var(--nexa-ease-emphasized);display:flex;flex-direction:column;gap:16px;overflow:hidden}.mindspace.overview-open .mindspace-overview{transform:none}.mindspace.overview-open .mindspace-overview-backdrop{opacity:1;pointer-events:auto}.mindspace.overview-open .mindspace-scene{transform:scale(.972) translateX(-2.5%);filter:brightness(.72);transition:transform 420ms var(--nexa-ease-emphasized),filter 260ms ease}.mindspace-overview>header{display:flex;align-items:center;justify-content:space-between;gap:12px}.mindspace-overview>header small{display:block;color:#9a8fa6;font-size:9px;letter-spacing:.16em}.mindspace-overview>header strong{display:block;font-size:29px;line-height:1.08;margin-top:4px;font-weight:680;letter-spacing:-.02em}.mindspace-overview>header button{width:44px;height:44px;border-radius:50%;border:1px solid #ffffff18;background:#ffffff0b;color:#ddd5e4;display:grid;place-items:center}.mindspace-overview>header svg,.mindspace-overview-search svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round}.mindspace-overview-stats{display:flex;align-items:baseline;gap:5px;color:#aaa0b4;font-size:10px;white-space:nowrap}.mindspace-overview-stats b{font-size:22px;color:#f2edf5;font-weight:620}.mindspace-overview-stats i{width:1px;height:20px;background:#ffffff13;margin:0 7px}.mindspace-overview-search{display:flex;align-items:center;gap:10px;border:1px solid #ffffff17;background:#ffffff09;border-radius:16px;padding:0 14px;color:#988ba6}.mindspace-overview-search input{min-width:0;flex:1;height:50px;border:0;outline:0;background:transparent;color:#f1ecf5;font-size:15px}.mindspace-overview-search input::placeholder{color:#766c81}.mindspace-overview-filters{display:flex;gap:8px;overflow:auto;scrollbar-width:none}.mindspace-overview-filters::-webkit-scrollbar{display:none}.mindspace-overview-filters button{flex:none;border:1px solid #ffffff14;background:#ffffff08;color:#aaa0b5;border-radius:999px;height:38px;padding:0 14px;font-size:11px}.mindspace-overview-filters button.active{background:#c3a8df20;border-color:#cdb5e83a;color:#f2eaf7}.mindspace-overview-list{min-height:0;flex:1;overflow:auto;overscroll-behavior:contain;padding-right:2px}.mindspace-overview-list section+section{margin-top:20px}.mindspace-overview-list h3{display:flex;align-items:center;gap:7px;margin:0 0 7px;color:#aaa0b5;font-size:12px;font-weight:600;letter-spacing:.035em}.mindspace-overview-list h3 span{font-size:10px;color:#746b7e}.mindspace-overview-row{display:flex;align-items:center;gap:6px;border-bottom:1px solid #ffffff0d}.mindspace-overview-row>button:first-child{min-width:0;flex:1;display:flex;align-items:center;justify-content:space-between;gap:10px;border:0;background:transparent;color:#f0eaf4;text-align:left;padding:14px 4px}.mindspace-overview-row>button:first-child span{min-width:0}.mindspace-overview-row strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;line-height:1.28;font-weight:590}.mindspace-overview-row small{display:block;color:#8b8195;font-size:10px;margin-top:5px}.mindspace-overview-row i{font-style:normal;color:#716778;font-size:21px}.mindspace-overview-row .restore{flex:none;border:1px solid #ffffff14;background:#ffffff09;color:#c2b7cb;border-radius:10px;height:32px;padding:0 10px;font-size:10px}.mindspace-overview-empty{padding:48px 12px;text-align:center;color:#83788f;font-size:13px}
+          '''
+          s=s[:start]+overview+s[end:]
+          s=s.replace('.mindspace-node{max-width:176px}.mindspace-node strong{max-width:150px}.mindspace-detail{max-width:calc(100vw - 24px)}.mindspace-overview{width:88vw}', '.mindspace-node{max-width:218px}.mindspace-node strong{max-width:192px}.mindspace-detail{max-width:calc(100vw - 24px)}.mindspace-overview{width:94vw;padding-left:18px;padding-right:18px}',1)
+          if '@media(prefers-reduced-motion:reduce){.mindspace-node-mark,.mindspace-node-halo{' not in s:
+            s+='\n@media(prefers-reduced-motion:reduce){.mindspace-node-mark,.mindspace-node-halo{animation:none!important;transition:none!important}}\n'
+          p.write_text(s)
+          (root/'android/app/src/main/assets/nexa.css').write_text(s)
 
           p=root/'android/app/build.gradle.kts'
-          s=p.read_text()
-          s=s.replace('versionCode = 37','versionCode = 38',1)
-          s=s.replace('versionName = "1.0.32-clou.1"','versionName = "1.0.33-clou.1"',1)
-          s=s.replace('Nexa-Clou-1.0.32-clou.1-${variantBuildType}.apk','Nexa-Clou-1.0.33-clou.1-${variantBuildType}.apk',1)
+          s=p.read_text().replace('versionCode = 38','versionCode = 40',1).replace('versionName = "1.0.33-clou.1"','versionName = "1.0.34-clou.2"',1).replace('Nexa-Clou-1.0.33-clou.1-${variantBuildType}.apk','Nexa-Clou-1.0.34-clou.2-${variantBuildType}.apk',1)
           p.write_text(s)
           PY
 
-      - name: Refresh 1.0.33 release metadata
+      - name: Verify rebuilt 1.0.34
         shell: bash
         run: |
           set -euo pipefail
-          cat > CHANNEL.txt <<'TXT'
-          Nexa Clou / cloud-build test channel
-          applicationId: com.nexa.app.clou
-          app name: Nexa Clou
-          versionName: 1.0.33-clou.1
-          versionCode: 38
-          Scope: Timeline editor local Back hierarchy + circular-only Mindspace entry.
-          TXT
-          cat > RELEASE_NOTES_1.0.33.md <<'TXT'
-          # Nexa 1.0.33 — Timeline Back + Circular Mindspace Entry
-
-          - Android/system Back while the Timeline create/edit event sheet is open closes only the sheet and stays on Timeline.
-          - The same local Back handler covers event editors and concrete-plan editors.
-          - Timeline's Mindspace entry removes the outer rounded-square glass button and keeps only the circular star-orbit portal.
-          - Mindspace hierarchy, Timeline data schema and persistence are unchanged.
-          TXT
-          cat > PROJECT_STATE.md <<'TXT'
-          # Nexa Project State
-
-          Current release: 1.0.33 / versionCode 38.
-
-          Channels:
-          - Stable: com.nexa.app / Nexa / 1.0.33
-          - Beta: com.nexa.app.beta / Nexa β / 1.0.33-beta.1
-          - Clou: com.nexa.app.clou / Nexa Clou / 1.0.33-clou.1
-
-          1.0.33 is a focused navigation/UI release. Timeline editor sheets consume Back locally before the Timeline route can return home. The Timeline Mindspace entry is now circular-only.
-          TXT
-          cat > NEXA_1.0.33_DELIVERY.txt <<'TXT'
-          Nexa 1.0.33 / code 38
-          Scope: Timeline create/edit sheet local Back + circular-only Mindspace entry.
-          Data/schema: unchanged.
-          TXT
-
-      - name: Verify 1.0.33 runtime and regression
-        shell: bash
-        run: |
-          set -euo pipefail
+          cd /tmp/nexa-work
           grep -F 'applicationId = "com.nexa.app.clou"' android/app/build.gradle.kts
-          grep -F 'versionCode = 38' android/app/build.gradle.kts
-          grep -F 'versionName = "1.0.33-clou.1"' android/app/build.gradle.kts
-          grep -F "function back(){if(editorOpen()){closeEditor();return 'editor';}return 'none';}" android/app/src/main/assets/nexa-timeline.js
-          grep -F "const timelineLayer=window.NexaTimeline?.back?.()||'none'" android/app/src/main/assets/nexa-shell.js
-          grep -F '.timeline-mindspace-entry::before{content:none}' android/app/src/main/assets/nexa.css
-          grep -F '.timeline-mindspace-entry>span:last-child{display:none}' android/app/src/main/assets/nexa.css
-          grep -F 'border-radius:50%;background:radial-gradient' android/app/src/main/assets/nexa.css
-          cmp ui/nexa-shell.js android/app/src/main/assets/nexa-shell.js
-          cmp ui/nexa-timeline.js android/app/src/main/assets/nexa-timeline.js
+          grep -F 'versionCode = 40' android/app/build.gradle.kts
+          grep -F 'versionName = "1.0.34-clou.2"' android/app/build.gradle.kts
+          ! grep -F '<div class="mindspace-core"' android/app/src/main/assets/nexa-mindspace.js
+          ! grep -i -F 'becoming' android/app/src/main/assets/nexa-mindspace.js
+          grep -F "function importanceScore(item)" android/app/src/main/assets/nexa-mindspace.js
+          grep -F "width:min(92vw,430px)" android/app/src/main/assets/nexa.css
+          grep -F "font-size:29px" android/app/src/main/assets/nexa.css
+          grep -F "font-size:15px" android/app/src/main/assets/nexa.css
+          cmp ui/nexa-mindspace.js android/app/src/main/assets/nexa-mindspace.js
           cmp ui/nexa.css android/app/src/main/assets/nexa.css
-          for f in ui/*.js; do node --check "$f"; done
-          echo "1.0.33 focused regression OK"
+          node --check ui/nexa-mindspace.js
+          node - <<'NODE'
+          const m=require('./ui/nexa-mindspace.js');
+          const items=Array.from({length:10},(_,i)=>({id:'t'+i,title:'思想 '+i,category:i<6?'状态':'学习',pinned:i===0}));
+          const pts=[...m.seedPreview(items).values()],xs=pts.map(p=>p.x),ys=pts.map(p=>p.y),zs=pts.map(p=>p.z),rs=pts.map(p=>Math.hypot(p.x,p.y,p.z));
+          const span=a=>Math.max(...a)-Math.min(...a);
+          if(span(xs)<=420||span(ys)<=220||span(zs)<=180||span(rs)<=140)throw new Error('thought graph spread regression');
+          console.log('free-graph regression OK',span(xs),span(ys),span(zs),span(rs));
+          NODE
+          node --test tests/nexa-mindspace-v1.0.31.test.cjs
 
-      - name: Package Stable Beta Clou source ZIPs
+      - name: Build Clou 1.0.34 APK
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf /tmp/nexa-src /tmp/deliver
-          mkdir -p /tmp/nexa-src /tmp/deliver
-          rsync -a --exclude='.git' --exclude='.github' --exclude='.clou' --exclude='.clou31' --exclude='.clou32' --exclude='android/.gradle' --exclude='android/app/build' --exclude='SHA256SUMS.txt' ./ /tmp/nexa-src/clou/
-          cp -a /tmp/nexa-src/clou /tmp/nexa-src/stable
-          cp -a /tmp/nexa-src/clou /tmp/nexa-src/beta
-
-          python3 - <<'PY'
-          from pathlib import Path
-          roots=Path('/tmp/nexa-src')
-          def replace(path,pairs):
-              p=Path(path); s=p.read_text()
-              for a,b in pairs: s=s.replace(a,b)
-              p.write_text(s)
-
-          r=roots/'stable'
-          replace(r/'android/app/build.gradle.kts',[
-              ('applicationId = "com.nexa.app.clou"','applicationId = "com.nexa.app"'),
-              ('versionName = "1.0.33-clou.1"','versionName = "1.0.33"'),
-              ('Nexa-Clou-1.0.33-clou.1-${variantBuildType}.apk','Nexa-Stable-1.0.33-${variantBuildType}.apk')])
-          replace(r/'android/app/src/main/res/values/strings.xml',[('<string name="app_name">Nexa Clou</string>','<string name="app_name">Nexa</string>')])
-          (r/'CHANNEL.txt').write_text('Nexa Stable / production channel\napplicationId: com.nexa.app\napp name: Nexa\nversionName: 1.0.33\nversionCode: 38\n')
-
-          r=roots/'beta'
-          replace(r/'android/app/build.gradle.kts',[
-              ('applicationId = "com.nexa.app.clou"','applicationId = "com.nexa.app.beta"'),
-              ('versionName = "1.0.33-clou.1"','versionName = "1.0.33-beta.1"'),
-              ('Nexa-Clou-1.0.33-clou.1-${variantBuildType}.apk','Nexa-Beta-1.0.33-beta.1-${variantBuildType}.apk')])
-          replace(r/'android/app/src/main/res/values/strings.xml',[('<string name="app_name">Nexa Clou</string>','<string name="app_name">Nexa β</string>')])
-          replace(r/'android/app/src/main/AndroidManifest.xml',[('android:icon="@mipmap/ic_nexa"','android:icon="@mipmap/ic_nexa_beta"'),('android:roundIcon="@mipmap/ic_nexa"','android:roundIcon="@mipmap/ic_nexa_beta"')])
-          (r/'CHANNEL.txt').write_text('Nexa Beta / isolated test channel\napplicationId: com.nexa.app.beta\napp name: Nexa β\nversionName: 1.0.33-beta.1\nversionCode: 38\n')
-          PY
-
-          for channel in stable beta clou; do
-            root="/tmp/nexa-src/$channel"
-            (cd "$root" && find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt)
-          done
-          (cd /tmp/nexa-src/stable && zip -qr /tmp/deliver/Nexa-V1.0.33-Stable.zip .)
-          (cd /tmp/nexa-src/beta && zip -qr /tmp/deliver/Nexa-V1.0.33-Beta.zip .)
-          (cd /tmp/nexa-src/clou && zip -qr /tmp/deliver/Nexa-V1.0.33-Clou.zip .)
-          unzip -t /tmp/deliver/Nexa-V1.0.33-Stable.zip | tail -1
-          unzip -t /tmp/deliver/Nexa-V1.0.33-Beta.zip | tail -1
-          unzip -t /tmp/deliver/Nexa-V1.0.33-Clou.zip | tail -1
-
-      - name: Build Clou debug APK
-        shell: bash
-        run: |
-          set -euo pipefail
+          cd /tmp/nexa-work
           chmod +x gradlew
           ./gradlew :app:assembleDebug --no-daemon
-          cp android/app/build/outputs/apk/debug/*.apk /tmp/deliver/Nexa-Clou-1.0.33-Debug.apk
-          sha256sum /tmp/deliver/*
+          mkdir -p /tmp/deliver
+          cp android/app/build/outputs/apk/debug/*.apk /tmp/deliver/Nexa-Clou-1.0.34-Rebuild-Debug.apk
+          sha256sum /tmp/deliver/Nexa-Clou-1.0.34-Rebuild-Debug.apk
 
-      - name: Upload 1.0.33 deliverables
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Nexa-1.0.33-Deliverables
-          path: /tmp/deliver/*
+          name: Nexa-Clou-1.0.34-Rebuild-Debug
+          path: /tmp/deliver/Nexa-Clou-1.0.34-Rebuild-Debug.apk
           if-no-files-found: error
