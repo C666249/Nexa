@@ -1,0 +1,55 @@
+name: Publish FMV Motion Lab v1.3 APK
+on:
+  push:
+    branches: [fmv-motion-lab-download-v1.3]
+    paths:
+      - 'fmv-delivery/chunk-*.b64'
+      - '.github/workflows/publish-fmv-apk-v1.3.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'fmv-delivery/**'
+      - '.github/workflows/publish-fmv-apk-v1.3.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore and checksum verified APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          COUNT="$(cat fmv-delivery/COUNT.txt)"
+          ACTUAL="$(find fmv-delivery -name 'chunk-*.b64' | wc -l | tr -d ' ')"
+          test "$COUNT" = "$ACTUAL"
+          cat fmv-delivery/chunk-*.b64 | base64 --decode > FMV-Motion-Lab-v1.3-debug.apk
+          sha256sum --check fmv-delivery/SHA256.txt
+          file FMV-Motion-Lab-v1.3-debug.apk
+          unzip -tq FMV-Motion-Lab-v1.3-debug.apk | tail -1
+      - name: Public GitHub Release download
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          TAG="fmv-motion-lab-v1.3.0-public"
+          APK="FMV-Motion-Lab-v1.3-debug.apk"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --clobber
+          else
+            gh release create "$TAG" "$APK" --target "$GITHUB_SHA" \
+              --title "FMV Motion Lab v1.3 · Android APK" \
+              --notes "Android 8+; white minimal UI; 34 motion catalog items; Ribbon Glide category tabs and compact slider thumb; FlowLedger native bottom tab; debug-signed APK. Checksum verified from SHA256.txt."
+          fi
+      - name: Back up APK as a public raw file on isolated branch
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add FMV-Motion-Lab-v1.3-debug.apk
+          git commit -m "dist(fmv): publish verified public v1.3 APK" || true
+          git push origin HEAD:fmv-motion-lab-download-v1.3
