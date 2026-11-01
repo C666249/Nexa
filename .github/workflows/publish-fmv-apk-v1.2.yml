@@ -5,6 +5,11 @@ on:
     paths:
       - 'fmv-delivery/chunk-*.b64'
       - '.github/workflows/publish-fmv-apk-v1.2.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'fmv-delivery/**'
+      - '.github/workflows/publish-fmv-apk-v1.2.yml'
   workflow_dispatch:
 permissions:
   contents: write
@@ -40,6 +45,7 @@ jobs:
               --notes "Android 8+; white minimal UI; 34 motion catalog items; hourglass fluid capsule category tabs; FlowLedger native bottom tab; debug-signed APK. SHA-256: aa1fba192f0da3fa6a6381e42fc4a0c8910d0f3ca05d42f701f3c1986caab0b2."
           fi
       - name: Back up APK as a public raw file on isolated branch
+        if: github.event_name == 'push'
         shell: bash
         run: |
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
