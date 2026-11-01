@@ -1,4 +1,0 @@
-<paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <files-path name="note_files" path="note_files/" />
-    <files-path name="note_images" path="note_images/" />
-</paths>

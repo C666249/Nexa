@@ -1,6 +1,0 @@
-To-Do V1.40.5 Stable — shell-only bump self-test
-PASS versionCode = 1405
-PASS versionName = 1.40.5
-PASS applicationId = com.todolist.app
-PASS runtime/UI source retained from V1.40.3
-PASS V1.40.4 Daily Progress gradient experiment absent

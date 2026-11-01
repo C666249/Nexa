@@ -1,6 +1,0 @@
-Nexa Stable / production channel
-applicationId: com.nexa.app
-app name: Nexa
-versionName: 1.0.18
-versionCode: 23
-Upgrade-compatible with the existing Stable install and data.
