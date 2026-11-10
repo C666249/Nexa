@@ -28,7 +28,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat .release36/patch-*.b64 > /tmp/nexa36.patch.gz.b64
+          cat .release36/patch-00a.b64 .release36/patch-00b.b64 .release36/patch-00c.b64 .release36/patch-01.b64 > /tmp/nexa36.patch.gz.b64
+          test "$(wc -c < /tmp/nexa36.patch.gz.b64)" -eq 10168
           base64 -d /tmp/nexa36.patch.gz.b64 > /tmp/nexa36.patch.gz
           gzip -dc /tmp/nexa36.patch.gz > /tmp/nexa36.patch
           patch -p1 --batch < /tmp/nexa36.patch
