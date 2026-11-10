@@ -1,0 +1,3 @@
+Nexa 1.0.33 / code 38
+Scope: Timeline create/edit sheet local Back + circular-only Mindspace entry.
+Data/schema: unchanged.

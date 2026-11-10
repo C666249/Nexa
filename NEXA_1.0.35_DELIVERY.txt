@@ -1,0 +1,5 @@
+Nexa 1.0.35 / versionCode 41
+Baseline: Nexa 1.0.34 Stable
+applicationId: com.nexa.app
+Scope: cross-day Todo drag + top/bottom auto-scroll + Today drop target
+Stable source ZIP required and main branch delivery required.

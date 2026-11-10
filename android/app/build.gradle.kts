@@ -11,8 +11,8 @@ android {
         applicationId = "com.nexa.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 23
-        versionName = "1.0.18"
+        versionCode = 41
+        versionName = "1.0.35"
         testInstrumentationRunner = "com.nexa.app.BackupInstrumentation"
     }
 
@@ -37,7 +37,7 @@ android {
     applicationVariants.all {
         val variantBuildType = buildType.name
         outputs.all {
-            (this as com.android.build.gradle.internal.api.ApkVariantOutputImpl).outputFileName = "Nexa-Stable-1.0.18-${variantBuildType}.apk"
+            (this as com.android.build.gradle.internal.api.ApkVariantOutputImpl).outputFileName = "Nexa-Stable-1.0.35-${variantBuildType}.apk"
         }
     }
 }

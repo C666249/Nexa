@@ -1,0 +1,10 @@
+Nexa 1.0.30 delivery
+versionCode=35
+Channels: Stable / Beta / Clou
+Focus: Mindspace Spatial Spread + post-projection collision + LOD readability.
+Stable: com.nexa.app / Nexa / 1.0.30
+Beta: com.nexa.app.beta / Nexa β / 1.0.30-beta.1
+Clou: com.nexa.app.clou / Nexa Clou / 1.0.30-clou.1
+Regression: Stable 145/145; Beta 145/145; Clou 145/145.
+Clou GitHub Actions build: SUCCESS, run 38194525874.
+Local Gradle attempts: blocked before compilation by services.gradle.org DNS resolution failure; see SELF_TEST.md.

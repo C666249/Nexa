@@ -7930,9 +7930,28 @@ function toggleNoteCreateMenu() {
   closeNoteSearchModeDrawer();
   var active=!menu.classList.contains('active'); menu.classList.toggle('active',active); menu.setAttribute('aria-hidden',active?'false':'true');
 }
+function moveTodoCreatedAtToDate(todo,dateKey) {
+  if (!todo || !/^\d{4}-\d{2}-\d{2}$/.test(String(dateKey || ''))) return false;
+  var parts=String(dateKey).split('-').map(Number), old=new Date(Number(todo.createdAt)||Date.now()), now=new Date(), target;
+  if (dateKey === getDateKey(now.getTime())) target = now;
+  else target = new Date(parts[0],parts[1]-1,parts[2],old.getHours(),old.getMinutes(),old.getSeconds(),old.getMilliseconds());
+  if (!Number.isFinite(target.getTime())) return false;
+  todo.createdAt=target.getTime(); return true;
+}
 document.addEventListener('nexa:todo-reorder',function(e){
-  var detail=e.detail||{}, key=String(detail.dateKey||''), status=detail.statusGroup==='completed'?'completed':'active', ids=Array.isArray(detail.ids)?detail.ids.map(Number):[]; if(!key||!ids.length)return;
-  try{var map=todoOrderMap();map[key+':'+status]=ids;localStorage.setItem(TODO_ORDER_KEY,JSON.stringify(map));}catch(err){}
+  var detail=e.detail||{}, targetKey=String(detail.targetDateKey||detail.dateKey||''), sourceKey=String(detail.sourceDateKey||targetKey), status=detail.statusGroup==='completed'?'completed':'active', ids=Array.isArray(detail.ids)?detail.ids.map(Number):[], sourceIds=Array.isArray(detail.sourceIds)?detail.sourceIds.map(Number):[], movedId=Number(detail.movedId);
+  if(!targetKey||!ids.length||!movedId)return;
+  var map=todoOrderMap();
+  map[targetKey+':'+status]=ids;
+  if(sourceKey&&sourceKey!==targetKey){if(sourceIds.length)map[sourceKey+':'+status]=sourceIds;else delete map[sourceKey+':'+status];}
+  try{localStorage.setItem(TODO_ORDER_KEY,JSON.stringify(map));}catch(err){}
+  if(sourceKey!==targetKey){
+    var todo=todos.find(function(item){return Number(item.id)===movedId;});
+    if(todo&&moveTodoCreatedAtToDate(todo,targetKey)){
+      saveTodos(); render(); updateStats();
+      showToast(targetKey===getDateKey(Date.now())?'已移到今天':'已移动到 '+targetKey.replace(/-/g,'.'));
+    }
+  }
 });
 document.addEventListener('nexa:category-reorder',function(e){
   var order=(e.detail&&Array.isArray(e.detail.order)?e.detail.order:[]).filter(function(cat){return cat&&cat!=='全部';});

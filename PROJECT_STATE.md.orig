@@ -1,0 +1,10 @@
+# Nexa Project State
+
+Current release: 1.0.33 / versionCode 38.
+
+Channels:
+- Stable: com.nexa.app / Nexa / 1.0.33
+- Beta: com.nexa.app.beta / Nexa β / 1.0.33-beta.1
+- Clou: com.nexa.app.clou / Nexa Clou / 1.0.33-clou.1
+
+1.0.33 is a focused navigation/UI release. Timeline editor sheets consume Back locally before the Timeline route can return home. The Timeline Mindspace entry is now circular-only.

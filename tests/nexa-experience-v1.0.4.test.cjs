@@ -34,12 +34,15 @@ test('completion motion covers Todo, checklist children and Daily with drawn SVG
   assert.match(css, /todo-item\.nexa-completing[\s\S]*nexaStrikeWrite/);
 });
 
-test('Todo drag reorder persists within date and completion group and uses spring displacement', () => {
+test('Todo drag reorder persists within and across date groups with spring displacement', () => {
   assert.match(motion, /function enableTodoReorder\(/);
-  assert.match(motion, /statusGroup:s\.status,ids,movedId/);
+  assert.match(motion, /sourceDateKey:s\.date,targetDateKey:targetDate/);
+  assert.match(motion, /statusGroup:s\.status,ids:targetIds,sourceIds,movedId/);
   assert.match(motion, /duration:320,easing:ease\.spring/);
+  assert.match(motion, /todoEdgeScrollVelocity/);
   assert.match(html, /TODO_ORDER_KEY\s*=\s*'nexa_todo_order_v1'/);
-  assert.match(html, /map\[key\+':'\+status\]=ids/);
+  assert.ok(html.includes("map[targetKey+':'+status]=ids"));
+  assert.match(html, /moveTodoCreatedAtToDate/);
   assert.match(html, /sortTodoGroup\(items, dateKey\)/);
   assert.match(html, /todo-completed-divider/);
 });

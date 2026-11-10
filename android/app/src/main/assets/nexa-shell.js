@@ -7,6 +7,7 @@
     todo:'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0 M8 12l3 3 5-6',
     notes:'M6 3h8l4 4v14H6Z M14 3v5h5 M9 12h6 M9 16h4',
     daily:'M4 5h16v16H4Z M8 3v5 M16 3v5 M4 10h16',
+    timeline:'M7 4v16 M7 6h4 M7 12h7 M7 18h5 M5 6h4 M5 12h4 M5 18h4',
     space:'M4 4h6v6H4Z M14 4h6v6h-6Z M4 14h6v6H4Z M14 14h6v6h-6Z',
     search:'M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0 M15 15l6 6',
     settings:'M4 7h16 M4 17h16 M8 4v6 M16 14v6',
@@ -16,14 +17,14 @@
     ai:'M12 3l2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z'
   };
   const icon=name=>'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+icons[name]+'"/></svg>';
-  const labels={home:'首页',todo:'Todo',notes:'Note',daily:'Daily',space:'Space'};
-  let active='home', navigating=false;
+  const labels={home:'首页',todo:'Todo',notes:'Note',timeline:'Timeline',space:'Space'};
+  let active='home', navigating=false,pendingNavigation=null;
   const scrolls={};
   const homeMarkup=new WeakMap();
   let calendarCursor=new Date();
   const shell=document.createElement('main');
   shell.id='nexaPages'; shell.className='nexa-pages';
-  shell.innerHTML='<section id="nexaHome" class="nexa-page" aria-label="首页"></section><section id="nexaSpace" class="nexa-page" aria-label="Space"></section>';
+  shell.innerHTML='<section id="nexaHome" class="nexa-page" aria-label="首页"></section><section id="nexaTimeline" class="nexa-page" aria-label="Timeline"></section><section id="nexaSpace" class="nexa-page" aria-label="Space"></section>';
   document.body.appendChild(shell);
   const nav=document.createElement('nav'); nav.className='nexa-nav'; nav.id='nexaNav'; nav.setAttribute('aria-label','主导航');
   nav.innerHTML=Object.entries(labels).map(([key,label])=>'<button type="button" data-nexa-route="'+key+'" aria-label="'+label+'">'+icon(key)+'<span>'+label+'</span></button>').join('');
@@ -37,7 +38,7 @@
     active=NexaCore.route(page); document.body.dataset.nexaPage=active;
     let selectedButton=null;
     nav.querySelectorAll('button').forEach(button=>{
-      const selected=button.dataset.nexaRoute===active;
+      const selected=button.dataset.nexaRoute===active||(active==='daily'&&button.dataset.nexaRoute==='space');
       button.setAttribute('aria-current',selected?'page':'false');
       if(selected)selectedButton=button;
     });
@@ -45,11 +46,31 @@
     const title=document.querySelector('.header__title');
     if(title)title.textContent=active==='notes'?'Note':'Todo';
   }
-  function navigate(page){
+  function navigate(page,afterCommit){
     page=NexaCore.route(page);
-    if(navigating||page===active)return;
+    if(page===active){if(typeof afterCommit==='function')requestAnimationFrame(afterCommit);return;}
+    if(navigating){pendingNavigation={page,afterCommit};return;}
     const from=active;
     navigating=true;
+    let committed=false;
+    const commit=()=>{
+      if(committed)return;committed=true;
+      if(page==='todo'||page==='notes')applyMode(page);
+      else if(currentMode!=='todo')applyMode('todo');
+      pageState(page);
+      if(page==='home'){if(window.NexaMotion)NexaMotion.enterHome();renderHome();}
+      if(page==='timeline'&&window.NexaTimeline)NexaTimeline.render();
+      // Workspace's route observer owns its entry state and render; do not render twice.
+      if(page==='space'&&!window.NexaWorkspace)renderSpace();
+      if(page==='daily'){
+        if(nexaSurfaceState().daily||nexaSurfaceState().day!==dailyDateKey())renderDailyDrawer();
+        renderCalendar();
+      }
+      window.scrollTo({top:scrolls[page]||0,behavior:'instant'});
+      navigating=false;
+      if(typeof afterCommit==='function')requestAnimationFrame(afterCommit);
+      if(pendingNavigation){const next=pendingNavigation;pendingNavigation=null;requestAnimationFrame(()=>navigate(next.page,next.afterCommit));}
+    };
     try{
       // A programmatic destination must persist an open editor before changing its surface.
       if(isNoteEditorVisible())closeNoteEditor();
@@ -63,22 +84,16 @@
       closeDailyHistory(); closeDailyCalendar(); resetAllDailySwipeItems(null);
       closeFolderSidebar(); clearModeDrawerPreview();
       $('dailyDrawerOverlay').classList.remove('active','prepared');
-      if(page==='todo'||page==='notes')applyMode(page);
-      else if(currentMode!=='todo')applyMode('todo');
-      pageState(page);
-      if(page==='home'){if(window.NexaMotion)NexaMotion.enterHome();renderHome();}
-      // Workspace's route observer owns its entry state and render; do not render twice.
-      if(page==='space'&&!window.NexaWorkspace)renderSpace();
-      if(page==='daily'){
-        if(nexaSurfaceState().daily||nexaSurfaceState().day!==dailyDateKey())renderDailyDrawer();
-        renderCalendar();
-      }
-      if(window.NexaMotion)NexaMotion.markRouteMotion(document.body,from,page);
-      window.scrollTo({top:scrolls[page]||0,behavior:'instant'});
-    } finally {navigating=false;}
+      if(window.NexaMotion&&typeof NexaMotion.transitionRoute==='function')NexaMotion.transitionRoute(document.body,from,page,commit);
+      else{commit();if(window.NexaMotion)NexaMotion.markRouteMotion(document.body,from,page);}
+    }catch(error){
+      navigating=false;
+      if(!committed)commit();
+      throw error;
+    }
   }
   function syncMode(mode){if(!navigating)pageState(mode==='notes'?'notes':'todo');}
-  function back(){const next=NexaCore.back(active);if(next===null)return 'none';navigate(next);return 'nexa-home';}
+  function back(){const timelineLayer=window.NexaTimeline?.back?.()||'none';if(timelineLayer!=='none')return 'timeline-'+timelineLayer;if(window.NexaMindspace?.isOpen?.()){const layer=NexaMindspace.back?.()||'none';if(layer!=='none')return 'mindspace-'+layer;NexaMindspace.close();return 'mindspace';}const next=NexaCore.back(active);if(next===null)return 'none';navigate(next);return 'nexa-home';}
   function renderHome(){
     const now=new Date(),stats=NexaCore.dashboard(todos,notes,dailyTasks,now);
     const date=now.toLocaleDateString('zh-CN',{month:'long',day:'numeric'})+'　'+now.toLocaleDateString('zh-CN',{weekday:'long'});
@@ -94,7 +109,7 @@
       '<button class="nexa-add-row" data-nexa-action="add-todo">＋ 添加任务</button></section>'+
       '<section class="nexa-paper nexa-recent nexa-home-stack-card" data-nexa-stack style="--nexa-stack-index:1"><div class="nexa-section-head"><h2>最近笔记</h2><button data-nexa-route="notes">查看全部</button></div>'+
       (recentNotes.length?recentNotes.map(n=>'<button class="nexa-row" data-nexa-note="'+Number(n.id)+'"><span class="nexa-row-main">'+escapeHtml(n.title||'未命名笔记')+'<small>'+escapeHtml(notePlainPreview(n)||'开始记录你的想法')+'</small></span><span class="nexa-row-date">'+stamp(n.updatedAt||n.createdAt)+'</span><span class="nexa-chevron">›</span></button>').join(''):'<p class="nexa-empty">想法、灵感与记录，都可以留在这里。</p>')+'<button class="nexa-add-row" data-nexa-action="add-note">＋ 写一篇笔记</button></section>'+
-      '<section class="nexa-paper nexa-recent nexa-home-stack-card" data-nexa-stack style="--nexa-stack-index:2" id="nexaSchedule"><div class="nexa-section-head"><h2>今日日程</h2><button data-nexa-route="daily">每日事项 ›</button></div>'+
+      '<section class="nexa-paper nexa-recent nexa-home-stack-card" data-nexa-stack style="--nexa-stack-index:2" id="nexaSchedule"><div class="nexa-section-head"><h2>今日日程</h2><button data-nexa-route="space">到 Space ›</button></div>'+
       (stats.schedule.length?stats.schedule.map(s=>'<button class="nexa-row nexa-schedule-row" data-nexa-'+s.kind+'="'+s.id+'"><time>'+timeLabel(s.time)+'</time><span class="nexa-row-main">'+escapeHtml(s.text)+'<small>'+ (s.kind==='daily'?'每日事项':'任务提醒')+'</small></span><span class="nexa-schedule-state '+s.state+'">'+({done:'已完成',elapsed:'时间已过',upcoming:'待进行'}[s.state])+'</span></button>').join(''):'<p class="nexa-empty">今天没有定时安排。<br>为任务设置提醒，或添加每日事项，就会显示在这里。</p>')+'</section>';
     // Keep unchanged sections and their focused buttons alive during background refresh.
     const template=document.createElement('template');template.innerHTML=html;
@@ -116,7 +131,7 @@
       (topics.length?topics.map(t=>'<button class="nexa-row nexa-topic" style="--depth:'+Math.min(t.depth,8)+'" data-nexa-topic="'+t.id+'">'+icon('folder')+'<span class="nexa-row-main">'+escapeHtml(t.title||'未命名主题')+'</span><span class="nexa-count">'+notes.filter(n=>Number(n.topicId)===t.id).length+'</span><span class="nexa-chevron">›</span></button>').join(''):'<p class="nexa-empty">用主题，将零散的笔记慢慢连起来。</p>')+'</section>'+
       '<section class="nexa-paper nexa-recent"><div class="nexa-section-head"><h2>任务分类</h2></div>'+(cats.length?cats.map((c,i)=>'<button class="nexa-row" data-nexa-category="'+i+'">'+icon('space')+'<span class="nexa-row-main">'+escapeHtml(c)+'</span><span class="nexa-count">'+todos.filter(t=>t.category===c).length+'</span><span class="nexa-chevron">›</span></button>').join(''):'<p class="nexa-empty">创建任务时添加分类，即可在这里聚合查看。</p>')+'</section>'+
       '<section class="nexa-paper nexa-tools"><button data-nexa-action="ai">'+icon('ai')+'AI 助手</button><button data-nexa-action="recycle">'+icon('trash')+'回收站</button><button data-nexa-action="reminders">'+icon('clock')+'每日总结提醒</button><button data-nexa-action="help">'+icon('settings')+'使用指南</button></section>';
-    $('nexaSpace').querySelectorAll('[data-nexa-category]').forEach(button=>button.addEventListener('click',()=>{navigate('todo');selectCategory(cats[Number(button.dataset.nexaCategory)]);}));
+    $('nexaSpace').querySelectorAll('[data-nexa-category]').forEach(button=>button.addEventListener('click',()=>navigate('todo',()=>selectCategory(cats[Number(button.dataset.nexaCategory)]))));
   }
   function renderCalendar(){
     const y=calendarCursor.getFullYear(),m=calendarCursor.getMonth(),today=NexaCore.dateKey(new Date());
@@ -131,17 +146,17 @@
   document.addEventListener('click',event=>{
     const target=event.target.closest('button');if(!target)return;
     if(target.dataset.nexaRoute)navigate(target.dataset.nexaRoute);
-    if(target.dataset.nexaNote){navigate('notes');openNoteFromSurface(Number(target.dataset.nexaNote));}
-    if(target.dataset.nexaDaily){navigate('daily');const row=document.querySelector('[data-daily-id="'+Number(target.dataset.nexaDaily)+'"]');if(row){row.scrollIntoView({block:'center'});row.classList.add('highlight-flash');setTimeout(()=>row.classList.remove('highlight-flash'),1600);}}
-    if(target.dataset.nexaTopic){navigate('notes');navigateBreadcrumbTopic(Number(target.dataset.nexaTopic));}
-    if(target.dataset.nexaTodo){navigate('todo');searchQuery='';searchInput.value='';document.querySelector('.tab[data-tab="all"]').click();selectCategory('全部');const row=document.querySelector('.todo-item[data-id="'+Number(target.dataset.nexaTodo)+'"]');if(row){row.scrollIntoView({block:'center'});row.classList.add('highlight-flash');setTimeout(()=>row.classList.remove('highlight-flash'),1600);}}
+    if(target.dataset.nexaNote){navigate('notes',()=>openNoteFromSurface(Number(target.dataset.nexaNote)));}
+    if(target.dataset.nexaDaily){navigate('daily',()=>{const row=document.querySelector('[data-daily-id="'+Number(target.dataset.nexaDaily)+'"]');if(row){row.scrollIntoView({block:'center'});row.classList.add('highlight-flash');setTimeout(()=>row.classList.remove('highlight-flash'),1600);}});}
+    if(target.dataset.nexaTopic){navigate('notes',()=>navigateBreadcrumbTopic(Number(target.dataset.nexaTopic)));}
+    if(target.dataset.nexaTodo){navigate('todo',()=>{searchQuery='';searchInput.value='';document.querySelector('.tab[data-tab="all"]').click();selectCategory('全部');const row=document.querySelector('.todo-item[data-id="'+Number(target.dataset.nexaTodo)+'"]');if(row){row.scrollIntoView({block:'center'});row.classList.add('highlight-flash');setTimeout(()=>row.classList.remove('highlight-flash'),1600);}});}
     if(target.dataset.nexaMonth){calendarCursor=new Date(calendarCursor.getFullYear(),calendarCursor.getMonth()+Number(target.dataset.nexaMonth),1,12);renderCalendar();}
     if(target.dataset.nexaDay){openDailyHistory();dailyHistorySelectedKey=target.dataset.nexaDay;dailyHistoryCursor=new Date(dailyHistorySelectedKey+'T12:00:00');renderDailyHistoryCalendar();renderDailyHistorySheet();}
     const action=target.dataset.nexaAction;
-    if(action==='search'){navigate('notes');searchInput.focus();}
+    if(action==='search'){navigate('notes',()=>searchInput.focus());}
     if(action==='schedule')$('nexaSchedule').scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
-    if(action==='add-todo'){navigate('todo');$('fab').click();}
-    if(action==='add-note'){navigate('notes');const note=createNote('',null);noteOpenOrigin=captureNoteSurfaceContext();openNoteEditor(note.id,{enterEdit:true,focusTitle:true});}
+    if(action==='add-todo'){navigate('todo',()=>setTimeout(()=>$('fab').click(),360));}
+    if(action==='add-note'){navigate('notes',()=>{const note=createNote('',null);noteOpenOrigin=captureNoteSurfaceContext();openNoteEditor(note.id,{enterEdit:true,focusTitle:true});});}
     if(action==='new-topic')showPrompt('新建主题','主题名称',value=>{if(value.trim()){createTopic(value.trim(),null);renderSpace();}});
     if(action==='ai')openAiChat();
     if(action==='recycle')openRecycleModal();
@@ -157,7 +172,7 @@
     refreshFrame=requestAnimationFrame(()=>{refreshFrame=0;if(active==='home')renderHome();});
   }
   window.NexaShell={navigate,syncMode,back,renderHome,dataChanged,refreshDaily:renderCalendar,get page(){return active;}};
-  pageState('home');renderHome();
+  pageState('home');renderHome();if(window.NexaTimeline)NexaTimeline.render();
   // App resumes across midnight: read-only aggregate refresh; never changes persisted records.
   document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(active==='home')renderHome();if(active==='daily'){if(nexaSurfaceState().daily||nexaSurfaceState().day!==dailyDateKey())renderDailyDrawer();renderCalendar();}}});
   setInterval(()=>{if(!document.hidden&&active==='home')renderHome();},60000);
