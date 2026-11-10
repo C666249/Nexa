@@ -61,19 +61,7 @@ jobs:
             printf '\n'
           } > /tmp/nexa-fixed-signing/GITHUB_SECRETS.txt
 
-          cat > /tmp/bootstrap-public.pem <<'PUB'
------BEGIN PUBLIC KEY-----
-MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEA4igugm6vrmt3whMEGdYv
-av5TzrHnA5dDgqisryP3uLN+4j0OFExsPMTV3xgHMUZlS89XneVnM993Tbr4PKJU
-mhH5xQ5ew/qz+qiNLdQJ5Hs5i1PIPGm4j4jsYA6VWEtCL1vZfc6aBlk6v3NALkwK
-D+PEU7lBXzkf/2pxUGkoVFXuTQf761qP5qQHarhnzGsGjhpLBaMVqUJa4yteU2KQ
-FRhl0sP31CsSo1w+pboni8YVN7cwBJ6Q+ipS42iiy1MPLuJh8VjQ8h68hpkZxUxT
-Qh3pORVkzNlUGpstwCgTBjSbw1h/prxc9/4sKCQbk4eN76k7ClibpNlATSiZFqtB
-9Q/9mb887fofUZJg0WlO6jYcVg9fsThAl/w8z4EOIvtocmymBCL3Ut+w13lt8WHz
-wOK/rS7syjsEc63cch9Sr4t3gkD9Hn8IUJsd8JhGhMJTvFhwHhOONwTeR6cRC0Vq
-yKOSNWQoYSPlnGOM9IbTmPZKBSyA0ynXVXO53W/UwLRLAgMBAAE=
------END PUBLIC KEY-----
-PUB
+          echo 'LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQm9qQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FZOEFNSUlCaWdLQ0FZRUE0aWd1Z202dnJtdDN3aE1FR2RZdgphdjVUenJIbkE1ZERncWlzcnlQM3VMTis0ajBPRkV4c1BNVFYzeGdITVVabFM4OVhuZVZuTTk5M1RicjRQS0pVCm1oSDV4UTVldy9xeitxaU5MZFFKNUhzNWkxUElQR200ajRqc1lBNlZXRXRDTDF2WmZjNmFCbGs2djNOQUxrd0sKRCtQRVU3bEJYemtmLzJweFVHa29WRlh1VFFmNzYxcVA1cVFIYXJobnpHc0dqaHBMQmFNVnFVSmE0eXRlVTJLUQpGUmhsMHNQMzFDc1NvMXcrcGJvbmk4WVZON2N3Qko2UStpcFM0MmlpeTFNUEx1Smg4VmpROGg2OGhwa1p4VXhUClFoM3BPUlZrek5sVUdwc3R3Q2dUQmpTYncxaC9wcnhjOS80c0tDUWJrNGVONzZrN0NsaWJwTmxBVFNpWkZxdEIKOVEvOW1iODg3Zm9mVVpKZzBXbE82alljVmc5ZnNUaEFsL3c4ejRFT0l2dG9jbXltQkNMM1V0K3cxM2x0OFdIegp3T0svclM3c3lqc0VjNjNjY2g5U3I0dDNna0Q5SG44SVVKc2Q4SmhHaE1KVHZGaHdIaE9PTndUZVI2Y1JDMFZxCnlLT1NOV1FvWVNQbG5HT005SWJUbVBaS0JTeUEweW5YVlhPNTNXL1V3TFJMQWdNQkFBRT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==' | base64 -d > /tmp/bootstrap-public.pem
           openssl pkeyutl -encrypt -pubin             -inkey /tmp/bootstrap-public.pem             -in /tmp/nexa-fixed-signing/GITHUB_SECRETS.txt             -out /tmp/deliver/GITHUB_SECRETS.txt.enc             -pkeyopt rsa_padding_mode:oaep             -pkeyopt rsa_oaep_md:sha256
 
           sha256sum /tmp/deliver/Nexa-Cloud-1.0.36-FixedSigned.apk             /tmp/deliver/nexa-cloud-release.jks             > /tmp/deliver/SHA256SUMS.txt
