@@ -23,16 +23,26 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Restore exact Nexa 1.0.33 Stable source
+      - name: Prepare restore directories
         shell: bash
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           rm -rf /tmp/nexa-prev /tmp/nexa-work
           mkdir -p /tmp/nexa-prev /tmp/nexa-work
-          curl -fL             -H "Authorization: Bearer $GITHUB_TOKEN"             -H "Accept: application/vnd.github+json"             "https://api.github.com/repos/C666249/Nexa/actions/artifacts/11744015548/zip"             -o /tmp/nexa-prev/artifact.zip
-          unzip -q /tmp/nexa-prev/artifact.zip -d /tmp/nexa-prev
+
+      - name: Download exact Nexa 1.0.33 deliverables
+        uses: actions/download-artifact@v4
+        with:
+          name: Nexa-1.0.33-Deliverables
+          path: /tmp/nexa-prev
+          github-token: ${{ github.token }}
+          repository: C666249/Nexa
+          run-id: 38242111319
+
+      - name: Restore exact Nexa 1.0.33 Stable source
+        shell: bash
+        run: |
+          set -euo pipefail
           test -f /tmp/nexa-prev/Nexa-V1.0.33-Stable.zip
           unzip -q /tmp/nexa-prev/Nexa-V1.0.33-Stable.zip -d /tmp/nexa-work
           grep -F 'versionName = "1.0.33"' /tmp/nexa-work/android/app/build.gradle.kts
