@@ -233,6 +233,15 @@ jobs:
           Path('PROJECT_STATE.md').write_text("# Nexa Project State\\n\\n## Current release: 1.0.35 (versionCode 41)\\n\\n- Stable package: com.nexa.app; app name: Nexa.\\n- Baseline: verified Nexa 1.0.34 Stable rebuilt from the 1.0.33 Stable release artifact.\\n- Todo long-press drag now crosses date groups instead of being limited to one day.\\n- Holding a dragged Todo near the viewport top or bottom continuously auto-scrolls with distance-based acceleration.\\n- An overdue Todo can be dragged all the way to Today; if Today has no rows, a temporary Today drop target appears and becomes persistent only after drop.\\n- Cross-day drop updates the task day while preserving completion state, checklist, category, reminder and other task data.\\n- Same-day reorder, merge/drag behavior, Peek, spring displacement and haptic feedback remain available.\\n- UI WebView sources and Android packaged assets are mirrored exactly.\\n- No Todo storage schema is renamed or migrated.\\n\\n## Validation\\n\\n- Full Node regression suite includes the 1.0.35 cross-day drag/edge-scroll tests.\\n- Stable Android debug build is compiled in GitHub Actions before promotion to main.\\n- Main promotion is gated behind all verification and compilation steps.\\n")
           PY
 
+          # Use the already locally verified 1.0.35 identity test verbatim.
+          base64 -d "$GITHUB_WORKSPACE/.stable35/identity.b64" > tests/nexa-identity.test.cjs
+
+          # Mirror every top-level WebView source into the Android package so no stale asset survives.
+          for src in ui/*; do
+            [ -f "$src" ] || continue
+            cp "$src" "android/app/src/main/assets/$(basename "$src")"
+          done
+
       - name: Verify Nexa Stable 1.0.35
         shell: bash
         run: |
