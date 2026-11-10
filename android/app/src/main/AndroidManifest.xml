@@ -26,8 +26,8 @@
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_nexa"
-        android:roundIcon="@mipmap/ic_nexa"
+        android:icon="@mipmap/ic_nexa_star"
+        android:roundIcon="@mipmap/ic_nexa_star"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.Nexa">
@@ -38,12 +38,17 @@
             android:launchMode="singleTask"
             android:documentLaunchMode="never"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
-            android:windowSoftInputMode="adjustNothing">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            android:windowSoftInputMode="adjustNothing" />
+
+        <activity-alias android:name=".LauncherStar" android:targetActivity=".MainActivity" android:exported="true" android:enabled="true" android:icon="@mipmap/ic_nexa_star" android:label="@string/app_name">
+            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".LauncherN" android:targetActivity=".MainActivity" android:exported="true" android:enabled="false" android:icon="@mipmap/ic_nexa" android:label="@string/app_name">
+            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".LauncherWarm" android:targetActivity=".MainActivity" android:exported="true" android:enabled="false" android:icon="@mipmap/ic_nexa_warm" android:label="@string/app_name">
+            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+        </activity-alias>
 
 
         <activity

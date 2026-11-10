@@ -13,13 +13,13 @@ function channel(){
   return 'stable';
 }
 
-test('Nexa 1.0.35 channel identity, version and output name are explicit', () => {
+test('Nexa 1.0.36 cloud channel identity, version and output name are explicit', () => {
   const build = read('android/app/build.gradle.kts'),ch=channel();
-  const expected={stable:['com.nexa.app','1.0.35','Nexa-Stable-1.0.35-'],beta:['com.nexa.app.beta','1.0.35-beta.1','Nexa-Beta-1.0.35-beta.1-'],clou:['com.nexa.app.clou','1.0.35-clou.1','Nexa-Clou-1.0.35-clou.1-']}[ch];
+  const expected={stable:['com.nexa.app.cloud','1.0.36','Nexa-Cloud-1.0.36-'],beta:['com.nexa.app.beta','1.0.35-beta.1','Nexa-Beta-1.0.35-beta.1-'],clou:['com.nexa.app.clou','1.0.35-clou.1','Nexa-Clou-1.0.35-clou.1-']}[ch];
   assert.match(build, /namespace = "com\.nexa\.app"/);
   assert.ok(build.includes(`applicationId = "${expected[0]}"`));
   assert.ok(build.includes(`versionName = "${expected[1]}"`));
-  assert.match(build, /versionCode = 41/);
+  assert.match(build, /versionCode = 42/);
   assert.ok(build.includes(expected[2]));
   assert.match(read('settings.gradle.kts'), /rootProject.name = "Nexa"/);
   const native = walk(path.join(root, 'android/app/src/main/java')).map(f => fs.readFileSync(f, 'utf8')).join('\n');
