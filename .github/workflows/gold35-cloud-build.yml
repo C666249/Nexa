@@ -46,7 +46,6 @@ jobs:
           old='''        <activity
               android:name=".MainActivity"
               android:exported="true"
-              android:screenOrientation="portrait"
               android:launchMode="singleTask"
               android:documentLaunchMode="never"
               android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
