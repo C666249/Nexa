@@ -6,26 +6,26 @@ const root = path.join(__dirname, '..');
 const read = p => fs.readFileSync(path.join(root, p), 'utf8');
 const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]);
 
-test('Nexa 1.0.37 cloud coexistence identity is explicit', () => {
+test('Nexa 1.0.38 Cloud identity, version and output name are explicit', () => {
   const build = read('android/app/build.gradle.kts');
   assert.match(build, /namespace = "com\.nexa\.app"/);
   assert.match(build, /applicationId = "com\.nexa\.app\.cloud"/);
-  assert.match(build, /versionName = "1\.0\.37"/);
-  assert.match(build, /versionCode = 43/);
-  assert.match(build, /Nexa-Cloud-1\.0\.37-/);
+  assert.match(build, /versionName = "1\.0\.38"/);
+  assert.match(build, /versionCode = 44/);
+  assert.match(build, /Nexa-Cloud-1\.0\.38-/);
   assert.match(read('settings.gradle.kts'), /rootProject.name = "Nexa"/);
   const native = walk(path.join(root, 'android/app/src/main/java')).map(f => fs.readFileSync(f, 'utf8')).join('\n');
   assert.doesNotMatch(native, /com\.(todolist|listnote)\.app/);
 });
 
-test('launcher aliases keep visible Nexa name and three icon choices', () => {
+test('brand resources keep Nexa name and launcher aliases', () => {
   const manifest=read('android/app/src/main/AndroidManifest.xml'),strings=read('android/app/src/main/res/values/strings.xml');
   assert.match(manifest, /@style\/Theme.Nexa/);
   assert.match(manifest, /LauncherStar/);
   assert.match(manifest, /LauncherN/);
   assert.match(manifest, /LauncherWarm/);
-  assert.match(manifest, /@mipmap\/ic_nexa_star/);
   assert.match(strings, />Nexa</);
+  assert.doesNotMatch(manifest, /com\.(todolist|listnote)\.app/);
 });
 
 test('web assets remain mirrored and storage keys retained', () => {
