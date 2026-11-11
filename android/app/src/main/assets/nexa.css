@@ -698,3 +698,20 @@ body.nexa-mindspace-open>.nexa-nav,body.nexa-mindspace-open>#fab{opacity:0!impor
 
 /* Nexa 1.0.36 launcher picker only; route/gesture CSS remains from 1.0.35. */
 .nexa-launcher-picker{display:grid;gap:10px;margin-top:12px}.nexa-launcher-choice{display:grid;grid-template-columns:58px 1fr;gap:12px;align-items:center;width:100%;padding:10px;border:1px solid #e6ddcf;border-radius:16px;background:#fffdf8;color:#2c2925;text-align:left}.nexa-launcher-choice.active{border-color:#b39a79;box-shadow:0 0 0 2px #b39a7920}.nexa-launcher-choice strong,.nexa-launcher-choice small{display:block}.nexa-launcher-choice strong{font-size:14px}.nexa-launcher-choice small{margin-top:4px;color:#8b7963;font-size:11px}.nexa-launcher-thumb{width:52px;height:52px;border-radius:14px;background-position:center;background-size:cover;background-repeat:no-repeat;box-shadow:inset 0 0 0 1px #ffffff5c,0 4px 12px #382d2212}.nexa-launcher-thumb--star{background:radial-gradient(circle at 50% 50%,#fff 0 5%,#d8bdff 6% 11%,transparent 12%),linear-gradient(135deg,#0d0b1c,#4b2774)}.nexa-launcher-thumb--n{background:#f4eee5}.nexa-launcher-thumb--n:after{content:'N';display:grid;place-items:center;height:100%;font:700 25px/1 -apple-system,BlinkMacSystemFont,sans-serif;color:#7a6145}.nexa-launcher-thumb--warm{background:linear-gradient(145deg,#f7e8cf,#b7d4b2)}
+
+
+/* ===== Nexa 1.0.38 · FMV 3.2.1 distilled motion layer ===== */
+.todo-item.nexa-longpress-ready{z-index:90;box-shadow:0 10px 30px rgba(70,53,37,.13);transform:scale(1.012);transition:transform 120ms cubic-bezier(.18,.9,.24,1),box-shadow 180ms ease}
+.todo-item.nexa-reorder-source{opacity:.12;box-shadow:none!important;transition:opacity 90ms ease}
+.nexa-reorder-clone{position:fixed!important;z-index:14000!important;margin:0!important;pointer-events:none!important;transform-origin:center center;box-shadow:0 20px 44px rgba(63,48,35,.19)!important;filter:saturate(1.015);will-change:top,transform}
+.todo-list.nexa-reorder-active .todo-item:not(.nexa-reorder-source){transition:transform 168ms cubic-bezier(.20,.78,.20,1)}
+.todo-list.nexa-reorder-active .date-divider.nexa-reorder-target-date .date-divider__text{color:#9f7650;transform:scale(1.035);transition:transform 180ms cubic-bezier(.18,.9,.24,1),color 180ms ease}
+.timeline-event-chevron,.timeline-plan-chevron{display:grid;place-items:center;width:22px;height:22px;transform:none!important}
+.timeline-fmv-chevron{display:block;box-sizing:content-box;width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform-origin:center center;transform:translateY(-2px) rotate(45deg)}
+.timeline-event.timeline-disclosure-animating .timeline-fmv-chevron,.timeline-plan.timeline-plan-animating .timeline-fmv-chevron{transition:transform 420ms cubic-bezier(.22,1.35,.36,1)}
+.timeline-event.is-expanded .timeline-event-chevron .timeline-fmv-chevron,.timeline-plan.is-plan-expanded .timeline-plan-chevron .timeline-fmv-chevron{transform:translateY(2px) rotate(225deg)}
+.nexa-page-head h1,.timeline-stats,.timeline-new-event,.nexa-paper,.nexa-nav button svg{transform-origin:center}
+.nexa-nav button svg{will-change:transform}
+@media(prefers-reduced-motion:reduce){
+ .todo-item.nexa-longpress-ready,.todo-item.nexa-reorder-source,.nexa-reorder-clone,.timeline-fmv-chevron{transition:none!important;animation:none!important}
+}
