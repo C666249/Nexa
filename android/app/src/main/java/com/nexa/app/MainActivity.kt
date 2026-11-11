@@ -835,7 +835,39 @@ class MainActivity : AppCompatActivity() {
         } catch (_: Exception) { "failed" }
     }
 
+    private fun launcherIconKey(): String =
+    getSharedPreferences("nexa_launcher", Context.MODE_PRIVATE).getString("icon", "star") ?: "star"
+
+private fun setLauncherIcon(keyRaw: String): String {
+    val key = when (keyRaw) { "star", "n", "warm" -> keyRaw else -> return "invalid" }
+    val base = MainActivity::class.java.packageName
+    val aliases = linkedMapOf(
+        "star" to "$base.LauncherStar",
+        "n" to "$base.LauncherN",
+        "warm" to "$base.LauncherWarm"
+    )
+    return try {
+        val target = android.content.ComponentName(this, aliases.getValue(key))
+        packageManager.setComponentEnabledSetting(
+            target,
+            PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+            PackageManager.DONT_KILL_APP
+        )
+        aliases.filterKeys { it != key }.values.forEach { className ->
+            packageManager.setComponentEnabledSetting(
+                android.content.ComponentName(this, className),
+                PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                PackageManager.DONT_KILL_APP
+            )
+        }
+        getSharedPreferences("nexa_launcher", Context.MODE_PRIVATE).edit().putString("icon", key).apply()
+        key
+    } catch (_: Exception) { "failed" }
+}
+
     inner class AndroidBridge {
+        @JavascriptInterface fun getLauncherIcon(): String = launcherIconKey()
+        @JavascriptInterface fun setLauncherIcon(key: String): String = this@MainActivity.setLauncherIcon(key)
         @JavascriptInterface @Synchronized fun beginNexaBackup(web: String, importing: Boolean): String {
             if (backupBusy || web.toByteArray(Charsets.UTF_8).size > 32 * 1024 * 1024) return "当前操作未完成或数据超出安全大小"
             try { JSONObject(web) } catch (_: Exception) { return "数据无效" }

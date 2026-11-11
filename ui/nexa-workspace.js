@@ -83,7 +83,7 @@
  function toolButton(label,sub,attrs){return '<button class="nexa-space-tool" '+attrs+'><span><strong>'+esc(label)+'</strong><small>'+esc(sub)+'</small></span><span class="nexa-space-tool-chevron">'+spaceIcon('chevron')+'</span></button>';}
  function renderTools(el){
   el.innerHTML=pageHead('工具与设置','常用工具独立成页，不再被上百条内容推到最底部。','')+
-   '<section class="nexa-paper nexa-space-tools-group"><h2>个性化</h2>'+toolButton('笔记工具栏自定义','调整常驻工具和更多工具的顺序','data-nx-toolbar')+'</section>'+
+   '<section class="nexa-paper nexa-space-tools-group"><h2>个性化</h2>'+toolButton('应用图标','星芒 / 经典 N / 暖色清单','data-nx-app-icon')+toolButton('笔记工具栏自定义','调整常驻工具和更多工具的顺序','data-nx-toolbar')+'</section>'+
    '<section class="nexa-paper nexa-space-tools-group"><h2>效率工具</h2>'+toolButton('AI 助手','用自然语言创建、查询和整理待办','data-nexa-action="ai"')+toolButton('回收站','恢复误删任务或永久清理','data-nexa-action="recycle"')+toolButton('每日总结提醒','设置每天固定时间的总结提醒','data-nexa-action="reminders"')+toolButton('使用指南','查看手势与主要功能说明','data-nexa-action="help"')+'</section>'+
    '<section class="nexa-paper nexa-space-tools-group"><h2>数据</h2>'+toolButton('数据迁移与备份','完整导出或从备份恢复 Nexa','data-nx-migration')+'</section>';
  }
@@ -148,6 +148,13 @@
  let toolbarOrder;try{toolbarOrder=NexaToolbar.normalize(JSON.parse(localStorage.getItem('nexa_toolbar_v1')));}catch(e){toolbarOrder=NexaToolbar.normalize(null);}
  function layoutToolbar(){const parts=NexaToolbar.split(toolbarOrder);parts.primary.forEach(id=>primary.insertBefore(toolNodes.get(id),more));parts.more.forEach(id=>secondary.append(toolNodes.get(id)));syncNoteImeLayout();}
  layoutToolbar();
+ function appIconPicker(){
+  let current='star';
+  try{if(typeof AndroidBridge!=='undefined'&&AndroidBridge.getLauncherIcon)current=AndroidBridge.getLauncherIcon()||'star';}catch(e){}
+  if(!['star','n','warm'].includes(current))current='star';
+  const items=[['star','星芒','默认'],['n','经典 N','经典'],['warm','暖色清单','温暖']];
+  dialog('应用图标','<p class="nexa-muted">只更换桌面图标，不改变 Nexa 内部主题。部分桌面可能需要几秒刷新。</p><div class="nexa-launcher-picker">'+items.map(([key,label,sub])=>'<button data-nx-icon-choice="'+key+'" class="nexa-launcher-choice '+(current===key?'active':'')+'"><span class="nexa-launcher-thumb nexa-launcher-thumb--'+key+'"></span><span><strong>'+label+'</strong><small>'+sub+(current===key?' · 当前':'')+'</small></span></button>').join('')+'</div>');
+ }
  function configureToolbar(){let draft=toolbarOrder.slice();dialog('自定义笔记工具栏','');const draw=()=>{
   $('nexaDialogBody').innerHTML='<p class="nexa-muted">前四个工具常驻下方；其余工具点击 ··· 展开。用上下按钮排序，也可以直接调整到常用区。</p>'+draft.map((id,index)=>{const tool=NexaToolbar.tools.find(t=>t.id===id);return (index===0?'<h3 class="nexa-toolbar-section">常用工具 · 4 个</h3>':index===4?'<h3 class="nexa-toolbar-section">更多工具</h3>':'')+'<div class="nexa-tool-order" data-tool="'+id+'"><span>'+esc(tool.label)+'</span><button data-order-up="'+id+'" aria-label="上移 '+esc(tool.label)+'" '+(index===0?'disabled':'')+'>↑</button><button data-order-down="'+id+'" aria-label="下移 '+esc(tool.label)+'" '+(index===draft.length-1?'disabled':'')+'>↓</button><button data-order-pin="'+id+'">'+(index<4?'移到更多':'设为常用')+'</button></div>';}).join('')+'<button id="nexaToolbarSave" class="nexa-primary">保存布局</button><button id="nexaToolbarReset" class="nexa-secondary">恢复默认顺序</button>';
   $('nexaDialogBody').querySelectorAll('[data-order-up],[data-order-down],[data-order-pin]').forEach(b=>b.onclick=()=>{const id=b.dataset.orderUp||b.dataset.orderDown||b.dataset.orderPin,index=draft.indexOf(id);draft=NexaToolbar.move(draft,id,b.dataset.orderUp?index-1:b.dataset.orderDown?index+1:index<4?4:3);const y=overlay.querySelector('section').scrollTop;draw();overlay.querySelector('section').scrollTop=y;});
@@ -165,6 +172,16 @@
   if(b.hasAttribute('data-nx-more')){libraryLimit+=SPACE_BATCH;renderResults();return;}
   if(b.hasAttribute('data-nx-favorite-more')){favoriteLimit+=SPACE_BATCH;renderFavoriteResults();return;}
   if(b.hasAttribute('data-nx-new')){manage(null);return;}
+  if(b.hasAttribute('data-nx-app-icon')){appIconPicker();return;}
+  if(b.dataset.nxIconChoice){
+   safe(()=>{
+    if(typeof AndroidBridge==='undefined'||!AndroidBridge.setLauncherIcon)throw Error('请在 Android 应用中切换图标');
+    const result=AndroidBridge.setLauncherIcon(b.dataset.nxIconChoice);
+    if(!['star','n','warm'].includes(result))throw Error('图标切换失败');
+    appIconPicker();showToast('桌面图标已切换');
+   });
+   return;
+  }
   if(b.hasAttribute('data-nx-toolbar')){configureToolbar();return;}
   if(b.dataset.nxManage){manage(b.dataset.nxManage);return;}
   if(b.hasAttribute('data-nx-select')){selectedTag=b.dataset.nxSelect;libraryLimit=SPACE_BATCH;spaceNavigate('library');return;}

@@ -1,1 +1,9 @@
-# Nexa Project State\n\n## Current release: 1.0.35 (versionCode 41)\n\n- Stable package: com.nexa.app; app name: Nexa.\n- Baseline: verified Nexa 1.0.34 Stable rebuilt from the 1.0.33 Stable release artifact.\n- Todo long-press drag now crosses date groups instead of being limited to one day.\n- Holding a dragged Todo near the viewport top or bottom continuously auto-scrolls with distance-based acceleration.\n- An overdue Todo can be dragged all the way to Today; if Today has no rows, a temporary Today drop target appears and becomes persistent only after drop.\n- Cross-day drop updates the task day while preserving completion state, checklist, category, reminder and other task data.\n- Same-day reorder, merge/drag behavior, Peek, spring displacement and haptic feedback remain available.\n- UI WebView sources and Android packaged assets are mirrored exactly.\n- No Todo storage schema is renamed or migrated.\n\n## Validation\n\n- Full Node regression suite includes the 1.0.35 cross-day drag/edge-scroll tests.\n- Stable Android debug build is compiled in GitHub Actions before promotion to main.\n- Main promotion is gated behind all verification and compilation steps.\n
+# Nexa Project State
+
+## Current cloud coexistence release: 1.0.36 (versionCode 42)
+
+- Golden behavior baseline: Nexa 1.0.35 Stable commit 541fdf2353fb6922c1cb79d2e996e2868e6998b5.
+- Package id: com.nexa.app.cloud; visible app name remains Nexa.
+- Timeline, Todo gesture/reorder/cross-day drag, shell route, and motion owners are untouched from 1.0.35.
+- Default launcher icon is the purple starburst. Space > Tools & Settings can switch Star / classic N / warm checklist.
+- Full backup/restore remains the migration path from the old differently-signed installation.

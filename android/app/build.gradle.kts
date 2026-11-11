@@ -8,11 +8,11 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.nexa.app"
+        applicationId = "com.nexa.app.cloud"
         minSdk = 26
         targetSdk = 35
-        versionCode = 41
-        versionName = "1.0.35"
+        versionCode = 42
+        versionName = "1.0.36"
         testInstrumentationRunner = "com.nexa.app.BackupInstrumentation"
     }
 
@@ -37,7 +37,7 @@ android {
     applicationVariants.all {
         val variantBuildType = buildType.name
         outputs.all {
-            (this as com.android.build.gradle.internal.api.ApkVariantOutputImpl).outputFileName = "Nexa-Stable-1.0.35-${variantBuildType}.apk"
+            (this as com.android.build.gradle.internal.api.ApkVariantOutputImpl).outputFileName = "Nexa-Cloud-1.0.36-${variantBuildType}.apk"
         }
     }
 }
