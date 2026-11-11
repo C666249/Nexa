@@ -153,8 +153,8 @@ jobs:
           # Space: one isolated setting row + dialog + click handler.
           p=Path('ui/nexa-workspace.js')
           s=p.read_text()
-          old="'<section class="nexa-paper nexa-space-tools-group"><h2>个性化</h2>'+toolButton('笔记工具栏自定义','调整常驻工具和更多工具的顺序','data-nx-toolbar')+'</section>'+"
-          new="'<section class="nexa-paper nexa-space-tools-group"><h2>个性化</h2>'+toolButton('应用图标','星芒 / 经典 N / 暖色清单','data-nx-app-icon')+toolButton('笔记工具栏自定义','调整常驻工具和更多工具的顺序','data-nx-toolbar')+'</section>'+"
+          old="""'<section class="nexa-paper nexa-space-tools-group"><h2>个性化</h2>'+toolButton('笔记工具栏自定义','调整常驻工具和更多工具的顺序','data-nx-toolbar')+'</section>'+"""
+          new="""'<section class="nexa-paper nexa-space-tools-group"><h2>个性化</h2>'+toolButton('应用图标','星芒 / 经典 N / 暖色清单','data-nx-app-icon')+toolButton('笔记工具栏自定义','调整常驻工具和更多工具的顺序','data-nx-toolbar')+'</section>'+"""
           if old not in s: raise SystemExit('tools personalization row missing')
           s=s.replace(old,new,1)
 
