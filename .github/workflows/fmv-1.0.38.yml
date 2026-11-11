@@ -1,0 +1,82 @@
+name: Nexa 1.0.38 FMV Build
+
+on:
+  push:
+    branches:
+      - fmv-v1.0.38
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Verify 1.0.38 functional fixes and FMV mirrors
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F "const routes=['home','todo','notes','timeline','daily','space']" ui/nexa-core.js
+          grep -F "startDrag();},330)" ui/nexa-motion.js
+          ! grep -F "showPeek(row,'todo'" ui/nexa-motion.js
+          ! grep -F "showPeek(s.row,'todo'" ui/nexa-motion.js
+          ! grep -F "peekShown" ui/nexa-motion.js
+          grep -F "timeline-fmv-chevron" ui/nexa-timeline.js
+          grep -F "FMV 3.2.1 distilled motion layer" ui/nexa.css
+          grep -F 'applicationId = "com.nexa.app.cloud"' android/app/build.gradle.kts
+          grep -F 'versionCode = 44' android/app/build.gradle.kts
+          grep -F 'versionName = "1.0.38"' android/app/build.gradle.kts
+          cmp ui/nexa-core.js android/app/src/main/assets/nexa-core.js
+          cmp ui/nexa-motion.js android/app/src/main/assets/nexa-motion.js
+          cmp ui/nexa-timeline.js android/app/src/main/assets/nexa-timeline.js
+          cmp ui/nexa.css android/app/src/main/assets/nexa.css
+
+      - name: Run full regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check ui/nexa-motion.js
+          node --check ui/nexa-timeline.js
+          node --test tests/*.test.cjs tests/*.test.js
+
+      - name: Build Android debug and release APKs
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug :app:assembleRelease --no-daemon
+          mkdir -p deliver
+          cp android/app/build/outputs/apk/debug/*.apk deliver/Nexa-Cloud-1.0.38-FMV-Debug.apk
+          cp android/app/build/outputs/apk/release/*.apk deliver/Nexa-Cloud-1.0.38-FMV-Unsigned.apk
+
+      - name: Package source
+        shell: bash
+        run: |
+          set -euo pipefail
+          zip -qr deliver/Nexa-V1.0.38-Cloud-FMV-Source.zip . -x '.git/*' 'android/.gradle/*' 'android/app/build/*' 'deliver/*'
+          sha256sum deliver/*
+
+      - name: Promote verified 1.0.38 to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          CURRENT_MAIN="$(git rev-parse origin/main)"
+          git config user.name "Nexa Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git push origin HEAD:main --force-with-lease=main:$CURRENT_MAIN
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nexa-1.0.38-FMV-Deliverables
+          path: deliver/*
+          if-no-files-found: error
