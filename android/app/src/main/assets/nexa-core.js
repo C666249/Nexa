@@ -3,7 +3,7 @@
   if(typeof module==='object' && module.exports) module.exports=api;
   else root.NexaCore=api;
 })(typeof window==='undefined'?globalThis:window,function(){
-  const routes=['home','todo','notes','daily','space'];
+  const routes=['home','todo','notes','timeline','daily','space'];
   function route(value){return routes.includes(value)?value:'home';}
   function back(value){return route(value)==='home'?null:'home';}
   function dateKey(date){return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');}
