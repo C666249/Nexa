@@ -1,0 +1,110 @@
+name: Nexa 1.0.36 Gold35 Cloud Rebuild
+
+on:
+  push:
+    branches:
+      - cloud-v1.0.36-gold35
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Apply only the minimal 1.0.36 coexistence delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .release36/patch-00.b64 .release36/patch-01.b64 .release36/patch-02.b64 .release36/patch-03.b64 > /tmp/nexa36.patch.gz.b64
+          test "$(wc -c < /tmp/nexa36.patch.gz.b64)" -eq 9884
+          base64 -d /tmp/nexa36.patch.gz.b64 > /tmp/nexa36.patch.gz
+          gzip -dc /tmp/nexa36.patch.gz > /tmp/nexa36.patch
+          patch -p1 --batch < /tmp/nexa36.patch
+          mkdir -p android/app/src/main/res/mipmap-xxxhdpi
+          base64 -d .release36/star.webp.b64 > android/app/src/main/res/mipmap-xxxhdpi/ic_nexa_star.webp
+          base64 -d .release36/warm.webp.b64 > android/app/src/main/res/mipmap-xxxhdpi/ic_nexa_warm.webp
+          rm -rf .release36
+          test -z "$(find . -name '*.rej' -print -quit)"
+
+      - name: Prove 1.0.35 interaction owners are untouched
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code 541fdf2353fb6922c1cb79d2e996e2868e6998b5 --             ui/nexa-motion.js ui/nexa-shell.js ui/nexa-timeline.js ui/todo.html             android/app/src/main/assets/nexa-motion.js             android/app/src/main/assets/nexa-shell.js             android/app/src/main/assets/nexa-timeline.js             android/app/src/main/assets/todo.html
+          grep -F 'applicationId = "com.nexa.app.cloud"' android/app/build.gradle.kts
+          grep -F 'versionCode = 42' android/app/build.gradle.kts
+          grep -F 'versionName = "1.0.36"' android/app/build.gradle.kts
+          grep -F 'MainActivity::class.java.packageName' android/app/src/main/java/com/nexa/app/MainActivity.kt
+          grep -F 'data-nx-app-icon' ui/nexa-workspace.js
+          grep -F 'LauncherStar' android/app/src/main/AndroidManifest.xml
+          grep -F 'LauncherN' android/app/src/main/AndroidManifest.xml
+          grep -F 'LauncherWarm' android/app/src/main/AndroidManifest.xml
+
+      - name: Run full regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check ui/nexa-workspace.js
+          node --test tests/*.test.cjs tests/*.test.js
+
+      - name: Build Android debug and release APKs
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug :app:assembleRelease --no-daemon
+          mkdir -p deliver
+          cp android/app/build/outputs/apk/debug/*.apk deliver/Nexa-Cloud-1.0.36-Gold35-Debug.apk
+          cp android/app/build/outputs/apk/release/*.apk deliver/Nexa-Cloud-1.0.36-Gold35-Unsigned.apk
+
+      - name: Sign release when fixed signing Secrets are installed
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.NEXA_CLOUD_KEYSTORE_B64 }}
+          STORE_PASSWORD: ${{ secrets.NEXA_CLOUD_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.NEXA_CLOUD_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.NEXA_CLOUD_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -n "$KEYSTORE_B64" ] && [ -n "$STORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > /tmp/nexa-cloud.jks
+            APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
+            "$APKSIGNER" sign               --ks /tmp/nexa-cloud.jks               --ks-pass "pass:$STORE_PASSWORD"               --ks-key-alias "$KEY_ALIAS"               --key-pass "pass:$KEY_PASSWORD"               --out deliver/Nexa-Cloud-1.0.36-Gold35-Signed.apk               deliver/Nexa-Cloud-1.0.36-Gold35-Unsigned.apk
+            "$APKSIGNER" verify --verbose --print-certs deliver/Nexa-Cloud-1.0.36-Gold35-Signed.apk
+          else
+            echo "Fixed signing Secrets are not installed; cloud compile remains verified and final fixed-key signing will be done outside the public repo."
+          fi
+
+      - name: Package verified source
+        shell: bash
+        run: |
+          set -euo pipefail
+          zip -qr deliver/Nexa-V1.0.36-Cloud-Gold35-Source.zip .             -x '.git/*' 'android/.gradle/*' 'android/app/build/*' 'deliver/*'
+          sha256sum deliver/*
+
+      - name: Promote verified Gold35 rebuild to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Nexa Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "Rebuild Nexa 1.0.36 from 1.0.35 golden baseline"
+          git push origin HEAD:main --force-with-lease=main:6fbfefbe0698f08e9ff9120187f2a3b4973309d9
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nexa-1.0.36-Gold35-Deliverables
+          path: deliver/*
+          if-no-files-found: error
