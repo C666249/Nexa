@@ -1,10 +1,11 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const core=require('../ui/nexa-core.js');
-test('five routes only, each workspace backs to home',()=>{
-  for(const route of ['home','todo','notes','daily','space']) assert.equal(core.route(route),route);
+test('six routes only, each workspace backs to home',()=>{
+  for(const route of ['home','todo','notes','timeline','daily','space']) assert.equal(core.route(route),route);
   assert.equal(core.route('invalid'),'home');
   assert.equal(core.back('notes'),'home');
+  assert.equal(core.back('timeline'),'home');
   assert.equal(core.back('daily'),'home');
   assert.equal(core.back('home'),null);
 });
