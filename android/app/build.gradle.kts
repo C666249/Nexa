@@ -11,8 +11,8 @@ android {
         applicationId = "com.nexa.app.cloud"
         minSdk = 26
         targetSdk = 35
-        versionCode = 43
-        versionName = "1.0.37"
+        versionCode = 44
+        versionName = "1.0.38"
         testInstrumentationRunner = "com.nexa.app.BackupInstrumentation"
     }
 
@@ -37,7 +37,7 @@ android {
     applicationVariants.all {
         val variantBuildType = buildType.name
         outputs.all {
-            (this as com.android.build.gradle.internal.api.ApkVariantOutputImpl).outputFileName = "Nexa-Cloud-1.0.37-${variantBuildType}.apk"
+            (this as com.android.build.gradle.internal.api.ApkVariantOutputImpl).outputFileName = "Nexa-Cloud-1.0.38-${variantBuildType}.apk"
         }
     }
 }
