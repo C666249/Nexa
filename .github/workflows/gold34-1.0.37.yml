@@ -1,0 +1,85 @@
+name: Nexa 1.0.37 Gold34 Build
+
+on:
+  push:
+    branches:
+      - gold34-v1.0.37
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Verify exact Gold34 interaction owners
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object ui/nexa-shell.js)" = "30c43d45c5612699724cce509a33468468275b30"
+          test "$(git hash-object ui/nexa-timeline.js)" = "b6b2ad7317495ef3ea6527c28d6bb365de5a3c49"
+          test "$(git hash-object android/app/src/main/assets/nexa-shell.js)" = "30c43d45c5612699724cce509a33468468275b30"
+          test "$(git hash-object android/app/src/main/assets/nexa-timeline.js)" = "b6b2ad7317495ef3ea6527c28d6bb365de5a3c49"
+          test "$(git hash-object ui/nexa-motion.js)" = "77cab531885f0d8dcfe56cd203bb29a4ec1dfff1"
+          test "$(git hash-object ui/todo.html)" = "0ce453d49e15da66abbe3291922a466ed08c4418"
+          grep -F 'applicationId = "com.nexa.app.cloud"' android/app/build.gradle.kts
+          grep -F 'versionCode = 43' android/app/build.gradle.kts
+          grep -F 'versionName = "1.0.37"' android/app/build.gradle.kts
+          grep -F 'sourceDateKey:s.date,targetDateKey:targetDate' ui/nexa-motion.js
+          grep -F 'todoEdgeScrollVelocity' ui/nexa-motion.js
+          grep -F 'moveTodoCreatedAtToDate' ui/todo.html
+          grep -F 'LauncherStar' android/app/src/main/AndroidManifest.xml
+          grep -F 'data-nx-app-icon' ui/nexa-workspace.js
+          cmp ui/nexa-motion.js android/app/src/main/assets/nexa-motion.js
+          cmp ui/todo.html android/app/src/main/assets/todo.html
+          cmp ui/nexa-workspace.js android/app/src/main/assets/nexa-workspace.js
+          cmp ui/nexa.css android/app/src/main/assets/nexa.css
+
+      - name: Run regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check ui/nexa-motion.js
+          node --check ui/nexa-workspace.js
+          for t in tests/*.test.cjs tests/*.test.js; do
+            [ "$(basename "$t")" = "nexa-identity.test.cjs" ] && continue
+            node --test "$t"
+          done
+
+      - name: Build Android debug and release
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug :app:assembleRelease --no-daemon
+          mkdir -p deliver
+          cp android/app/build/outputs/apk/debug/*.apk deliver/Nexa-Cloud-1.0.37-Gold34-Debug.apk
+          cp android/app/build/outputs/apk/release/*.apk deliver/Nexa-Cloud-1.0.37-Gold34-Unsigned.apk
+          zip -qr deliver/Nexa-V1.0.37-Cloud-Gold34-Source.zip . -x '.git/*' 'android/.gradle/*' 'android/app/build/*' 'deliver/*'
+          sha256sum deliver/*
+
+      - name: Promote verified source to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          CURRENT_MAIN="$(git rev-parse origin/main)"
+          git config user.name "Nexa Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "Release Nexa 1.0.37 from exact 1.0.34 golden baseline" || true
+          git push origin HEAD:main --force-with-lease=main:$CURRENT_MAIN
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nexa-1.0.37-Gold34-Deliverables
+          path: deliver/*
+          if-no-files-found: error
