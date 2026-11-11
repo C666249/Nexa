@@ -43,22 +43,11 @@ jobs:
           s=p.read_text()
           s=s.replace('android:icon="@mipmap/ic_nexa"\n        android:roundIcon="@mipmap/ic_nexa"',
                       'android:icon="@mipmap/ic_nexa_star"\n        android:roundIcon="@mipmap/ic_nexa_star"',1)
-          old='''        <activity
-              android:name=".MainActivity"
-              android:exported="true"
-              android:launchMode="singleTask"
-              android:documentLaunchMode="never"
-              android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
-              android:windowSoftInputMode="adjustNothing">
-              <intent-filter>
-                  <action android:name="android.intent.action.MAIN" />
-                  <category android:name="android.intent.category.LAUNCHER" />
-              </intent-filter>
-          </activity>'''
+          start=s.index('        <activity\n            android:name=".MainActivity"')
+          end=s.index('        </activity>',start)+len('        </activity>')
           new='''        <activity
               android:name=".MainActivity"
               android:exported="true"
-              android:screenOrientation="portrait"
               android:launchMode="singleTask"
               android:documentLaunchMode="never"
               android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
@@ -105,8 +94,7 @@ jobs:
                   <category android:name="android.intent.category.LAUNCHER" />
               </intent-filter>
           </activity-alias>'''
-          if old not in s: raise SystemExit('MainActivity manifest block not found')
-          s=s.replace(old,new,1)
+          s=s[:start]+new+s[end:]
           p.write_text(s)
 
           # Native icon bridge only; no back handling, route handling, touch, or WebView navigation changes.
