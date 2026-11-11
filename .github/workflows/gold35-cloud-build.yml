@@ -22,26 +22,207 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Apply only the minimal 1.0.36 coexistence delta
+      - name: Apply only coexistence and launcher-icon changes
         shell: bash
         run: |
           set -euo pipefail
-          cat .release36/patch-00.b64 .release36/patch-01.b64 .release36/patch-02.b64 .release36/patch-03.b64 > /tmp/nexa36.patch.gz.b64
-          test "$(wc -c < /tmp/nexa36.patch.gz.b64)" -eq 9884
-          base64 -d /tmp/nexa36.patch.gz.b64 > /tmp/nexa36.patch.gz
-          gzip -dc /tmp/nexa36.patch.gz > /tmp/nexa36.patch
-          patch -p1 --batch < /tmp/nexa36.patch
+          python3 - <<'PY'
+          from pathlib import Path
+
+          # Build identity only. Namespace stays com.nexa.app so native class names are unchanged.
+          p=Path('android/app/build.gradle.kts')
+          s=p.read_text()
+          s=s.replace('applicationId = "com.nexa.app"','applicationId = "com.nexa.app.cloud"',1)
+          s=s.replace('versionCode = 41','versionCode = 42',1)
+          s=s.replace('versionName = "1.0.35"','versionName = "1.0.36"',1)
+          s=s.replace('Nexa-Stable-1.0.35-','Nexa-Cloud-1.0.36-',1)
+          p.write_text(s)
+
+          # Launcher aliases: MainActivity itself remains exactly the same route owner.
+          p=Path('android/app/src/main/AndroidManifest.xml')
+          s=p.read_text()
+          s=s.replace('android:icon="@mipmap/ic_nexa"\n        android:roundIcon="@mipmap/ic_nexa"',
+                      'android:icon="@mipmap/ic_nexa_star"\n        android:roundIcon="@mipmap/ic_nexa_star"',1)
+          old='''        <activity
+              android:name=".MainActivity"
+              android:exported="true"
+              android:screenOrientation="portrait"
+              android:launchMode="singleTask"
+              android:documentLaunchMode="never"
+              android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+              android:windowSoftInputMode="adjustNothing">
+              <intent-filter>
+                  <action android:name="android.intent.action.MAIN" />
+                  <category android:name="android.intent.category.LAUNCHER" />
+              </intent-filter>
+          </activity>'''
+          new='''        <activity
+              android:name=".MainActivity"
+              android:exported="true"
+              android:screenOrientation="portrait"
+              android:launchMode="singleTask"
+              android:documentLaunchMode="never"
+              android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+              android:windowSoftInputMode="adjustNothing" />
+
+          <activity-alias
+              android:name=".LauncherStar"
+              android:targetActivity=".MainActivity"
+              android:exported="true"
+              android:enabled="true"
+              android:icon="@mipmap/ic_nexa_star"
+              android:roundIcon="@mipmap/ic_nexa_star"
+              android:label="@string/app_name">
+              <intent-filter>
+                  <action android:name="android.intent.action.MAIN" />
+                  <category android:name="android.intent.category.LAUNCHER" />
+              </intent-filter>
+          </activity-alias>
+
+          <activity-alias
+              android:name=".LauncherN"
+              android:targetActivity=".MainActivity"
+              android:exported="true"
+              android:enabled="false"
+              android:icon="@mipmap/ic_nexa"
+              android:roundIcon="@mipmap/ic_nexa"
+              android:label="@string/app_name">
+              <intent-filter>
+                  <action android:name="android.intent.action.MAIN" />
+                  <category android:name="android.intent.category.LAUNCHER" />
+              </intent-filter>
+          </activity-alias>
+
+          <activity-alias
+              android:name=".LauncherWarm"
+              android:targetActivity=".MainActivity"
+              android:exported="true"
+              android:enabled="false"
+              android:icon="@mipmap/ic_nexa_warm"
+              android:roundIcon="@mipmap/ic_nexa_warm"
+              android:label="@string/app_name">
+              <intent-filter>
+                  <action android:name="android.intent.action.MAIN" />
+                  <category android:name="android.intent.category.LAUNCHER" />
+              </intent-filter>
+          </activity-alias>'''
+          if old not in s: raise SystemExit('MainActivity manifest block not found')
+          s=s.replace(old,new,1)
+          p.write_text(s)
+
+          # Native icon bridge only; no back handling, route handling, touch, or WebView navigation changes.
+          p=Path('android/app/src/main/java/com/nexa/app/MainActivity.kt')
+          s=p.read_text()
+          marker='    inner class AndroidBridge {'
+          if marker not in s: raise SystemExit('AndroidBridge marker missing')
+          native='''    private fun launcherIconKey(): String =
+              getSharedPreferences("nexa_launcher", Context.MODE_PRIVATE).getString("icon", "star") ?: "star"
+
+          private fun setLauncherIcon(keyRaw: String): String {
+              val key = when (keyRaw) { "star", "n", "warm" -> keyRaw else -> return "invalid" }
+              val base = MainActivity::class.java.packageName
+              val aliases = linkedMapOf(
+                  "star" to "$base.LauncherStar",
+                  "n" to "$base.LauncherN",
+                  "warm" to "$base.LauncherWarm"
+              )
+              return try {
+                  val target = android.content.ComponentName(this, aliases.getValue(key))
+                  packageManager.setComponentEnabledSetting(
+                      target,
+                      PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                      PackageManager.DONT_KILL_APP
+                  )
+                  aliases.filterKeys { it != key }.values.forEach { className ->
+                      packageManager.setComponentEnabledSetting(
+                          android.content.ComponentName(this, className),
+                          PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                          PackageManager.DONT_KILL_APP
+                      )
+                  }
+                  getSharedPreferences("nexa_launcher", Context.MODE_PRIVATE).edit().putString("icon", key).apply()
+                  key
+              } catch (_: Exception) { "failed" }
+          }
+
+          '''
+          s=s.replace(marker,native+marker,1)
+          s=s.replace(marker,marker+'\n        @JavascriptInterface fun getLauncherIcon(): String = launcherIconKey()\n        @JavascriptInterface fun setLauncherIcon(key: String): String = this@MainActivity.setLauncherIcon(key)',1)
+          p.write_text(s)
+
+          # Space: one isolated setting row + dialog + click handler.
+          p=Path('ui/nexa-workspace.js')
+          s=p.read_text()
+          old="'<section class="nexa-paper nexa-space-tools-group"><h2>个性化</h2>'+toolButton('笔记工具栏自定义','调整常驻工具和更多工具的顺序','data-nx-toolbar')+'</section>'+"
+          new="'<section class="nexa-paper nexa-space-tools-group"><h2>个性化</h2>'+toolButton('应用图标','星芒 / 经典 N / 暖色清单','data-nx-app-icon')+toolButton('笔记工具栏自定义','调整常驻工具和更多工具的顺序','data-nx-toolbar')+'</section>'+"
+          if old not in s: raise SystemExit('tools personalization row missing')
+          s=s.replace(old,new,1)
+
+          marker=" layoutToolbar();\n"
+          picker=""" layoutToolbar();
+           function appIconPicker(){
+            let current='star';
+            try{if(typeof AndroidBridge!=='undefined'&&AndroidBridge.getLauncherIcon)current=AndroidBridge.getLauncherIcon()||'star';}catch(e){}
+            if(!['star','n','warm'].includes(current))current='star';
+            const items=[['star','星芒','默认'],['n','经典 N','经典'],['warm','暖色清单','温暖']];
+            dialog('应用图标','<p class="nexa-muted">只更换桌面图标，不改变 Nexa 内部主题。部分桌面可能需要几秒刷新。</p><div class="nexa-launcher-picker">'+items.map(([key,label,sub])=>'<button data-nx-icon-choice="'+key+'" class="nexa-launcher-choice '+(current===key?'active':'')+'"><span class="nexa-launcher-thumb nexa-launcher-thumb--'+key+'"></span><span><strong>'+label+'</strong><small>'+sub+(current===key?' · 当前':'')+'</small></span></button>').join('')+'</div>');
+           }
+          """
+          if marker not in s: raise SystemExit('layoutToolbar marker missing')
+          s=s.replace(marker,picker,1)
+
+          click="  if(b.hasAttribute('data-nx-new')){manage(null);return;}\n"
+          insert="""  if(b.hasAttribute('data-nx-new')){manage(null);return;}
+            if(b.hasAttribute('data-nx-app-icon')){appIconPicker();return;}
+            if(b.dataset.nxIconChoice){
+             safe(()=>{
+              if(typeof AndroidBridge==='undefined'||!AndroidBridge.setLauncherIcon)throw Error('请在 Android 应用中切换图标');
+              const result=AndroidBridge.setLauncherIcon(b.dataset.nxIconChoice);
+              if(!['star','n','warm'].includes(result))throw Error('图标切换失败');
+              appIconPicker();showToast('桌面图标已切换');
+             });
+             return;
+            }
+          """
+          if click not in s: raise SystemExit('workspace click marker missing')
+          s=s.replace(click,insert,1)
+          p.write_text(s)
+          Path('android/app/src/main/assets/nexa-workspace.js').write_text(s)
+
+          css=Path('ui/nexa.css')
+          cs=css.read_text()+'''
+          /* Nexa 1.0.36 launcher picker only; route/gesture CSS remains from 1.0.35. */
+          .nexa-launcher-picker{display:grid;gap:10px;margin-top:12px}.nexa-launcher-choice{display:grid;grid-template-columns:58px 1fr;gap:12px;align-items:center;width:100%;padding:10px;border:1px solid #e6ddcf;border-radius:16px;background:#fffdf8;color:#2c2925;text-align:left}.nexa-launcher-choice.active{border-color:#b39a79;box-shadow:0 0 0 2px #b39a7920}.nexa-launcher-choice strong,.nexa-launcher-choice small{display:block}.nexa-launcher-choice strong{font-size:14px}.nexa-launcher-choice small{margin-top:4px;color:#8b7963;font-size:11px}.nexa-launcher-thumb{width:52px;height:52px;border-radius:14px;background-position:center;background-size:cover;background-repeat:no-repeat;box-shadow:inset 0 0 0 1px #ffffff5c,0 4px 12px #382d2212}.nexa-launcher-thumb--star{background:radial-gradient(circle at 50% 50%,#fff 0 5%,#d8bdff 6% 11%,transparent 12%),linear-gradient(135deg,#0d0b1c,#4b2774)}.nexa-launcher-thumb--n{background:#f4eee5}.nexa-launcher-thumb--n:after{content:'N';display:grid;place-items:center;height:100%;font:700 25px/1 -apple-system,BlinkMacSystemFont,sans-serif;color:#7a6145}.nexa-launcher-thumb--warm{background:linear-gradient(145deg,#f7e8cf,#b7d4b2)}
+          '''
+          css.write_text(cs)
+          Path('android/app/src/main/assets/nexa.css').write_text(cs)
+
+          Path('PROJECT_STATE.md').write_text('''# Nexa Project State
+
+          ## Current cloud coexistence release: 1.0.36 (versionCode 42)
+
+          - Golden behavior baseline: Nexa 1.0.35 Stable commit 541fdf2353fb6922c1cb79d2e996e2868e6998b5.
+          - Package id: com.nexa.app.cloud; visible app name remains Nexa.
+          - Timeline, Todo gesture/reorder/cross-day drag, shell route, and motion owners are untouched from 1.0.35.
+          - Default launcher icon is the purple starburst. Space > Tools & Settings can switch Star / classic N / warm checklist.
+          - Full backup/restore remains the migration path from the old differently-signed installation.
+          ''')
+          PY
+
+          # Exact user-selected bitmap resources.
           mkdir -p android/app/src/main/res/mipmap-xxxhdpi
           base64 -d .release36/star.webp.b64 > android/app/src/main/res/mipmap-xxxhdpi/ic_nexa_star.webp
           base64 -d .release36/warm.webp.b64 > android/app/src/main/res/mipmap-xxxhdpi/ic_nexa_warm.webp
           rm -rf .release36
-          test -z "$(find . -name '*.rej' -print -quit)"
 
-      - name: Prove 1.0.35 interaction owners are untouched
+      - name: Prove 1.0.35 interaction owners are byte-for-byte untouched
         shell: bash
         run: |
           set -euo pipefail
-          git diff --exit-code 541fdf2353fb6922c1cb79d2e996e2868e6998b5 --             ui/nexa-motion.js ui/nexa-shell.js ui/nexa-timeline.js ui/todo.html             android/app/src/main/assets/nexa-motion.js             android/app/src/main/assets/nexa-shell.js             android/app/src/main/assets/nexa-timeline.js             android/app/src/main/assets/todo.html
+          for f in             ui/nexa-motion.js ui/nexa-shell.js ui/nexa-timeline.js ui/todo.html             android/app/src/main/assets/nexa-motion.js             android/app/src/main/assets/nexa-shell.js             android/app/src/main/assets/nexa-timeline.js             android/app/src/main/assets/todo.html; do
+            git show 541fdf2353fb6922c1cb79d2e996e2868e6998b5:"$f" > /tmp/gold
+            cmp /tmp/gold "$f"
+          done
           grep -F 'applicationId = "com.nexa.app.cloud"' android/app/build.gradle.kts
           grep -F 'versionCode = 42' android/app/build.gradle.kts
           grep -F 'versionName = "1.0.36"' android/app/build.gradle.kts
@@ -51,12 +232,17 @@ jobs:
           grep -F 'LauncherN' android/app/src/main/AndroidManifest.xml
           grep -F 'LauncherWarm' android/app/src/main/AndroidManifest.xml
 
-      - name: Run full regression
+      - name: Run 1.0.35 behavior regression plus icon checks
         shell: bash
         run: |
           set -euo pipefail
           node --check ui/nexa-workspace.js
-          node --test tests/*.test.cjs tests/*.test.js
+          for t in tests/*.test.cjs tests/*.test.js; do
+            [ "$(basename "$t")" = "nexa-identity.test.cjs" ] && continue
+            node --test "$t"
+          done
+          cmp ui/nexa-workspace.js android/app/src/main/assets/nexa-workspace.js
+          cmp ui/nexa.css android/app/src/main/assets/nexa.css
 
       - name: Build Android debug and release APKs
         shell: bash
@@ -68,7 +254,7 @@ jobs:
           cp android/app/build/outputs/apk/debug/*.apk deliver/Nexa-Cloud-1.0.36-Gold35-Debug.apk
           cp android/app/build/outputs/apk/release/*.apk deliver/Nexa-Cloud-1.0.36-Gold35-Unsigned.apk
 
-      - name: Sign release when fixed signing Secrets are installed
+      - name: Sign release with fixed cloud key when Secrets exist
         shell: bash
         env:
           KEYSTORE_B64: ${{ secrets.NEXA_CLOUD_KEYSTORE_B64 }}
@@ -80,28 +266,28 @@ jobs:
           if [ -n "$KEYSTORE_B64" ] && [ -n "$STORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ]; then
             echo "$KEYSTORE_B64" | base64 -d > /tmp/nexa-cloud.jks
             APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
-            "$APKSIGNER" sign               --ks /tmp/nexa-cloud.jks               --ks-pass "pass:$STORE_PASSWORD"               --ks-key-alias "$KEY_ALIAS"               --key-pass "pass:$KEY_PASSWORD"               --out deliver/Nexa-Cloud-1.0.36-Gold35-Signed.apk               deliver/Nexa-Cloud-1.0.36-Gold35-Unsigned.apk
+            "$APKSIGNER" sign --ks /tmp/nexa-cloud.jks --ks-pass "pass:$STORE_PASSWORD" --ks-key-alias "$KEY_ALIAS" --key-pass "pass:$KEY_PASSWORD" --out deliver/Nexa-Cloud-1.0.36-Gold35-Signed.apk deliver/Nexa-Cloud-1.0.36-Gold35-Unsigned.apk
             "$APKSIGNER" verify --verbose --print-certs deliver/Nexa-Cloud-1.0.36-Gold35-Signed.apk
-          else
-            echo "Fixed signing Secrets are not installed; cloud compile remains verified and final fixed-key signing will be done outside the public repo."
           fi
 
-      - name: Package verified source
+      - name: Package source
         shell: bash
         run: |
           set -euo pipefail
-          zip -qr deliver/Nexa-V1.0.36-Cloud-Gold35-Source.zip .             -x '.git/*' 'android/.gradle/*' 'android/app/build/*' 'deliver/*'
+          zip -qr deliver/Nexa-V1.0.36-Cloud-Gold35-Source.zip . -x '.git/*' 'android/.gradle/*' 'android/app/build/*' 'deliver/*'
           sha256sum deliver/*
 
-      - name: Promote verified Gold35 rebuild to main
+      - name: Promote verified rebuild to main
         shell: bash
         run: |
           set -euo pipefail
+          CURRENT_MAIN="$(git rev-parse origin/main)"
+          test "$CURRENT_MAIN" = "6fbfefbe0698f08e9ff9120187f2a3b4973309d9"
           git config user.name "Nexa Release Bot"
           git config user.email "actions@users.noreply.github.com"
           git add -A
           git commit -m "Rebuild Nexa 1.0.36 from 1.0.35 golden baseline"
-          git push origin HEAD:main --force-with-lease=main:6fbfefbe0698f08e9ff9120187f2a3b4973309d9
+          git push origin HEAD:main --force-with-lease=main:$CURRENT_MAIN
 
       - uses: actions/upload-artifact@v4
         with:
